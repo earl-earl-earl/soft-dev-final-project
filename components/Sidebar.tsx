@@ -3,13 +3,13 @@
 import { useState, useEffect } from "react";
 import styles from "./Sidebar.module.css";
 import Link from "next/link";
+import { usePathname } from 'next/navigation';
 
 interface NavLinkItem {
   type: "link";
   href: string;
   iconClass: string;
   text: string;
-  active?: boolean;
 }
 
 interface NavDescItem {
@@ -20,7 +20,7 @@ interface NavDescItem {
 type NavItem = NavLinkItem | NavDescItem;
 
 const mainNavItemsData: NavItem[] = [
-  { type: "link", href: "/dashboard", iconClass: "fa-solid fa-house", text: "Overview", active: true },
+  { type: "link", href: "/dashboard", iconClass: "fa-solid fa-house", text: "Overview" },
   { type: "desc", text: "DAILY OPERATIONS" },
   { type: "link", href: "/reservations", iconClass: "fa-regular fa-calendar", text: "Reservations" },
   { type: "link", href: "/guests", iconClass: "fa-regular fa-users", text: "Guests" },
@@ -39,7 +39,9 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [activeItemHref, setActiveItemHref] = useState<string | null>(null);
+  const currentPathname = usePathname();
+  
+  const [optimisticActiveHref, setOptimisticActiveHref] = useState<string | null>(null);
 
   const toggleSidebar = () => {
     const newCollapsedState = !isCollapsed;
@@ -50,17 +52,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
   };
 
   useEffect(() => {
-    const allNavLinks = [...mainNavItemsData, ...otherNavItemsData].filter(
-      (item): item is NavLinkItem => item.type === 'link'
-    );
-    const initiallyActiveItem = allNavLinks.find(item => item.active);
-    if (initiallyActiveItem) {
-      setActiveItemHref(initiallyActiveItem.href);
-    } else if (allNavLinks.length > 0) {
-      // setActiveItemHref(allNavLinks[0].href);
+    if (optimisticActiveHref) {
+      setOptimisticActiveHref(null);
     }
-  }, []);
-
+  }, [currentPathname, optimisticActiveHref]);
 
   const renderNavItems = (items: NavItem[]) => {
     return items.map((item: NavItem, index: number) => {
@@ -73,25 +68,34 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
           )
         );
       }
-     
-      const isActive = item.type === 'link' && activeItemHref === item.href;
+
+      const navLinkItem = item as NavLinkItem;
+
+      let isActive = false;
+      const pathMatches = navLinkItem.href === "/" ?
+                            currentPathname === navLinkItem.href :
+                            currentPathname.startsWith(navLinkItem.href);
+
+      if (optimisticActiveHref) {
+        isActive = navLinkItem.href === optimisticActiveHref;
+      } else {
+        isActive = pathMatches;
+      }
 
       return (
         <div
-          key={`${item.type}-${item.text}-${index}`}
+          key={`${navLinkItem.type}-${navLinkItem.text}-${index}`}
           className={`${styles.navButton} ${isActive ? styles.active : ""}`}
           onClick={() => {
-            if (item.type === 'link') {
-              setActiveItemHref(item.href);
-            }
+            setOptimisticActiveHref(navLinkItem.href);
           }}
         >
-          <Link href={item.href} className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : ''}`}>
+          <Link href={navLinkItem.href} className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : ''}`}>
             <span className={styles.navIconWrapper}>
-              <i className={item.iconClass}></i>
+              <i className={navLinkItem.iconClass}></i>
             </span>
-            {!isCollapsed && <span className={styles.navLinkText}>{item.text}</span>}
-            {isCollapsed && <span className={styles.tooltipText}>{item.text}</span>}
+            {!isCollapsed && <span className={styles.navLinkText}>{navLinkItem.text}</span>}
+            {isCollapsed && <span className={styles.tooltipText}>{navLinkItem.text}</span>}
           </Link>
         </div>
       );
@@ -101,6 +105,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
   return (
     <div className={`${styles.container} ${isCollapsed ? styles.collapsedContainer : ""}`}>
       <div className={styles.content}>
+        {/* Profile Section */}
         <div className={`${styles.profile} ${isCollapsed ? styles.profileCollapsed : ''}`}>
           <span className={styles.profilePic}>A</span>
           {!isCollapsed && (
@@ -110,6 +115,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
             </div>
           )}
         </div>
+
         <div className={styles.navBar}>
           {renderNavItems(mainNavItemsData)}
         </div>
@@ -120,6 +126,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
           {!isCollapsed && <p className={styles.navDesc}>OTHER</p>}
           {renderNavItems(otherNavItemsData)}
         </div>
+
         <button
           onClick={toggleSidebar}
           className={`${styles.toggleButton} ${isCollapsed ? styles.toggleButtonCollapsed : ''}`}

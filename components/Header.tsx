@@ -3,8 +3,8 @@
 
 import { useState } from "react";
 import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css"; // Default styling for the date picker
-import { format } from 'date-fns'; // For formatting the displayed date
+import "react-datepicker/dist/react-datepicker.css";
+import { format } from 'date-fns';
 
 import styles from "./Header.module.css";
 
@@ -18,14 +18,13 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
 
   const handleDateChange = (date: Date | null) => {
     setSelectedDate(date);
-    setIsCalendarOpen(false); // Close calendar after selecting a date
+    setIsCalendarOpen(false);
   };
 
   const toggleCalendar = () => {
     setIsCalendarOpen(!isCalendarOpen);
   };
 
-  // Format the date to display like "Wed, 07 May"
   const formattedDate = selectedDate ? format(selectedDate, "E, dd MMM") : "Select Date";
 
   return (
@@ -36,13 +35,18 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
 
       <div className={styles.actionsSection}>
         <div className={styles.actionItem}>
-          {/* You can add other icons here if needed in the future */}
-          <i className={`fa-regular fa-bell ${styles.icon}`}></i> {/* Example Notification Icon */}
-          <i className={`fa-regular fa-file-export ${styles.icon}`}></i>
+          <div className={styles.iconTooltipWrapper}>
+            <i className={`fa-regular fa-bell ${styles.icon}`}></i>
+            <span className={styles.tooltipText}>Notifications</span>
+          </div>
+          <div className={styles.iconTooltipWrapper}>
+            <i className={`fa-regular fa-file-export ${styles.icon}`}></i>
+            <span className={styles.tooltipText}>Export Data</span>
+          </div>
         </div>
 
         <div className={styles.datePickerContainer}>
-          <button onClick={toggleCalendar} className={styles.dateDisplayButton}>
+          <button onClick={toggleCalendar} className={styles.dateDisplayButton} title="Open Calendar">
             <i className={`fa-regular fa-calendar-day ${styles.icon} ${styles.calendarIcon}`}></i>
             <span>{formattedDate}</span>
           </button>
@@ -51,8 +55,7 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
               <DatePicker
                 selected={selectedDate}
                 onChange={handleDateChange}
-                inline // Renders the calendar directly without an input field
-                // onCalendarClose={() => setIsCalendarOpen(false)} // Alternative way to close
+                inline
               />
             </div>
           )}
