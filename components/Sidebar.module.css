@@ -1,0 +1,231 @@
+.container {
+  height: 100vh;
+  width: 350px;
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 40px;
+  background-color: var(--background);
+  left: 0;
+  top: 0;
+  transition: width 0.3s ease, padding 0.3s ease;
+  box-sizing: border-box;
+  border-right: 1px solid rgba(var(--gray-rgb), 0.2);
+}
+
+.collapsedContainer {
+  width: 80px;
+  padding: 20px 10px;
+}
+
+.content, .bottomContent {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  gap: 20px; 
+}
+.collapsedContainer .content, .collapsedContainer .bottomContent {
+  align-items: center;
+}
+.bottomContent {
+  padding-bottom: 10px;
+}
+
+
+.profile {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  transition: gap 0.3s ease; 
+}
+.profileCollapsed {
+  justify-content: center;
+  gap: 0;
+}
+
+.profilePic {
+  min-width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  font-weight: 900;
+  background: rgb(var(--gray-rgb), 0.6);
+  color: var(--background);
+  font-size: 34px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.profileName {
+  display: flex;
+  flex-direction: column;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.profileName h2 { font-size: 20px; line-height: 1.5; margin:0; color: var(--text-color); }
+.profileName p { color: rgb(var(--gray-rgb), 0.5); font-size: 14px; margin:0; }
+
+
+.navBar {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.navDesc {
+  color: rgba(0, 0, 0, 0.25);
+  font-size: 14px;
+  margin: 10px 0 5px 0;
+  padding-left: 5px;
+  text-transform: uppercase;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.navButton {
+  width: 100%;
+  border-radius: 10px;
+  color: var(--nav-text-icon-color);
+  cursor: pointer;
+  transition: background-color ease-in-out 0.2s, color ease-in-out 0.2s;
+  position: relative;
+}
+
+.navButton:hover:not(.active) {
+  background-color: rgba(var(--gray-rgb), 0.1);
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 15px;
+  text-decoration: none;
+  color: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  border-radius: inherit;
+  transition: gap 0.3s ease, padding 0.3s ease;
+}
+
+.navLink i {
+  height: 20px;
+  width: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 20px;
+}
+
+.navLinkCollapsed {
+  justify-content: center;
+  gap: 0;
+  padding: 12px 10px;
+}
+
+.navIconWrapper {
+  min-width: 20px;
+  height: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  transition: font-size 0.3s ease;
+}
+
+.navLinkText {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.active {
+  background: var(--primary-color-alpha-400);
+  font-weight: 700;
+  color: var(--primary-color);
+}
+.active .navLinkText {
+  font-weight: 700;
+}
+
+
+.tooltipText {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    left: 100%; 
+    margin-left: 8px; 
+    padding: 5px 10px; 
+    background-color: #333; 
+    color: white;
+    font-size: 13px;
+    border-radius: 5px; 
+    white-space: nowrap; 
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease 0.1s, visibility 0.15s ease 0.1s, font-weight ease 0.1s;
+    pointer-events: none;
+    text-align: left;
+}
+
+.tooltipText::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 100%;
+    transform: translateY(-50%);
+
+    border-width: 6px;
+    border-style: solid;
+    border-color: transparent #333 transparent transparent;
+}
+
+.content > .navBar > .navButton:nth-of-type(2) .tooltipText {
+    margin-left: 4px;
+}
+
+
+.collapsedContainer .navButton:hover .tooltipText {
+  opacity: 1;
+  visibility: visible;
+}
+
+.toggleButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 20px;
+  padding: 12px 15px;
+  background-color: transparent;
+  color: var(--nav-text-icon-color);
+  border: 1px solid rgba(var(--gray-rgb), 0.2);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, gap 0.3s ease, padding 0.3s ease;
+  font-size: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  font-family: var(--font-inter-sans), Arial, Helvetica, sans-serif;
+}
+.toggleButton:hover {
+  background-color: rgba(var(--gray-rgb), 0.1);
+  border-color: rgba(var(--gray-rgb), 0.3);
+}
+
+.toggleButtonCollapsed {
+  justify-content: center;
+  gap: 0;
+  padding: 12px 10px;
+}
+
+.toggleButtonText {
+  font-weight: 500;
+}
