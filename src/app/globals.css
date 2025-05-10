@@ -56,6 +56,7 @@ body {
   box-sizing: border-box;
   padding: 0;
   margin: 0;
+  font-family: var(--font-inter-sans), Arial, Helvetica, sans-serif;
 }
 
 a {
