@@ -1,0 +1,76 @@
+/* app/page.module.css */
+
+/* Base container for the entire page layout */
+.pageContainer {
+  display: flex; /* Aligns Sidebar and contentWrapper side-by-side */
+  min-height: 100vh; /* Ensure the page container itself can fill viewport height */
+  background-color: #f8f9fa; /* A light background for the overall page */
+}
+
+/*
+  Wrapper for the Header and the main scrollable content area.
+  This div will get a dynamic margin-left to accommodate the fixed Sidebar.
+*/
+.contentWrapper {
+  flex-grow: 1; /* Allows this wrapper to take up all available space next to the Sidebar */
+  display: flex;
+  flex-direction: column; /* Stacks Header on top of mainContent */
+  height: 100vh; /* Crucial for making mainContent scroll within this fixed height */
+  overflow: hidden; /* Prevents scrollbars on contentWrapper itself if Header/mainContent misbehave */
+  transition: margin-left 0.3s ease; /* Matches sidebar collapse transition duration */
+}
+
+/*
+  Dynamic margin classes for the contentWrapper, controlled by Sidebar's collapsed state.
+  These values should match your Sidebar's widths.
+*/
+.contentWrapperExpanded {
+  margin-left: 350px; /* Your Sidebar's expanded width */
+}
+
+.contentWrapperCollapsed {
+  margin-left: 80px;  /* Your Sidebar's collapsed width */
+}
+
+/*
+  The main content area where page-specific content goes.
+  It scrolls independently within the contentWrapper.
+*/
+.mainContent {
+  flex-grow: 1; /* Allows mainContent to take all available vertical space within contentWrapper (below Header) */
+  padding: 25px; /* Consistent padding around the main content */
+  box-sizing: border-box;
+  overflow-y: auto; /* Enables vertical scrolling ONLY for this main content area */
+  background-color: #ffffff; /* Background for the actual content area */
+}
+
+/* Basic styling for headings and paragraphs within mainContent */
+.mainContent h1,
+.mainContent h2,
+.mainContent h3 {
+  margin-top: 0;
+  margin-bottom: 0.8em;
+  color: #343a40; /* Darker text for headings */
+}
+
+.mainContent h1 { font-size: 2rem; }
+.mainContent h2 { font-size: 1.6rem; }
+.mainContent h3 { font-size: 1.3rem; }
+
+.mainContent p {
+  line-height: 1.6;
+  color: #495057; /* Standard text color */
+  margin-bottom: 1.2em;
+}
+
+.mainContent ul {
+  list-style: disc;
+  margin-left: 20px; /* Indent list items */
+  padding-left: 0; /* Reset browser default padding if any */
+  margin-bottom: 1.2em;
+}
+
+.mainContent ul li {
+  margin-bottom: 0.6em;
+  color: #495057;
+}

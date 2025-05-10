@@ -1,0 +1,224 @@
+/* components/Header/Header.module.css */
+
+.headerContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px; /* Adjust padding as needed */
+  background-color: var(--background); /* Or your theme's background */
+  border-bottom: 1px solid rgba(var(--gray-rgb), 0.2);
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-inter-sans), Arial, Helvetica, sans-serif;
+}
+
+.titleSection {
+  /* Takes up available space, pushing actions to the right */
+  height: auto;
+}
+
+.title {
+  font-size: 24px; /* Adjust as needed */
+  font-weight: 800;
+  color: var(--foreground); /* Dark text color */
+  margin: 0;
+}
+
+.actionsSection {
+  display: flex;
+  align-items: center;
+  gap: 30px; /* Space between action items */
+}
+
+.actionItem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  gap: 10px;
+}
+
+.icon {
+  font-size: 20px; /* Adjust icon size */
+  color: var(--nav-text-icon-color); /* Icon color */
+  transition: color 0.2s ease;
+}
+
+.actionItem i {
+  height: 50px;
+  width: 50px;
+  border-radius: 50%;
+  transition: background 0.2s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: none;
+}
+
+.actionItem i:hover {
+  background: var(--gray-alpha-200); /* Darker on hover */
+}
+
+.datePickerContainer {
+  position: relative;
+}
+
+.dateDisplayButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: #f8f9fa; /* Light background for the date button */
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--nav-text-icon-color);
+  transition: background-color 0.2s ease;
+  font-family: var(--font-inter-sans), Arial, Helvetica, sans-serif;
+}
+
+.dateDisplayButton:hover {
+  background-color: #e9ecef;
+}
+
+.calendarIcon {
+  font-size: 18px; /* Slightly smaller calendar icon if needed */
+}
+
+.calendarDropdown {
+  position: absolute;
+  top: calc(100% + 5px); /* Position below the button */
+  right: 0; /* Align to the right of the button container */
+  background-color: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000; /* Ensure it's above other content */
+  padding: 5px; /* Add some padding around the DatePicker component itself */
+}
+
+/* Optional: Style react-datepicker elements further if needed */
+/* For example, to make the calendar header a bit more compact */
+.calendarDropdown :global(.react-datepicker__header) {
+  padding-top: 8px;
+}
+.calendarDropdown :global(.react-datepicker__day-name),
+.calendarDropdown :global(.react-datepicker__day),
+.calendarDropdown :global(.react-datepicker__time-name) {
+  width: 2rem; /* Adjust day cell size */
+  line-height: 2rem;
+}
+
+/* components/Header/Header.module.css */
+
+/* ... your existing Header styles ... */
+
+.calendarDropdown { /* Your existing class for the dropdown container */
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  background-color: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px; /* Rounded corners for the overall pop-up */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  padding: 10px; /* Padding around the calendar itself */
+  font-family: var(--font-inter-sans), Arial, Helvetica, sans-serif; /* Set desired font */
+}
+
+/* Override the main calendar container */
+.calendarDropdown :global(.react-datepicker) {
+  border: none; /* Remove default border if you have one on .calendarDropdown */
+  font-family: inherit; /* Inherit font from .calendarDropdown */
+  background-color: transparent; /* Make it transparent if .calendarDropdown has background */
+}
+
+/* Style the header of the calendar (Month Year, Arrows) */
+.calendarDropdown :global(.react-datepicker__header) {
+  background-color: #f0f0f0; /* Example: Light gray header */
+  border-bottom: 1px solid #ccc;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  border-top-left-radius: 6px; /* Match parent border-radius */
+  border-top-right-radius: 6px;
+}
+
+.calendarDropdown :global(.react-datepicker__current-month) {
+  color: #333;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+/* Style the navigation arrows */
+.calendarDropdown :global(.react-datepicker__navigation) {
+  top: 12px; /* Adjust vertical position of arrows */
+}
+.calendarDropdown :global(.react-datepicker__navigation-icon::before) {
+  border-color: #555; /* Arrow color */
+  border-width: 2px 2px 0 0; /* Adjust arrow thickness/size */
+}
+.calendarDropdown :global(.react-datepicker__navigation:hover .react-datepicker__navigation-icon::before) {
+  border-color: #000;
+}
+
+/* Style the day names (Su, Mo, Tu, etc.) */
+.calendarDropdown :global(.react-datepicker__day-name) {
+  color: #666;
+  font-weight: 500;
+  margin: 0.25rem; /* Adjust spacing */
+  font-size: 0.85rem;
+}
+
+/* Style individual day cells */
+.calendarDropdown :global(.react-datepicker__day) {
+  color: #333;
+  margin: 0.25rem; /* Adjust spacing */
+  border-radius: 50%; /* Make days circular */
+  width: 2.2rem;
+  line-height: 2.2rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.calendarDropdown :global(.react-datepicker__day:hover) {
+  background-color: #e9ecef; /* Light hover background */
+  border-radius: 50%;
+}
+
+.calendarDropdown :global(.react-datepicker__day--selected) {
+  background-color: var(--primary-color); /* Use your primary color */
+  color: white;
+  border-radius: 50%;
+  font-weight: bold;
+}
+.calendarDropdown :global(.react-datepicker__day--selected:hover) {
+  background-color: var(--primary-color); /* Keep selected color on hover */
+}
+
+
+.calendarDropdown :global(.react-datepicker__day--keyboard-selected) {
+  /* For accessibility when navigating with keyboard */
+  background-color: #d0eaff;
+  border-radius: 50%;
+}
+
+.calendarDropdown :global(.react-datepicker__day--today) {
+  font-weight: bold;
+  /* Optionally add a distinct style for today if it's not selected */
+}
+.calendarDropdown :global(.react-datepicker__day--today:not(.react-datepicker__day--selected)) {
+  color: var(--primary-color);
+  /* border: 1px solid var(--primary-color); /* Example: border for today */
+}
+
+
+.calendarDropdown :global(.react-datepicker__day--outside-month) {
+  color: #aaa; /* Dim days outside the current month */
+  cursor: default;
+}
+.calendarDropdown :global(.react-datepicker__day--disabled) {
+  color: #ccc;
+  cursor: default;
+  background-color: transparent !important; /* Ensure no background for disabled */
+}
