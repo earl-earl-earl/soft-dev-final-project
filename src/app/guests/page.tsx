@@ -3,11 +3,10 @@
 import Sidebar from "@components/Sidebar";
 import Header from "@components/Header";
 import styles from "./page.module.css";
-import Reservations from "@components/Reservations";
 import { useSidebar } from "@components/SidebarContext";
 
 export default function Home() {
-  const { isCollapsed: isSidebarCollapsed } = useSidebar(); 
+  const { isCollapsed: isSidebarCollapsed } = useSidebar();
 
   const contentWrapperMarginClass = isSidebarCollapsed
     ? styles.contentWrapperCollapsed
@@ -17,9 +16,9 @@ export default function Home() {
     <div className={styles.pageContainer}>
       <Sidebar /> 
       <div className={`${styles.contentWrapper} ${contentWrapperMarginClass}`}>
-        <Header title="Reservations" />
+        <Header title="Guests" />
         <main className={styles.mainContent}>
-          <Reservations />
+          Nigga
         </main>
       </div>
     </div>
