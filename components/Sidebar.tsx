@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import styles from "./Sidebar.module.css";
 import Link from "next/link";
 import { usePathname } from 'next/navigation';
+import { useSidebar } from "./SidebarContext";
 
 interface NavLinkItem {
   type: "link";
   href: string;
   iconClass: string;
+  activeIconClass?: string;
   text: string;
 }
 
@@ -20,36 +22,26 @@ interface NavDescItem {
 type NavItem = NavLinkItem | NavDescItem;
 
 const mainNavItemsData: NavItem[] = [
-  { type: "link", href: "/dashboard", iconClass: "fa-solid fa-house", text: "Overview" },
+  { type: "link", href: "/dashboard", iconClass: "fa-regular fa-house", activeIconClass: "fa-solid fa-house", text: "Overview" },
   { type: "desc", text: "DAILY OPERATIONS" },
-  { type: "link", href: "/reservations", iconClass: "fa-regular fa-calendar", text: "Reservations" },
-  { type: "link", href: "/guests", iconClass: "fa-regular fa-users", text: "Guests" },
-  { type: "link", href: "/rooms", iconClass: "fa-regular fa-door-open", text: "Rooms" },
-  { type: "link", href: "/staff", iconClass: "fa-regular fa-user-tie", text: "Staff" },
+  { type: "link", href: "/reservations", iconClass: "fa-regular fa-calendar", activeIconClass: "fa-solid fa-calendar", text: "Reservations" },
+  { type: "link", href: "/guests", iconClass: "fa-regular fa-users", activeIconClass: "fa-solid fa-users", text: "Guests" },
+  { type: "link", href: "/rooms", iconClass: "fa-regular fa-door-open", activeIconClass: "fa-solid fa-door-open", text: "Rooms" },
+  { type: "link", href: "/staff", iconClass: "fa-regular fa-user-tie", activeIconClass: "fa-solid fa-user-tie", text: "Staff" },
 ];
 
 const otherNavItemsData: NavItem[] = [
-  { type: "link", href: "/settings", iconClass: "fa-regular fa-gear", text: "Settings" },
-  { type: "link", href: "/logout", iconClass: "fa-regular fa-right-from-bracket", text: "Logout" },
+  { type: "link", href: "/settings", iconClass: "fa-regular fa-gear", activeIconClass: "fa-solid fa-gear", text: "Settings" },
+  { type: "link", href: "/logout", iconClass: "fa-regular fa-right-from-bracket", activeIconClass: "fa-solid fa-right-from-bracket", text: "Logout" },
 ];
 
-interface SidebarProps {
-  onToggle?: (isCollapsed: boolean) => void;
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+interface SidebarProps {}
 
-const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+const Sidebar: React.FC<SidebarProps> = () => {
+  const { isCollapsed, toggleSidebar } = useSidebar();
   const currentPathname = usePathname();
-  
   const [optimisticActiveHref, setOptimisticActiveHref] = useState<string | null>(null);
-
-  const toggleSidebar = () => {
-    const newCollapsedState = !isCollapsed;
-    setIsCollapsed(newCollapsedState);
-    if (onToggle) {
-      onToggle(newCollapsedState);
-    }
-  };
 
   useEffect(() => {
     if (optimisticActiveHref) {
@@ -82,6 +74,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
         isActive = pathMatches;
       }
 
+      const currentIconClass = isActive && navLinkItem.activeIconClass 
+                               ? navLinkItem.activeIconClass 
+                               : navLinkItem.iconClass;
+
       return (
         <div
           key={`${navLinkItem.type}-${navLinkItem.text}-${index}`}
@@ -92,7 +88,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
         >
           <Link href={navLinkItem.href} className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : ''}`}>
             <span className={styles.navIconWrapper}>
-              <i className={navLinkItem.iconClass}></i>
+              <i className={currentIconClass}></i>
             </span>
             {!isCollapsed && <span className={styles.navLinkText}>{navLinkItem.text}</span>}
             {isCollapsed && <span className={styles.tooltipText}>{navLinkItem.text}</span>}
@@ -105,7 +101,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
   return (
     <div className={`${styles.container} ${isCollapsed ? styles.collapsedContainer : ""}`}>
       <div className={styles.content}>
-        {/* Profile Section */}
         <div className={`${styles.profile} ${isCollapsed ? styles.profileCollapsed : ''}`}>
           <span className={styles.profilePic}>A</span>
           {!isCollapsed && (
