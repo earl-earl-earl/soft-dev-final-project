@@ -13,21 +13,17 @@ interface StaffMember {
 
 interface StaffTableProps {
   staffData: StaffMember[];
-  currentPage: number; // For triggering re-render and animation
+  currentPage: number;
 }
 
 const StaffTable: React.FC<StaffTableProps> = ({ staffData, currentPage }) => {
   const [animate, setAnimate] = useState(false);
 
   useEffect(() => {
-    // Trigger animation on page change
-    setAnimate(false); // Reset animation state
-    const timer = setTimeout(() => setAnimate(true), 50); // Apply animation class after a short delay
+    setAnimate(false);
+    const timer = setTimeout(() => setAnimate(true), 50);
     return () => clearTimeout(timer);
-  }, [currentPage]); // Depend on currentPage
-
-  // The early return for no data is removed from here.
-  // The main table structure will now always be rendered.
+  }, [currentPage]);
 
   return (
     <div className={`${styles.tableContainer} ${animate ? styles.fadeIn : ''}`} key={currentPage}>
@@ -64,7 +60,6 @@ const StaffTable: React.FC<StaffTableProps> = ({ staffData, currentPage }) => {
               </tr>
             ))
           ) : (
-            // This row is displayed if staffData is empty or not provided
             <tr>
               <td colSpan={6} className={styles.noStaffDataCell}>
                 No staff members to display.

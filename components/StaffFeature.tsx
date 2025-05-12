@@ -1,5 +1,4 @@
-// components/StaffFeature.tsx
-import React, { useState, useEffect, useMemo } from "react"; // Import useMemo
+import React, { useState, useEffect, useMemo } from "react";
 import StaffTable from "./StaffTable";
 import styles from "./StaffFeature.module.css";
 
@@ -21,14 +20,13 @@ const ALL_STAFF_MEMBERS: StaffMember[] = Array.from({ length: 28 }, (_, i) => ({
   position: "Staff",
 }));
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 9;
 
 const StaffFeature: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [currentStaff, setCurrentStaff] = useState<StaffMember[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Memoize filteredStaff: it only recalculates if ALL_STAFF_MEMBERS or searchTerm changes.
   const filteredStaff = useMemo(() => {
     if (!searchTerm.trim()) {
       return ALL_STAFF_MEMBERS;
@@ -40,38 +38,29 @@ const StaffFeature: React.FC = () => {
         staff.username.toLowerCase().includes(lowerSearchTerm) ||
         staff.email.toLowerCase().includes(lowerSearchTerm)
     );
-  }, [searchTerm]); // Assuming ALL_STAFF_MEMBERS is stable (defined outside component or fetched once)
+  }, [searchTerm]);
 
-  // Memoize totalPages: it only recalculates if filteredStaff changes.
   const totalPages = useMemo(() => {
-    // Ensure totalPages is at least 1, even if filteredStaff is empty,
-    // to prevent issues with currentPage being 0 or negative.
     return Math.max(1, Math.ceil(filteredStaff.length / ITEMS_PER_PAGE));
   }, [filteredStaff]);
 
-  // Effect 1: Reset current page to 1 when the search term changes.
-  // This ensures that after a search, the user always starts from the first page of results.
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]); // Only depends on searchTerm
+  }, [searchTerm])
 
-  // Effect 2: Update the displayed staff list and adjust currentPage if it becomes out of bounds.
-  // This runs when currentPage changes (user pagination) or when filteredStaff/totalPages change (due to search).
   useEffect(() => {
     let newCurrentPage = currentPage;
 
-    // If the current page is now greater than the total available pages (e.g., after a search reduces results),
-    // adjust currentPage to the last valid page.
     if (currentPage > totalPages) {
       newCurrentPage = totalPages;
-      setCurrentPage(totalPages); // This will cause this effect to run again with the corrected currentPage
-      return; // Exit early to avoid slicing with an invalid currentPage before the state update
+      setCurrentPage(totalPages);
+      return;
     }
 
     const startIndex = (newCurrentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
     setCurrentStaff(filteredStaff.slice(startIndex, endIndex));
-  }, [currentPage, filteredStaff, totalPages]); // Dependencies are now stable unless their underlying data truly changes
+  }, [currentPage, filteredStaff, totalPages]);
 
   const handleNextPage = () => {
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
@@ -94,11 +83,11 @@ const StaffFeature: React.FC = () => {
     if (endPage - startPage + 1 < maxPagesToShow && startPage > 1) {
       startPage = Math.max(1, endPage - maxPagesToShow + 1);
     }
-    // Ensure endPage does not exceed totalPages, especially if totalPages is small
+
     if (totalPages > 0 && endPage > totalPages) {
       endPage = totalPages;
     }
-    // Ensure start page is not less than 1
+
     if (startPage < 1 && totalPages > 0) {
       startPage = 1;
     }
@@ -122,8 +111,10 @@ const StaffFeature: React.FC = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+            {/* MODIFIED BUTTON BELOW */}
             <button className={styles.filterButton} title="Filter">
               <i className="fa-regular fa-filter"></i>
+              <span className={styles.tooltipText}>Filter</span>
             </button>
           </div>
           <button className={styles.addButton}>
@@ -143,7 +134,7 @@ const StaffFeature: React.FC = () => {
       </div>
 
       {totalPages > 1 &&
-        filteredStaff.length > 0 && ( // Also check if filteredStaff has items before showing pagination
+        filteredStaff.length > 0 && (
           <nav className={styles.pagination}>
             <button
               onClick={handlePrevPage}

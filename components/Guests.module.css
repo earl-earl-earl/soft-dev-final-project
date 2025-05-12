@@ -1,0 +1,376 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 25px;
+  height: 100%;
+}
+
+.listHeader {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.listTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--nav-text-icon-color);
+}
+
+.listControls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+}
+
+.searchBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #fff;
+  border: 1px solid var(--gray-alpha-200);
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.searchIcon {
+  color: #aaa;
+  margin-right: 8px;
+  padding-left: 10px;
+}
+
+.searchInput {
+  border: none;
+  outline: none;
+  padding: 10px 5px;
+  font-size: 0.9rem;
+  min-width: 250px;
+}
+
+.filterButton {
+  background: none;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+  color: #6c757d;
+  border-left: 1px solid #ddd;
+  margin-left: 5px;
+  position: relative;
+}
+
+.filterButton:hover {
+  color: #343a40;
+}
+
+.newReservationButton {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.2s ease;
+  position: relative;
+}
+
+.newReservationButton:hover {
+  background-color: var(--primary-550);
+}
+
+.exportButton {
+  background-color: #f8f9fa;
+  color: #495057;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 10px 15px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.exportButton:hover {
+  background-color: #e9ecef;
+}
+
+.tableContainer {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+  z-index: 1;
+}
+
+.tableContainer.tableFadeIn {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reservationTable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  height: auto;
+}
+
+.reservationTable th,
+.reservationTable td {
+  padding: 16px 20px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9rem;
+  word-break: break-word;
+}
+
+.reservationTable th {
+  color: var(--nav-text-icon-color);
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 16px 20px;
+}
+
+.reservationTable td {
+  padding: 24px 20px;
+}
+
+.reservationTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* User ID column */
+.reservationTable th:nth-child(1),
+.reservationTable td:nth-child(1) {
+  width: 7%;
+}
+
+/* Name column */
+.reservationTable th:nth-child(2),
+.reservationTable td:nth-child(2) {
+  width: 14%;
+}
+
+/* Room column */
+.reservationTable th:nth-child(3),
+.reservationTable td:nth-child(3) {
+  width: 7%;
+}
+
+/* Phone Number column */
+.reservationTable th:nth-child(4),
+.reservationTable td:nth-child(4) {
+  width: 10%;
+}
+
+/* Guests column */
+.reservationTable th:nth-child(5),
+.reservationTable td:nth-child(5) {
+  width: 5%;
+}
+
+/* Created At column */
+.reservationTable th:nth-child(6),
+.reservationTable td:nth-child(6) {
+  width: 13%;
+}
+
+/* Login At column */
+.reservationTable th:nth-child(7),
+.reservationTable td:nth-child(7) {
+  width: 13%;
+}
+
+/* Updated At column */
+.reservationTable th:nth-child(8),
+.reservationTable td:nth-child(8) {
+  width: 13%;
+}
+
+/* Status column */
+.reservationTable th:nth-child(9),
+.reservationTable td:nth-child(9) {
+  width: 8%;
+  text-align: center;
+}
+
+/* Status indicators */
+.statusCell {
+  text-align: center;
+  position: relative;
+}
+
+.statusCircle {
+  display: inline-block;
+  height: 10px;
+  width: 10px;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+
+.statusOnline {
+  background-color: #28a745;
+}
+
+.statusOffline {
+  background-color: #dc3545;
+}
+
+.noReservationsCell {
+  text-align: center;
+  padding: 40px 20px !important;
+  color: #6c757d;
+  font-size: 1rem;
+}
+
+.actionButtons {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+
+.actionButton {
+  border: none;
+  color: var(--nav-text-icon-color);
+  cursor: pointer;
+  padding: 5px;
+  margin: 0 4px;
+  font-size: 1rem;
+  background: none;
+  border-radius: 50%;
+  height: 30px;
+  width: 30px;
+  transition: 0.2s ease;
+  position: relative;
+}
+
+.actionButton:hover {
+  color: var(--primary-color);
+  background-color: var(--primary-color-alpha-400);
+}
+
+.deactivateButton:hover {
+  color: var(--warning-color);
+  background-color: var(--warning-color-alpha-400);
+}
+
+.paginationContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 4px;
+}
+
+.paginationButton {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  color: #007bff;
+  padding: 15px 20px;
+  cursor: pointer;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.paginationButton:hover:not(:disabled) {
+  background-color: #e9ecef;
+}
+
+.paginationButton:disabled {
+  color: #aaa;
+  cursor: not-allowed;
+  background-color: #f8f9fa;
+}
+
+.paginationNumbers {
+  display: flex;
+  align-items: center;
+}
+
+.paginationNumberButton {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  color: #007bff;
+  padding: 8px 15px;
+  margin: 0 3px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.paginationButton i {
+  font-size: 1rem;
+}
+
+.paginationNumberButton:hover:not(.activePage) {
+  background-color: #e9ecef;
+}
+
+.activePage {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.tooltipText {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  background-color: #333;
+  color: white;
+  font-size: 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 1050;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease 0.05s, visibility 0.15s ease 0.05s;
+  pointer-events: none;
+}
+
+.tooltipText::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent #333 transparent;
+}
+
+.filterButton:hover .tooltipText,
+.actionButton:hover .tooltipText,
+.newReservationButton:hover .tooltipText,
+.exportButton:hover .tooltipText {
+  opacity: 1;
+  visibility: visible;
+}
+
+.topContent {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}

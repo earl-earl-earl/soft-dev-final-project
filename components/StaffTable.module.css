@@ -1,10 +1,8 @@
-/* styles/StaffTable.module.css */
 .tableContainer {
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 7px 20px rgba(0, 0, 0, 0.15);
-  padding: 20px;
-  overflow-x: auto; /* For smaller screens */
+  overflow-x: auto;
   opacity: 0;
   transform: translateY(10px);
   transition: opacity 0.3s ease-out, transform 0.3s ease-out;
@@ -19,12 +17,12 @@
 .staffTable {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed; /* Crucial for predictable column widths */
+  table-layout: fixed;
 }
 
 .staffTable th,
 .staffTable td {
-  padding: 12px 15px;
+  padding: 16px 20px;
   text-align: left;
   border-bottom: 1px solid #eee;
   font-size: 0.9rem;
@@ -32,19 +30,14 @@
 }
 
 .staffTable th {
-  background-color: #f9f9f9;
   color: var(--nav-text-icon-color);
-  font-weight: 500;
-  text-transform: uppercase;
+  font-weight: 700;
   font-size: 0.8rem;
+  padding: 16px 20px;
 }
 
 .staffTable tbody tr:last-child td {
   border-bottom: none;
-}
-
-.staffTable tbody tr:hover {
-  background-color: #f1f1f1;
 }
 
 /* Username */
@@ -120,10 +113,6 @@
   color: #6c757d;
 }
 
-/* ============================================================ */
-/* ADD THE FOLLOWING TO YOUR StaffTable.module.css */
-/* ============================================================ */
-
 .actionButton {
   border: none;
   color: var(--nav-text-icon-color);
@@ -136,60 +125,53 @@
   height: 30px;
   width: 30px;
   transition: 0.2s ease;
-  position: relative; /* <-- REQUIRED: Add position relative */
+  position: relative;
 }
 
-/* --- Tooltip Styling (Copied and adapted from previous) --- */
 .tooltipText {
   position: absolute;
-  bottom: calc(100% + 5px); /* Position ABOVE the button */
+  bottom: calc(100% + 5px);
   left: 50%;
-  transform: translateX(-50%); /* Center horizontally */
+  transform: translateX(-50%);
   padding: 5px 10px;
   background-color: #333;
   color: white;
   font-size: 12px;
   border-radius: 4px;
   white-space: nowrap;
-  z-index: 1050; /* Ensure it's on top */
+  z-index: 1050;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.15s ease 0.05s, visibility 0.15s ease 0.05s;
-  pointer-events: none; /* So tooltip doesn't interfere with hover */
+  pointer-events: none;
 }
 
 .tooltipText::before {
   content: "";
   position: absolute;
-  top: 100%; /* Arrow is at the top of the tooltip span (pointing down) */
+  top: 100%;
   left: 50%;
   transform: translateX(-50%);
   border-width: 5px;
   border-style: solid;
-  border-color: #333 transparent transparent transparent; /* Makes arrow point down */
+  border-color: #333 transparent transparent transparent;
 }
 
-/* --- Rule to SHOW the tooltip on hover --- */
 .actionButton:hover .tooltipText {
   opacity: 1;
   visibility: visible;
 }
-/* ============================================================ */
-/* END OF CSS TO ADD                                          */
-/* ============================================================ */
 
 .noData {
-  /* This class was previously used for a <p> tag. You can remove it if no longer used elsewhere, or keep it if used. */
   text-align: center;
   padding: 20px;
   color: #6c757d;
 }
 
-/* ADD THIS NEW STYLE FOR THE "NO DATA" CELL INSIDE THE TABLE */
 .noStaffDataCell {
   text-align: center;
-  padding: 40px 20px !important; /* Ensures sufficient padding, !important might be needed to override general td styles */
-  color: #6c757d; /* Same color as .noData for consistency */
-  font-size: 1rem; /* Or match your table body font size */
-  border-bottom: none; /* Optional: remove bottom border if it's the only row */
+  padding: 40px 20px !important;
+  color: #6c757d;
+  font-size: 1rem;
+  border-bottom: none;
 }

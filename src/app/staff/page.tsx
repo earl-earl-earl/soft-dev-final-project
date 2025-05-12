@@ -2,12 +2,11 @@
 
 import Sidebar from "@components/Sidebar";
 import Header from "@components/Header";
-import styles from "./page.module.css";    // Your existing page-specific styles
-// import Reservations from "@components/Reservations"; // Remove or comment out if replacing
-import { useSidebar } from "@components/SidebarContext"; // Ensure this path is correct
-import StaffFeature from "@components/StaffFeature"; // Import the new component
+import styles from "./page.module.css";
+import { useSidebar } from "@components/SidebarContext";
+import StaffFeature from "@components/StaffFeature";
 
-export default function StaffPage() { // Renamed from Home for clarity
+export default function StaffPage() {
   const { isCollapsed: isSidebarCollapsed } = useSidebar();
 
   const contentWrapperMarginClass = isSidebarCollapsed
@@ -18,10 +17,9 @@ export default function StaffPage() { // Renamed from Home for clarity
     <div className={styles.pageContainer}>
       <Sidebar />
       <div className={`${styles.contentWrapper} ${contentWrapperMarginClass}`}>
-        <Header title="Staff" /> {/* Updated title */}
+        <Header title="Staff" />
         <main className={styles.mainContent}>
-          {/* <Reservations /> */} {/* If you were replacing Reservations */}
-          <StaffFeature /> {/* Add the StaffFeature component here */}
+          <StaffFeature />
         </main>
       </div>
     </div>
