@@ -122,11 +122,8 @@
 
 .noResults {
   text-align: center;
-  padding: 40px 20px;
   color: #6c757d;
-  background-color: #fff;
   border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   min-height: 150px; /* Ensure some space even when empty */
   display: flex;
   align-items: center;

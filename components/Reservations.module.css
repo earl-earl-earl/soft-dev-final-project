@@ -468,7 +468,115 @@
   border-color: #dee2e6; /* Light gray border */
 }
 
-/* === Make sure your existing pill styles like .checkedin etc. are removed if they conflict,
-     or ensure they are distinct from these new generic status pills.
-     The new styles .statusConfirmed, .statusPending, .statusCancelled are more generic.
- === */
+.iconTooltipWrapper {
+  position: relative;
+  display: inline-flex
+}
+
+.tooltipText {
+  position: absolute;
+  top: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  background-color: #333;
+  color: white;
+  font-size: 12px;
+  font-family: var(--font-inter-sans), Arial, Helvetica, sans-serif;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 1050;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease 0.05s, visibility 0.15s ease 0.05s;
+  pointer-events: none;
+}
+
+.tooltipText::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent #333 transparent;
+}
+
+.iconTooltipWrapper:hover .tooltipText {
+  opacity: 1;
+  visibility: visible;
+}
+
+.filterButton {
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  padding: 8px 10px;
+  border-radius: 0 8px 8px 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--nav-text-icon-color);
+  position: relative; /* Add this line */
+}
+
+.exportButton {
+  height: 40px;
+  width: 40px;
+  background-color: var(--primary-color);
+  color: #f9f9f9;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: 0.2s ease;
+  position: relative; /* Add this line */
+}
+
+/* Keep your existing .tooltipText and .tooltipText::before styles as they are */
+.tooltipText {
+  position: absolute;
+  top: calc(100% + 7px); /* Position below the button */
+  left: 50%;
+  transform: translateX(-50%); /* Center horizontally */
+  padding: 5px 10px;
+  background-color: #333;
+  color: white;
+  font-size: 12px;
+  font-family: var(--font-inter-sans), Arial, Helvetica, sans-serif;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 1050;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease 0.05s, visibility 0.15s ease 0.05s;
+  pointer-events: none;
+}
+
+.tooltipText::before {
+  content: '';
+  position: absolute;
+  bottom: 100%; /* Arrow points upwards from tooltip to button */
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent #333 transparent;
+}
+
+/* CHANGE THIS hover rule */
+/* .iconTooltipWrapper:hover .tooltipText { */
+/*   opacity: 1; */
+/*   visibility: visible; */
+/* } */
+
+/* TO THIS (for filter and export buttons specifically): */
+.filterButton:hover .tooltipText,
+.exportButton:hover .tooltipText {
+  opacity: 1;
+  visibility: visible;
+}

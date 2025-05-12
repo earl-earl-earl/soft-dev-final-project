@@ -26,9 +26,8 @@ const StaffTable: React.FC<StaffTableProps> = ({ staffData, currentPage }) => {
     return () => clearTimeout(timer);
   }, [currentPage]); // Depend on currentPage
 
-  if (!staffData || staffData.length === 0) {
-    return <p className={styles.noData}>No staff members to display.</p>;
-  }
+  // The early return for no data is removed from here.
+  // The main table structure will now always be rendered.
 
   return (
     <div className={`${styles.tableContainer} ${animate ? styles.fadeIn : ''}`} key={currentPage}>
@@ -44,23 +43,34 @@ const StaffTable: React.FC<StaffTableProps> = ({ staffData, currentPage }) => {
           </tr>
         </thead>
         <tbody>
-          {staffData.map((staff) => (
-            <tr key={staff.id}>
-              <td>{staff.username}</td>
-              <td>{staff.name}</td>
-              <td>{staff.email}</td>
-              <td>{staff.phoneNumber}</td>
-              <td>{staff.position}</td>
-              <td className={styles.actionsCell}>
-                <button className={styles.actionButton} title="Edit">
-                  <i className="fa-regular fa-pencil"></i>
-                </button>
-                <button className={`${styles.actionButton} ${styles.deactivateButton}`} title="Deactivate">
-                  <i className="fa-regular fa-circle-minus"></i> {/* Or fa-trash-alt */}
-                </button>
+          {staffData && staffData.length > 0 ? (
+            staffData.map((staff) => (
+              <tr key={staff.id}>
+                <td>{staff.username}</td>
+                <td>{staff.name}</td>
+                <td>{staff.email}</td>
+                <td>{staff.phoneNumber}</td>
+                <td>{staff.position}</td>
+                <td className={styles.actionsCell}>
+                  <button className={styles.actionButton} title="Edit">
+                    <i className="fa-regular fa-pencil"></i>
+                    <span className={styles.tooltipText}>Edit</span>
+                  </button>
+                  <button className={`${styles.actionButton} ${styles.deactivateButton}`} title="Deactivate">
+                    <i className="fa-regular fa-circle-minus"></i>
+                    <span className={styles.tooltipText}>Deactivate</span>
+                  </button>
+                </td>
+              </tr>
+            ))
+          ) : (
+            // This row is displayed if staffData is empty or not provided
+            <tr>
+              <td colSpan={6} className={styles.noStaffDataCell}>
+                No staff members to display.
               </td>
             </tr>
-          ))}
+          )}
         </tbody>
       </table>
     </div>
