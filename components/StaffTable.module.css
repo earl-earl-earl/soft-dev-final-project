@@ -1,0 +1,121 @@
+/* styles/StaffTable.module.css */
+.tableContainer {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  overflow-x: auto; /* For smaller screens */
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+  z-index: 1;
+}
+
+.tableContainer.fadeIn {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.staffTable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed; /* Crucial for predictable column widths */
+}
+
+.staffTable th,
+.staffTable td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #EEE;
+  font-size: 0.9rem;
+  word-break: break-word;
+}
+
+.staffTable th {
+  background-color: #f9f9f9;
+  color: var(--nav-text-icon-color);
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+}
+
+.staffTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.staffTable tbody tr:hover {
+  background-color: #f1f1f1;
+}
+
+/* Username */
+.staffTable th:nth-child(1),
+.staffTable td:nth-child(1) {
+  width: 22%;
+}
+
+/* Name */
+.staffTable th:nth-child(2),
+.staffTable td:nth-child(2) {
+  width: 22%;
+}
+
+/* Email */
+.staffTable th:nth-child(3),
+.staffTable td:nth-child(3) {
+  width: 21%;
+}
+
+/* Phone Number */
+.staffTable th:nth-child(4),
+.staffTable td:nth-child(4) {
+  width: 12%;
+}
+
+/* Position */
+.staffTable th:nth-child(5),
+.staffTable td:nth-child(5) {
+  width: 12%;
+}
+
+/* Actions */
+.staffTable th:nth-child(6),
+.staffTable td:nth-child(6) {
+  width: 11%;
+  text-align: center;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.actionsCell {
+  position: inherit;
+}
+
+.actionButton {
+  border: none;
+  color: var(--nav-text-icon-color);
+  cursor: pointer;
+  padding: 5px;
+  margin: 0 4px;
+  font-size: 1rem;
+  background: none;
+  border-radius: 50%;
+  height: 30px;
+  width: 30px;
+  transition: 0.2s ease;
+}
+
+.actionButton:hover {
+  color: var(--primary-color);
+  background-color: var(--primary-color-alpha-400);
+}
+
+.deactivateButton:hover {
+  color: var(--warning-color);
+  background-color: var(--warning-color-alpha-400);
+}
+
+.noData {
+  text-align: center;
+  padding: 20px;
+  color: #6c757d;
+}

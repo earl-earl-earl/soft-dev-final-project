@@ -13,6 +13,7 @@
   transition: width 0.3s ease, padding 0.3s ease;
   box-sizing: border-box;
   border-right: 1px solid rgba(var(--gray-rgb), 0.2);
+  z-index: 100;
 }
 
 .collapsedContainer {
@@ -185,6 +186,7 @@
     border-width: 6px;
     border-style: solid;
     border-color: transparent #333 transparent transparent;
+    z-index: 1000;
 }
 
 .content > .navBar > .navButton:nth-of-type(2) .tooltipText {

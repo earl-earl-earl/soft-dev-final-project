@@ -39,10 +39,6 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
             <i className={`fa-regular fa-bell ${styles.icon}`}></i>
             <span className={styles.tooltipText}>Notifications</span>
           </div>
-          <div className={styles.iconTooltipWrapper}>
-            <i className={`fa-regular fa-file-export ${styles.icon}`}></i>
-            <span className={styles.tooltipText}>Export Data</span>
-          </div>
         </div>
 
         <div className={styles.datePickerContainer}>

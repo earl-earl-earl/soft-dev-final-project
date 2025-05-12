@@ -1,7 +1,13 @@
+/* Reservations.module.css */
+
 .container {
-  background-color: #f9f9f9;
-  min-height: 100vh;
+  background-color: transparent;
+  min-height: 100%;
   color: var(--nav-text-icon-color);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
 }
 
 .headerTabs {
@@ -132,6 +138,11 @@
 
 .reservationListSection {
   margin-top: 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  height: 100%;
 }
 
 .listHeader {
@@ -139,6 +150,15 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  flex-shrink: 0;
+}
+
+.tableContent {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* Important for flex children that might overflow in some browsers */
+  background-color: red;
+  height: 100%;
 }
 
 .listTitle {
@@ -150,7 +170,6 @@
 .listControls {
   display: flex;
   align-items: center;
-  gap: 15px;
 }
 
 .searchBar {
@@ -158,7 +177,7 @@
   align-items: center;
   background-color: white;
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: 8px 0 0 8px;
   border: 1px solid #e0e0e0;
 }
 
@@ -185,16 +204,16 @@
   background-color: white;
   border: 1px solid #e0e0e0;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: 0 8px 8px 0;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #5a6169;
+  color: var(--nav-text-icon-color);
 }
 
 .filterButton i {
-  font-size: 18px;
+  font-size: 17px;
   line-height: 1;
 }
 
@@ -203,6 +222,16 @@
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   overflow-x: auto;
+  /* Styles for animation - initial state for on-mount fade-in */
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+/* Animation class to bring table to final state */
+.tableContainer.tableFadeIn {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .reservationTable {
@@ -290,3 +319,156 @@
 .tableContainer::-webkit-scrollbar-thumb:hover {
   background: #aaa;
 }
+
+.actionButtons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.exportButton {
+  height: 40px;
+  width: 40px;
+  background-color: var(--primary-color);
+  color: #f9f9f9;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: 0.2s ease;
+}
+
+.exportButton:hover {
+  background-color: var(--primary-550);
+}
+
+.noReservationsCell {
+  text-align: center;
+  padding: 40px 20px !important; /* Overrides default td padding if needed */
+  color: #6c757d;
+  font-size: 16px;
+}
+
+.paginationContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0px; /* Matches StaffFeature pagination top/bottom */
+  margin-top: 10px; /* Space above pagination */
+}
+
+.paginationButton,
+.paginationNumberButton {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  color: #007bff;
+  padding: 8px 15px;
+  margin: 0 3px;
+  cursor: pointer;
+  border-radius: 6px; /* Slightly more rounded like other buttons */
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.paginationButton {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 15px 20px;
+  border-radius: 10px;
+}
+
+.paginationButton:hover:not(:disabled),
+.paginationNumberButton:hover:not(.activePage) {
+  background-color: #e9ecef;
+  border-color: #ced4da;
+}
+
+.paginationButton:disabled {
+  color: #adb5bd;
+  cursor: not-allowed;
+  background-color: #f8f9fa;
+  border-color: #e9ecef;
+}
+
+.paginationNumbers {
+  display: flex;
+  align-items: center;
+}
+
+.paginationNumberButton.activePage {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+  font-weight: 600;
+}
+
+/* === Add these new styles to your Reservations.module.css === */
+
+/* General Pill Style */
+.statusPillGeneral {
+  padding: 5px 12px; /* Adjusted padding */
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-block;
+  line-height: 1.2; /* Adjusted for better vertical alignment */
+  text-align: center;
+  min-width: 80px; /* Ensures pills have some minimum width */
+  border: 1px solid transparent; /* Base border */
+}
+
+/* Confirmed Status Pill (and its variations) */
+.statusConfirmed {
+  background-color: #e6f4ea; /* Light green background */
+  color: #1d7737;       /* Darker green text */
+  border-color: #a3d8b3; /* Slightly darker green border */
+}
+
+/* Pending Status Pill */
+.statusPending {
+  background-color: #fff9c4; /* Light yellow background */
+  color: #b28900;       /* Darker yellow/gold text */
+  border-color: #ffe57f; /* Slightly darker yellow border */
+}
+
+/* Cancelled Status Pill */
+.statusCancelled {
+  background-color: #fde0dd; /* Light red background */
+  color: #c9302c;       /* Darker red text */
+  border-color: #f7b9b7; /* Slightly darker red border */
+}
+
+/* Other Status Pill (Fallback) */
+.statusOther {
+  background-color: #e9ecef; /* Light gray background */
+  color: #495057;       /* Dark gray text */
+  border-color: #ced4da; /* Medium gray border */
+}
+
+
+/* Payment Status Pills */
+.paymentPaid {
+  background-color: #e7f3ff; /* Light blue background */
+  color: #0056b3;       /* Darker blue text */
+  border-color: #a0cffd; /* Slightly darker blue border */
+}
+
+.paymentNotPaid {
+  background-color: #f8f9fa; /* Very light gray, almost white */
+  color: #6c757d;       /* Medium gray text */
+  border-color: #dee2e6; /* Light gray border */
+}
+
+/* === Make sure your existing pill styles like .checkedin etc. are removed if they conflict,
+     or ensure they are distinct from these new generic status pills.
+     The new styles .statusConfirmed, .statusPending, .statusCancelled are more generic.
+ === */

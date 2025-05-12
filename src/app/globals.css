@@ -3,6 +3,7 @@
   --gray-alpha-200: rgba(var(--gray-rgb), 0.08);
   --gray-alpha-100: rgba(var(--gray-rgb), 0.05);
   --primary-color-alpha-400: rgba(1, 123, 255, 0.2);
+  --warning-color-alpha-400: rgba(229, 56, 53, 0.2);
 
   --nav-text-icon-color: #818181;
 
