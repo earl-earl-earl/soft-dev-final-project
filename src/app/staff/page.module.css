@@ -23,8 +23,16 @@
 
 .mainContent {
   flex-grow: 1;
-  padding: 20px 25px;
+  padding: 25px;
   box-sizing: border-box;
   overflow-y: auto;
   background-color: #ffffff;
+}
+
+.staffTopContent {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
 }
