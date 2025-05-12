@@ -437,13 +437,15 @@ const Reservations = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                <button title="Filter" className={styles.filterButton}>
+                <button className={styles.filterButton}>
                   <i className="fa-regular fa-filter"></i>
+                  <span className={styles.tooltipText}>Filter</span> {/* Added tooltip */}
                 </button>
               </div>
               <div className={styles.exportAction}>
-                <button className={styles.exportButton} title="Export">
+                <button className={styles.exportButton}>
                   <i className="fa-regular fa-file-export"></i>
+                  <span className={styles.tooltipText}>Export</span> {/* Added tooltip */}
                 </button>
               </div>
             </div>

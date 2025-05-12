@@ -89,13 +89,16 @@
   white-space: nowrap;
 }
 
-.navButton {
+.navButton, .navButtonAction {
   width: 100%;
   border-radius: 10px;
   color: var(--nav-text-icon-color);
   cursor: pointer;
-  transition: background-color ease-in-out 0.2s, color ease-in-out 0.2s;
+  transition: background-color ease-in-out 0.1s, color ease-in-out 0.2s;
   position: relative;
+  outline: 0;
+  border: 0;
+  background-color: transparent;
 }
 
 .navButton:hover:not(.active) {
@@ -230,4 +233,18 @@
 
 .toggleButtonText {
   font-weight: 500;
+}
+
+.navLink.navButtonAction {
+  display: flex;
+  align-items: center;
+}
+
+.logoutButtonDistinct:hover {
+  background: var(--warning-color-alpha-400) !important;
+}
+
+.logoutButtonDistinct:hover .navLink .navLinkText,
+.logoutButtonDistinct:hover .navLink .navIconWrapper i {
+  color: var(--warning-color);
 }

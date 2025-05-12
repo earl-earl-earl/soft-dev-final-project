@@ -2,7 +2,7 @@
 .tableContainer {
   background-color: white;
   border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 7px 20px rgba(0, 0, 0, 0.15);
   padding: 20px;
   overflow-x: auto; /* For smaller screens */
   opacity: 0;
@@ -26,7 +26,7 @@
 .staffTable td {
   padding: 12px 15px;
   text-align: left;
-  border-bottom: 1px solid #EEE;
+  border-bottom: 1px solid #eee;
   font-size: 0.9rem;
   word-break: break-word;
 }
@@ -118,4 +118,78 @@
   text-align: center;
   padding: 20px;
   color: #6c757d;
+}
+
+/* ============================================================ */
+/* ADD THE FOLLOWING TO YOUR StaffTable.module.css */
+/* ============================================================ */
+
+.actionButton {
+  border: none;
+  color: var(--nav-text-icon-color);
+  cursor: pointer;
+  padding: 5px;
+  margin: 0 4px;
+  font-size: 1rem;
+  background: none;
+  border-radius: 50%;
+  height: 30px;
+  width: 30px;
+  transition: 0.2s ease;
+  position: relative; /* <-- REQUIRED: Add position relative */
+}
+
+/* --- Tooltip Styling (Copied and adapted from previous) --- */
+.tooltipText {
+  position: absolute;
+  bottom: calc(100% + 5px); /* Position ABOVE the button */
+  left: 50%;
+  transform: translateX(-50%); /* Center horizontally */
+  padding: 5px 10px;
+  background-color: #333;
+  color: white;
+  font-size: 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 1050; /* Ensure it's on top */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease 0.05s, visibility 0.15s ease 0.05s;
+  pointer-events: none; /* So tooltip doesn't interfere with hover */
+}
+
+.tooltipText::before {
+  content: "";
+  position: absolute;
+  top: 100%; /* Arrow is at the top of the tooltip span (pointing down) */
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: #333 transparent transparent transparent; /* Makes arrow point down */
+}
+
+/* --- Rule to SHOW the tooltip on hover --- */
+.actionButton:hover .tooltipText {
+  opacity: 1;
+  visibility: visible;
+}
+/* ============================================================ */
+/* END OF CSS TO ADD                                          */
+/* ============================================================ */
+
+.noData {
+  /* This class was previously used for a <p> tag. You can remove it if no longer used elsewhere, or keep it if used. */
+  text-align: center;
+  padding: 20px;
+  color: #6c757d;
+}
+
+/* ADD THIS NEW STYLE FOR THE "NO DATA" CELL INSIDE THE TABLE */
+.noStaffDataCell {
+  text-align: center;
+  padding: 40px 20px !important; /* Ensures sufficient padding, !important might be needed to override general td styles */
+  color: #6c757d; /* Same color as .noData for consistency */
+  font-size: 1rem; /* Or match your table body font size */
+  border-bottom: none; /* Optional: remove bottom border if it's the only row */
 }

@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import styles from "./Sidebar.module.css";
 import Link from "next/link";
-import { usePathname } from 'next/navigation';
+import { usePathname, /* useRouter */ } from 'next/navigation'; // Added useRouter
 import { useSidebar } from "./SidebarContext";
 
 interface NavLinkItem {
-  type: "link";
-  href: string;
+  type: "link" | "action"; // Added "action" type for buttons like logout
+  href?: string; // Optional for action type
+  action?: () => void; // Optional for action type
   iconClass: string;
   activeIconClass?: string;
   text: string;
@@ -21,6 +22,7 @@ interface NavDescItem {
 
 type NavItem = NavLinkItem | NavDescItem;
 
+// No change to mainNavItemsData
 const mainNavItemsData: NavItem[] = [
   { type: "link", href: "/dashboard", iconClass: "fa-regular fa-house", activeIconClass: "fa-solid fa-house", text: "Overview" },
   { type: "desc", text: "DAILY OPERATIONS" },
@@ -30,10 +32,12 @@ const mainNavItemsData: NavItem[] = [
   { type: "link", href: "/staff", iconClass: "fa-regular fa-user-tie", activeIconClass: "fa-solid fa-user-tie", text: "Staff" },
 ];
 
-const otherNavItemsData: NavItem[] = [
+// Modified otherNavItemsData for logout
+const otherNavItemsData = (handleLogoutCallback: () => void): NavItem[] => [
   { type: "link", href: "/settings", iconClass: "fa-regular fa-gear", activeIconClass: "fa-solid fa-gear", text: "Settings" },
-  { type: "link", href: "/logout", iconClass: "fa-regular fa-right-from-bracket", activeIconClass: "fa-solid fa-right-from-bracket", text: "Logout" },
+  { type: "action", action: handleLogoutCallback, iconClass: "fa-regular fa-right-from-bracket", activeIconClass: "fa-solid fa-right-from-bracket", text: "Logout" },
 ];
+
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface SidebarProps {}
@@ -41,6 +45,7 @@ interface SidebarProps {}
 const Sidebar: React.FC<SidebarProps> = () => {
   const { isCollapsed, toggleSidebar } = useSidebar();
   const currentPathname = usePathname();
+  // const router = useRouter(); // Initialize router for potential programmatic navigation
   const [optimisticActiveHref, setOptimisticActiveHref] = useState<string | null>(null);
 
   useEffect(() => {
@@ -48,6 +53,17 @@ const Sidebar: React.FC<SidebarProps> = () => {
       setOptimisticActiveHref(null);
     }
   }, [currentPathname, optimisticActiveHref]);
+
+  const handleLogout = () => {
+    console.log("Logout action triggered");
+    // Add your actual logout logic here, e.g.:
+    // await signOut(); // if using NextAuth or similar
+    // router.push('/login'); // Redirect to login page
+    alert("Logout functionality to be implemented!"); // Placeholder
+  };
+
+  const currentOtherNavItems = otherNavItemsData(handleLogout);
+
 
   const renderNavItems = (items: NavItem[]) => {
     return items.map((item: NavItem, index: number) => {
@@ -61,38 +77,61 @@ const Sidebar: React.FC<SidebarProps> = () => {
         );
       }
 
-      const navLinkItem = item as NavLinkItem;
+      const navActionItem = item as NavLinkItem; // Can be a link or action
+      const isLogoutButton = navActionItem.text === "Logout" && navActionItem.type === "action";
 
       let isActive = false;
-      const pathMatches = navLinkItem.href === "/" ?
-                            currentPathname === navLinkItem.href :
-                            currentPathname.startsWith(navLinkItem.href);
+      if (navActionItem.type === "link" && navActionItem.href) { // isActive only for links
+        const pathMatches = navActionItem.href === "/" ?
+                              currentPathname === navActionItem.href :
+                              currentPathname.startsWith(navActionItem.href);
 
-      if (optimisticActiveHref) {
-        isActive = navLinkItem.href === optimisticActiveHref;
-      } else {
-        isActive = pathMatches;
+        if (optimisticActiveHref) {
+          isActive = navActionItem.href === optimisticActiveHref;
+        } else {
+          isActive = pathMatches;
+        }
       }
 
-      const currentIconClass = isActive && navLinkItem.activeIconClass 
-                               ? navLinkItem.activeIconClass 
-                               : navLinkItem.iconClass;
+      const currentIconClass = isActive && navActionItem.activeIconClass
+                               ? navActionItem.activeIconClass
+                               : navActionItem.iconClass;
 
       return (
         <div
-          key={`${navLinkItem.type}-${navLinkItem.text}-${index}`}
-          className={`${styles.navButton} ${isActive ? styles.active : ""}`}
+          key={`${navActionItem.type}-${navActionItem.text}-${index}`}
+          className={`${styles.navButton} ${isActive ? styles.active : ""} ${isLogoutButton ? styles.logoutButtonDistinct : ""}`}
           onClick={() => {
-            setOptimisticActiveHref(navLinkItem.href);
+            if (navActionItem.type === "link" && navActionItem.href) {
+              setOptimisticActiveHref(navActionItem.href);
+            }
           }}
         >
-          <Link href={navLinkItem.href} className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : ''}`}>
-            <span className={styles.navIconWrapper}>
-              <i className={currentIconClass}></i>
-            </span>
-            {!isCollapsed && <span className={styles.navLinkText}>{navLinkItem.text}</span>}
-            {isCollapsed && <span className={styles.tooltipText}>{navLinkItem.text}</span>}
-          </Link>
+          {navActionItem.type === "link" && navActionItem.href ? (
+            <Link href={navActionItem.href} className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : ''}`}>
+              <span className={styles.navIconWrapper}>
+                <i className={currentIconClass}></i>
+              </span>
+              {!isCollapsed && <span className={styles.navLinkText}>{navActionItem.text}</span>}
+              {isCollapsed && <span className={styles.tooltipText}>{navActionItem.text}</span>}
+            </Link>
+          ) : navActionItem.type === "action" && navActionItem.action ? (
+            <> {/* Fragment to return button and tooltip as siblings */}
+              <button
+                onClick={navActionItem.action}
+                className={`${styles.navLink} ${styles.navButtonAction} ${isCollapsed ? styles.navLinkCollapsed : ''}`}
+                title={navActionItem.text} // Good for accessibility
+              >
+                <span className={styles.navIconWrapper}>
+                  <i className={currentIconClass}></i>
+                </span>
+                {!isCollapsed && <span className={styles.navLinkText}>{navActionItem.text}</span>}
+                {/* Tooltip span is no longer a direct child of the button when collapsed */}
+              </button>
+              {/* Tooltip is now a sibling to the button, still child of div.navButton */}
+              {isCollapsed && <span className={styles.tooltipText}>{navActionItem.text}</span>}
+            </>
+          ) : null}
         </div>
       );
     });
@@ -119,7 +158,7 @@ const Sidebar: React.FC<SidebarProps> = () => {
       <div className={styles.bottomContent}>
         <div className={styles.navBar}>
           {!isCollapsed && <p className={styles.navDesc}>OTHER</p>}
-          {renderNavItems(otherNavItemsData)}
+          {renderNavItems(currentOtherNavItems)} {/* Use the generated items with callback */}
         </div>
 
         <button
