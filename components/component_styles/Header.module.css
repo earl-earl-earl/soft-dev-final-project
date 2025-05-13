@@ -151,13 +151,13 @@
 }
 
 .calendarDropdown :global(.react-datepicker__day--selected) {
-  background-color: var(--primary-color);
-  color: white;
+  background-color: #017bff !important;
+  color: white !important;
   border-radius: 50%;
   font-weight: bold;
 }
 .calendarDropdown :global(.react-datepicker__day--selected:hover) {
-  background-color: var(--primary-color);
+  background-color: #017bff !important;
 }
 
 .calendarDropdown :global(.react-datepicker__day--keyboard-selected) {
@@ -168,8 +168,9 @@
 .calendarDropdown :global(.react-datepicker__day--today) {
   font-weight: bold;
 }
+
 .calendarDropdown :global(.react-datepicker__day--today:not(.react-datepicker__day--selected)) {
-  color: var(--primary-color);
+  color: #6c757d !important; /* Gray color for today's date */
 }
 
 .calendarDropdown :global(.react-datepicker__day--outside-month) {
@@ -221,4 +222,49 @@
 .iconTooltipWrapper:hover .tooltipText {
   opacity: 1;
   visibility: visible;
+}
+
+/* Update the style for days with arrivals */
+.arrivalDay {
+  position: relative;
+  background-color: rgba(40, 167, 69, 0.2) !important; /* Light green with low opacity */
+}
+
+/* Keep the dot indicator */
+.arrivalDay::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  background-color: var(--primary-color);
+  border-radius: 50%;
+}
+
+/* Change today's date color to gray */
+.calendarDropdown :global(.react-datepicker__day--today) {
+  font-weight: bold;
+}
+
+.calendarDropdown :global(.react-datepicker__day--today:not(.react-datepicker__day--selected)) {
+  color: #6c757d !important; /* Gray color for today's date */
+}
+
+/* Make sure selected date maintains the primary color */
+.calendarDropdown :global(.react-datepicker__day--selected) {
+  background-color: #017bff !important;
+  color: white !important;
+  border-radius: 50%;
+  font-weight: bold;
+}
+
+.calendarDropdown :global(.react-datepicker__day--selected:hover) {
+  background-color: #017bff !important;
+}
+
+/* Adjust hover effect for arrival days to maintain visibility */
+.arrivalDay:hover::after {
+  background-color: white;
 }

@@ -4,9 +4,10 @@
 import { useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { format } from 'date-fns';
+import { format, isSameDay } from 'date-fns';
 
 import styles from "../component_styles/Header.module.css";
+import { reservationsData } from '@components/base_components/Reservations'; // Import directly from the Reservations component
 
 interface HeaderProps {
   title: string;
@@ -26,6 +27,22 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
   };
 
   const formattedDate = selectedDate ? format(selectedDate, "E, dd MMM") : "Select Date";
+
+  // Function to determine if a date has confirmed arrivals
+  const hasArrivals = (date: Date) => {
+    return reservationsData.some(reservation => {
+      const isConfirmed = reservation.status.includes('CONFIRMED');
+      return isConfirmed && isSameDay(date, reservation.checkIn);
+    });
+  };
+
+  // Custom day class function for DatePicker
+  const dayClassName = (date: Date) => {
+    if (hasArrivals(date)) {
+      return styles.arrivalDay;
+    }
+    return ""; // Return empty string instead of undefined
+  };
 
   return (
     <header className={styles.headerContainer}>
@@ -52,6 +69,7 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
                 selected={selectedDate}
                 onChange={handleDateChange}
                 inline
+                dayClassName={dayClassName}
               />
             </div>
           )}
