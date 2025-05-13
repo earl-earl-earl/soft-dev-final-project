@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import styles from "./Sidebar.module.css";
 import Link from "next/link";
-import { usePathname, /* useRouter */ } from 'next/navigation'; // Added useRouter
+import { usePathname, /* useRouter */ } from 'next/navigation';
 import { useSidebar } from "./SidebarContext";
 
 interface NavLinkItem {
-  type: "link" | "action"; // Added "action" type for buttons like logout
-  href?: string; // Optional for action type
-  action?: () => void; // Optional for action type
+  type: "link" | "action";
+  href?: string;
+  action?: () => void;
   iconClass: string;
   activeIconClass?: string;
   text: string;
@@ -22,7 +22,6 @@ interface NavDescItem {
 
 type NavItem = NavLinkItem | NavDescItem;
 
-// No change to mainNavItemsData
 const mainNavItemsData: NavItem[] = [
   { type: "link", href: "/dashboard", iconClass: "fa-regular fa-house", activeIconClass: "fa-solid fa-house", text: "Overview" },
   { type: "desc", text: "DAILY OPERATIONS" },
@@ -32,7 +31,6 @@ const mainNavItemsData: NavItem[] = [
   { type: "link", href: "/staff", iconClass: "fa-regular fa-user-tie", activeIconClass: "fa-solid fa-user-tie", text: "Staff" },
 ];
 
-// Modified otherNavItemsData for logout
 const otherNavItemsData = (handleLogoutCallback: () => void): NavItem[] => [
   { type: "link", href: "/settings", iconClass: "fa-regular fa-gear", activeIconClass: "fa-solid fa-gear", text: "Settings" },
   { type: "action", action: handleLogoutCallback, iconClass: "fa-regular fa-right-from-bracket", activeIconClass: "fa-solid fa-right-from-bracket", text: "Logout" },
@@ -45,7 +43,7 @@ interface SidebarProps {}
 const Sidebar: React.FC<SidebarProps> = () => {
   const { isCollapsed, toggleSidebar } = useSidebar();
   const currentPathname = usePathname();
-  // const router = useRouter(); // Initialize router for potential programmatic navigation
+  // const router = useRouter();
   const [optimisticActiveHref, setOptimisticActiveHref] = useState<string | null>(null);
 
   useEffect(() => {
@@ -56,10 +54,9 @@ const Sidebar: React.FC<SidebarProps> = () => {
 
   const handleLogout = () => {
     console.log("Logout action triggered");
-    // Add your actual logout logic here, e.g.:
     // await signOut(); // if using NextAuth or similar
     // router.push('/login'); // Redirect to login page
-    alert("Logout functionality to be implemented!"); // Placeholder
+    alert("Logout functionality to be implemented!")
   };
 
   const currentOtherNavItems = otherNavItemsData(handleLogout);
@@ -77,11 +74,11 @@ const Sidebar: React.FC<SidebarProps> = () => {
         );
       }
 
-      const navActionItem = item as NavLinkItem; // Can be a link or action
+      const navActionItem = item as NavLinkItem;
       const isLogoutButton = navActionItem.text === "Logout" && navActionItem.type === "action";
 
       let isActive = false;
-      if (navActionItem.type === "link" && navActionItem.href) { // isActive only for links
+      if (navActionItem.type === "link" && navActionItem.href) {
         const pathMatches = navActionItem.href === "/" ?
                               currentPathname === navActionItem.href :
                               currentPathname.startsWith(navActionItem.href);
@@ -116,19 +113,17 @@ const Sidebar: React.FC<SidebarProps> = () => {
               {isCollapsed && <span className={styles.tooltipText}>{navActionItem.text}</span>}
             </Link>
           ) : navActionItem.type === "action" && navActionItem.action ? (
-            <> {/* Fragment to return button and tooltip as siblings */}
+            <>
               <button
                 onClick={navActionItem.action}
                 className={`${styles.navLink} ${styles.navButtonAction} ${isCollapsed ? styles.navLinkCollapsed : ''}`}
-                title={navActionItem.text} // Good for accessibility
+                title={navActionItem.text}
               >
                 <span className={styles.navIconWrapper}>
                   <i className={currentIconClass}></i>
                 </span>
                 {!isCollapsed && <span className={styles.navLinkText}>{navActionItem.text}</span>}
-                {/* Tooltip span is no longer a direct child of the button when collapsed */}
               </button>
-              {/* Tooltip is now a sibling to the button, still child of div.navButton */}
               {isCollapsed && <span className={styles.tooltipText}>{navActionItem.text}</span>}
             </>
           ) : null}
@@ -158,7 +153,7 @@ const Sidebar: React.FC<SidebarProps> = () => {
       <div className={styles.bottomContent}>
         <div className={styles.navBar}>
           {!isCollapsed && <p className={styles.navDesc}>OTHER</p>}
-          {renderNavItems(currentOtherNavItems)} {/* Use the generated items with callback */}
+          {renderNavItems(currentOtherNavItems)}
         </div>
 
         <button

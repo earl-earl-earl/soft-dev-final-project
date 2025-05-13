@@ -2,6 +2,7 @@
 
 import Sidebar from "@components/Sidebar";
 import Header from "@components/Header";
+import Guests from "@components/Guests";
 import styles from "./page.module.css";
 import { useSidebar } from "@components/SidebarContext";
 
@@ -18,7 +19,7 @@ export default function Home() {
       <div className={`${styles.contentWrapper} ${contentWrapperMarginClass}`}>
         <Header title="Guests" />
         <main className={styles.mainContent}>
-          Nigga
+          <Guests/>
         </main>
       </div>
     </div>

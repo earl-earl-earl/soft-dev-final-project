@@ -41,19 +41,17 @@ const StatCard: React.FC<StatCardProps> = ({
   );
 };
 
-// Interface strictly based on diagram attributes, NO GUESTS, NO pre-derived name
 interface ReservationItem {
   id: string;
   customerId: string;
   roomId: string;
   checkIn: Date;
   checkOut: Date;
-  status: string; // Raw backend status
+  status: string;
   confirmationTime?: Date;
   paymentReceived: boolean;
 }
 
-// Helper to create dates
 const createMockDate = (
   year: number,
   month: number,
@@ -64,7 +62,6 @@ const createMockDate = (
   return new Date(year, month - 1, day, hour, minute);
 };
 
-// Source data adhering to the STRICT ReservationItem
 const reservationsData: ReservationItem[] = [
   {
     id: "A1189",
@@ -164,7 +161,9 @@ const reservationsData: ReservationItem[] = [
   },
 ];
 
-// Utility function to format Date object for display
+// Sort reservationsData by checkIn date in ascending order
+reservationsData.sort((a, b) => b.checkIn.getTime() - a.checkIn.getTime());
+
 const formatDateForDisplay = (date: Date | undefined): string => {
   if (!date) return "N/A";
   return date.toLocaleDateString("en-US", {
@@ -174,7 +173,6 @@ const formatDateForDisplay = (date: Date | undefined): string => {
   });
 };
 
-// Mock data for customer lookup (name and phone)
 const customerLookup: { [key: string]: { name: string; phone: string } } = {
   cust101: { name: "Ledesma, Marben Jhon", phone: "0972 786 8762" },
   cust102: { name: "Lozada, Daven Jerthrude", phone: "0954 435 5243" },
@@ -188,7 +186,6 @@ const customerLookup: { [key: string]: { name: string; phone: string } } = {
   cust110: { name: "Williams, David", phone: "0933 444 5555" },
 };
 
-// Mock data for Room lookup
 const roomLookup: { [key: string]: { name: string } } = {
   R001: { name: "Ohana" },
   R002: { name: "Resthouse" },
@@ -305,7 +302,6 @@ const Reservations = () => {
     return pageNumbers;
   };
 
-  // This useMemo is critical for preventing whitespace issues and for performance
   const tableBodyContent = useMemo(() => {
     if (currentReservations.length > 0) {
       return currentReservations.map((item) => {
@@ -315,7 +311,6 @@ const Reservations = () => {
         if (statusCategory === "Pending") statusText = "Pending";
         if (statusCategory === "Cancelled") statusText = "Cancelled";
 
-        // Compact JSX for each row
         return (
           <tr key={item.id}>
             <td>{customerLookup[item.customerId]?.name || "N/A"}</td>
@@ -353,7 +348,6 @@ const Reservations = () => {
         );
       });
     } else {
-      // Compact JSX for the "no results" row
       return (
         <tr>
           <td colSpan={9} className={styles.noReservationsCell}>
@@ -362,7 +356,7 @@ const Reservations = () => {
         </tr>
       );
     }
-  }, [currentReservations, searchTerm]); // Dependencies on what's used inside the map or conditional
+  }, [currentReservations, searchTerm]);
 
   return (
     <div className={styles.container}>
@@ -439,13 +433,13 @@ const Reservations = () => {
                 </div>
                 <button className={styles.filterButton}>
                   <i className="fa-regular fa-filter"></i>
-                  <span className={styles.tooltipText}>Filter</span> {/* Added tooltip */}
+                  <span className={styles.tooltipText}>Filter</span>
                 </button>
               </div>
               <div className={styles.exportAction}>
                 <button className={styles.exportButton}>
                   <i className="fa-regular fa-file-export"></i>
-                  <span className={styles.tooltipText}>Export</span> {/* Added tooltip */}
+                  <span className={styles.tooltipText}>Export</span>
                 </button>
               </div>
             </div>
@@ -469,7 +463,6 @@ const Reservations = () => {
                   <th>Payment</th>
                 </tr>
               </thead>
-              {/* Directly render the memoized content */}
               <tbody>{tableBodyContent}</tbody>
             </table>
           </div>

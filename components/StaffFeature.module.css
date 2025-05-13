@@ -74,7 +74,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 0; /* Removed margin-top as gap on parent handles spacing */
+  padding: 10px 0;
 }
 
 .pageButton,
@@ -93,7 +93,7 @@
 .pageButton {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 10px;
   padding: 15px 20px;
   border-radius: 10px;
 }
@@ -124,7 +124,7 @@
   text-align: center;
   color: #6c757d;
   border-radius: 8px;
-  min-height: 150px; /* Ensure some space even when empty */
+  min-height: 150px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -137,3 +137,56 @@
   flex-direction: column;
   gap: 20px;
 }
+
+/* StaffFeature.module.css */
+
+/* ... your existing styles ... */
+
+.filterButton {
+  background: none;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+  color: #6c757d;
+  border-left: 1px solid #ddd;
+  margin-left: 5px;
+  position: relative; /* <-- Add this line */
+}
+
+/* --- Tooltip Styling (You can reuse/adapt from other modules) --- */
+.tooltipText {
+  position: absolute;
+  top: calc(100% + 5px); /* Position ABOVE the button */
+  left: 50%;
+  transform: translateX(-50%); /* Center horizontally */
+  padding: 5px 10px;
+  background-color: #333;
+  color: white;
+  font-size: 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 1050; /* Ensure it's on top */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease 0.05s, visibility 0.15s ease 0.05s;
+  pointer-events: none; /* So tooltip doesn't interfere with hover */
+}
+
+.tooltipText::before {
+  content: '';
+  position: absolute;
+  bottom: 100%; /* Arrow is at the top of the tooltip span (pointing down) */
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent #333 transparent; /* Makes arrow point down */
+}
+
+/* --- Rule to SHOW the tooltip on hover --- */
+.filterButton:hover .tooltipText {
+   opacity: 1;
+   visibility: visible;
+}
+
+/* ... rest of your styles ... */
