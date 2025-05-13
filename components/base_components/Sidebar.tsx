@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import styles from "./Sidebar.module.css";
+import styles from "../component_styles/Sidebar.module.css";
 import Link from "next/link";
 import { usePathname, /* useRouter */ } from 'next/navigation';
 import { useSidebar } from "./SidebarContext";

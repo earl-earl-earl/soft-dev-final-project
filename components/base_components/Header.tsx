@@ -6,7 +6,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format } from 'date-fns';
 
-import styles from "./Header.module.css";
+import styles from "../component_styles/Header.module.css";
 
 interface HeaderProps {
   title: string;

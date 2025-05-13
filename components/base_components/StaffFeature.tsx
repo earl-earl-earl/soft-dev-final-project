@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import StaffTable from "./StaffTable";
-import styles from "./StaffFeature.module.css";
+import styles from "../component_styles/StaffFeature.module.css";
 
 interface StaffMember {
   id: string;

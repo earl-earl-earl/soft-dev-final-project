@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import styles from "./Reservations.module.css";
+import styles from "../component_styles/Reservations.module.css";
 
 interface StatCardProps {
   title: string;

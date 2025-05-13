@@ -1,6 +1,6 @@
 // components/StaffTable.tsx
 import React, { useState, useEffect } from 'react';
-import styles from './StaffTable.module.css';
+import styles from '../component_styles/StaffTable.module.css';
 
 interface StaffMember {
   id: string;
