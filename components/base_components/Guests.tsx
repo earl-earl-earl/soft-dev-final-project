@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import styles from "./Guests.module.css";
+import styles from "../component_styles/Guests.module.css";
 
 interface Booking {
   userId: string;
