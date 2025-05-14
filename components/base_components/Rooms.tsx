@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 // import Link from 'next/link';
 import styles from "../component_styles/Rooms.module.css";
+import RoomFilterOverlay, { RoomFilterOptions } from "../overlay_components/RoomFilterOverlay";
 
 type RoomStatus = "Occupied" | "Vacant";
 
@@ -34,6 +35,17 @@ interface Stats {
 
 const RoomDashboard: React.FC = () => {
   const [statsAnimate, setStatsAnimate] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filterOptions, setFilterOptions] = useState<RoomFilterOptions>({
+    minCapacity: '',
+    maxCapacity: '',
+    minPrice: '',
+    maxPrice: '',
+    availableFrom: '',
+    availableTo: '',
+    isActive: 'all',
+    sortBy: 'none'
+  });
 
   const statsData: Stats = {
     totalRooms: 6,
@@ -275,12 +287,68 @@ const RoomDashboard: React.FC = () => {
     return () => clearTimeout(timer);
   }, [currentPage, searchTerm, statusFilter]); // Add statusFilter dependency
 
-  const filteredRooms = rooms.filter(
-    (room) => 
-      (statusFilter === "all" || room.status === statusFilter) && // Filter by status
-      (room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      room.roomNumber.toLowerCase().includes(searchTerm.toLowerCase()))
+  // Update the filteredRooms calculation to include the additional filters:
+  let filteredRooms = rooms.filter(
+    (room) => {
+      // Status filter (existing)
+      if (statusFilter !== "all" && room.status !== statusFilter) return false;
+      
+      // Search term filter (existing)
+      if (searchTerm && !room.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
+          !room.roomNumber.toLowerCase().includes(searchTerm.toLowerCase())) {
+        return false;
+      }
+      
+      // Capacity filter
+      if (filterOptions.minCapacity && room.capacity < parseInt(filterOptions.minCapacity)) return false;
+      if (filterOptions.maxCapacity && room.capacity > parseInt(filterOptions.maxCapacity)) return false;
+      
+      // Price filter
+      if (filterOptions.minPrice && room.price < parseInt(filterOptions.minPrice)) return false;
+      if (filterOptions.maxPrice && room.price > parseInt(filterOptions.maxPrice)) return false;
+      
+      // Active status filter
+      if (filterOptions.isActive === 'active' && !room.isActive) return false;
+      if (filterOptions.isActive === 'inactive' && room.isActive) return false;
+      
+      // Date availability filter - only apply to vacant rooms for simplicity
+      if (filterOptions.availableFrom && filterOptions.availableTo) {
+        const fromDate = new Date(filterOptions.availableFrom);
+        const toDate = new Date(filterOptions.availableTo);
+        
+        if (room.status === "Occupied" && room.reservation) {
+          // Room must be vacant during the entire requested period
+          const checkIn = new Date(room.reservation.checkIn);
+          const checkOut = new Date(room.reservation.checkOut);
+          
+          // Check if reservation overlaps with requested period
+          if (checkOut > fromDate && checkIn < toDate) {
+            return false;
+          }
+        }
+      }
+      
+      return true;
+    }
   );
+
+  // 3. Apply sorting after filtering
+  if (filterOptions.sortBy !== 'none') {
+    filteredRooms = [...filteredRooms].sort((a, b) => {
+      switch (filterOptions.sortBy) {
+        case 'name_asc':
+          return a.name.localeCompare(b.name);
+        case 'name_desc':
+          return b.name.localeCompare(a.name);
+        case 'id_asc':
+          return a.id.localeCompare(b.id);
+        case 'id_desc':
+          return b.id.localeCompare(a.id);
+        default:
+          return 0;
+      }
+    });
+  }
 
   const roomsPerPage = 6;
   const indexOfLastRoom = currentPage * roomsPerPage;
@@ -313,6 +381,12 @@ const RoomDashboard: React.FC = () => {
     // 1. Show a modal form
     // 2. Handle form submission
     // 3. Add the new room to the rooms state
+  };
+
+  const handleApplyFilters = (newFilters: RoomFilterOptions) => {
+    setFilterOptions(newFilters);
+    setCurrentPage(1); // Reset to first page when applying filters
+    setIsFilterOpen(false);
   };
 
   const isSingleRow = currentRooms.length <= 3;
@@ -351,19 +425,28 @@ const RoomDashboard: React.FC = () => {
               <div className={styles.statusFilter}>
                 <button 
                   className={`${styles.statusButton} ${statusFilter === "all" ? styles.activeFilter : ""}`}
-                  onClick={() => setStatusFilter("all")}
+                  onClick={() => {
+                    setStatusFilter("all");
+                    setCurrentPage(1); // Reset to page 1 when filter changes
+                  }}
                 >
                   All
                 </button>
                 <button 
                   className={`${styles.statusButton} ${statusFilter === "Occupied" ? styles.activeFilter : ""}`}
-                  onClick={() => setStatusFilter("Occupied")}
+                  onClick={() => {
+                    setStatusFilter("Occupied");
+                    setCurrentPage(1); // Reset to page 1 when filter changes
+                  }}
                 >
                   Occupied
                 </button>
                 <button 
                   className={`${styles.statusButton} ${statusFilter === "Vacant" ? styles.activeFilter : ""}`}
-                  onClick={() => setStatusFilter("Vacant")}
+                  onClick={() => {
+                    setStatusFilter("Vacant");
+                    setCurrentPage(1); // Reset to page 1 when filter changes
+                  }}
                 >
                   Vacant
                 </button>
@@ -378,7 +461,7 @@ const RoomDashboard: React.FC = () => {
                   onChange={handleSearch}
                 />
               </div>
-              <button className={styles.filterButton}>
+              <button className={styles.filterButton} onClick={() => setIsFilterOpen(true)}>
                 <i className="fa-regular fa-filter"></i>
                 <span className={styles.tooltipText}>Filter</span>
               </button>
@@ -448,6 +531,13 @@ const RoomDashboard: React.FC = () => {
           Next <i className="fa-regular fa-angle-right"></i>
         </button>
       </div>
+
+      <RoomFilterOverlay
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        onApply={handleApplyFilters}
+        initialFilters={filterOptions}
+      />
     </div>
   );
 };

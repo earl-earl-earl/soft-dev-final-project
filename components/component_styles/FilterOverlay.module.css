@@ -265,3 +265,105 @@
 .filterOverlayContent :global(.react-datepicker__day--in-selecting-range) {
   background-color: rgba(59, 130, 246, 0.2);
 }
+
+.amenitiesGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.amenityCheckbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.amenityCheckbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.amenityCheckbox label {
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.amenityInputContainer {
+  display: flex;
+  gap: 8px;
+}
+
+.amenityInputContainer input {
+  flex: 1;
+}
+
+.inputError {
+  border-color: #f44336 !important;
+}
+
+.errorText {
+  color: #f44336;
+  font-size: 12px;
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
+.addButton {
+  padding: 8px 12px;
+  background-color: var(--primary-color, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  min-width: 60px;
+}
+
+.addButton:hover:not(:disabled) {
+  background-color: var(--primary-550, #1d4ed8);
+}
+
+.addButton:disabled {
+  background-color: #d1d5db;
+  cursor: not-allowed;
+}
+
+.amenityTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.amenityTag {
+  display: flex;
+  align-items: center;
+  background-color: #e5e7eb;
+  border-radius: 16px;
+  padding: 4px 10px;
+  font-size: 14px;
+}
+
+.removeTag {
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-left: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+}
+
+.removeTag:hover {
+  color: #374151;
+}
+
+.amenityHint {
+  margin-top: 6px;
+  color: #6b7280;
+  font-size: 12px;
+}
