@@ -7,7 +7,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { format, isSameDay } from 'date-fns';
 
 import styles from "../component_styles/Header.module.css";
-import { reservationsData } from '@components/base_components/Reservations'; // Import directly from the Reservations component
+import { reservationsData } from './Reservations'; 
 
 interface HeaderProps {
   title: string;
@@ -15,33 +15,48 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ title }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const [todayDate] = useState<Date>(new Date()); // Store today's date separately
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const handleDateChange = (date: Date | null) => {
+    // Update the selectedDate state for internal use
     setSelectedDate(date);
     setIsCalendarOpen(false);
+    
+    // Custom logic for when a date is selected
+    console.log(`Date selected: ${date?.toDateString()}`);
   };
 
   const toggleCalendar = () => {
     setIsCalendarOpen(!isCalendarOpen);
   };
 
-  const formattedDate = selectedDate ? format(selectedDate, "E, dd MMM") : "Select Date";
+  // Always use today's date for display in the button
+  const formattedDate = format(todayDate, "E, dd MMM");
 
   // Function to determine if a date has confirmed arrivals
   const hasArrivals = (date: Date) => {
     return reservationsData.some(reservation => {
-      const isConfirmed = reservation.status.includes('CONFIRMED');
+      // Check for multiple status types that indicate confirmed bookings
+      const confirmedStatuses = ['Accepted', 'Confirmed_Pending_Payment'];
+      const isConfirmed = confirmedStatuses.includes(reservation.status);
       return isConfirmed && isSameDay(date, reservation.checkIn);
     });
   };
 
   // Custom day class function for DatePicker
   const dayClassName = (date: Date) => {
+    // First check if it's today to apply the today highlight
+    if (isSameDay(date, todayDate)) {
+      return hasArrivals(date) ? `${styles.arrivalDay} ${styles.todayHighlight}` : styles.todayHighlight;
+    }
+    
+    // Otherwise check for arrivals
     if (hasArrivals(date)) {
       return styles.arrivalDay;
     }
-    return ""; // Return empty string instead of undefined
+    
+    return "";
   };
 
   return (
@@ -70,6 +85,7 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
                 onChange={handleDateChange}
                 inline
                 dayClassName={dayClassName}
+                highlightDates={[todayDate]} // Highlight today's date
               />
             </div>
           )}

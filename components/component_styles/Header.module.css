@@ -143,10 +143,10 @@
   line-height: 2.2rem;
   font-weight: 500;
   transition: background-color 0.2s ease, color 0.2s ease;
+  cursor: default;
 }
 
 .calendarDropdown :global(.react-datepicker__day:hover) {
-  background-color: #e9ecef;
   border-radius: 50%;
 }
 
@@ -157,7 +157,7 @@
   font-weight: bold;
 }
 .calendarDropdown :global(.react-datepicker__day--selected:hover) {
-  background-color: #017bff !important;
+  background-color: transparent;
 }
 
 .calendarDropdown :global(.react-datepicker__day--keyboard-selected) {
@@ -227,7 +227,7 @@
 /* Update the style for days with arrivals */
 .arrivalDay {
   position: relative;
-  background-color: rgba(40, 167, 69, 0.2) !important; /* Light green with low opacity */
+  background-color: var(--primary-color-alpha-400) !important; /* Light green with low opacity */
 }
 
 /* Keep the dot indicator */
@@ -254,14 +254,14 @@
 
 /* Make sure selected date maintains the primary color */
 .calendarDropdown :global(.react-datepicker__day--selected) {
-  background-color: #017bff !important;
-  color: white !important;
+  background-color: transparent !important;
+  color: #333 !important;
   border-radius: 50%;
-  font-weight: bold;
+  font-weight: 500;
 }
 
 .calendarDropdown :global(.react-datepicker__day--selected:hover) {
-  background-color: #017bff !important;
+  background-color: transparent !important;
 }
 
 /* Adjust hover effect for arrival days to maintain visibility */

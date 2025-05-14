@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import styles from "../component_styles/Sidebar.module.css";
 import Link from "next/link";
-import { usePathname, /* useRouter */ } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useSidebar } from "./SidebarContext";
+import LogoutOverlay from "../overlay_components/LogoutOverlay";
 
 interface NavLinkItem {
   type: "link" | "action";
@@ -43,8 +44,8 @@ interface SidebarProps {}
 const Sidebar: React.FC<SidebarProps> = () => {
   const { isCollapsed, toggleSidebar } = useSidebar();
   const currentPathname = usePathname();
-  // const router = useRouter();
   const [optimisticActiveHref, setOptimisticActiveHref] = useState<string | null>(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
     if (optimisticActiveHref) {
@@ -53,10 +54,21 @@ const Sidebar: React.FC<SidebarProps> = () => {
   }, [currentPathname, optimisticActiveHref]);
 
   const handleLogout = () => {
-    console.log("Logout action triggered");
-    // await signOut(); // if using NextAuth or similar
+    // Show the logout confirmation modal instead of an alert
+    setShowLogoutModal(true);
+  };
+
+  const handleConfirmLogout = () => {
+    // Actual logout functionality to implement
+    console.log("Logout confirmed");
+    // Add actual logout code here:
+    // await signOut(); // if using NextAuth
     // router.push('/login'); // Redirect to login page
-    alert("Logout functionality to be implemented!")
+    window.location.href = '/login'; // Simple redirect
+  };
+
+  const handleCloseLogoutModal = () => {
+    setShowLogoutModal(false);
   };
 
   const currentOtherNavItems = otherNavItemsData(handleLogout);
@@ -133,47 +145,56 @@ const Sidebar: React.FC<SidebarProps> = () => {
   };
 
   return (
-    <div className={`${styles.container} ${isCollapsed ? styles.collapsedContainer : ""}`}>
-      <div className={styles.content}>
-        <div className={`${styles.profile} ${isCollapsed ? styles.profileCollapsed : ''}`}>
-          <span className={styles.profilePic}>A</span>
-          {!isCollapsed && (
-            <div className={styles.profileName}>
-              <h2>Adolf Lifter</h2>
-              <p>Admin</p>
-            </div>
-          )}
-        </div>
-
-        <div className={styles.navBar}>
-          {renderNavItems(mainNavItemsData)}
-        </div>
-      </div>
-
-      <div className={styles.bottomContent}>
-        <div className={styles.navBar}>
-          {!isCollapsed && <p className={styles.navDesc}>OTHER</p>}
-          {renderNavItems(currentOtherNavItems)}
-        </div>
-
-        <button
-          onClick={toggleSidebar}
-          className={`${styles.toggleButton} ${isCollapsed ? styles.toggleButtonCollapsed : ''}`}
-          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-        >
-          <span className={styles.navIconWrapper}>
-            {isCollapsed ? (
-              <i className="fa-regular fa-angles-right"></i>
-            ) : (
-              <i className="fa-regular fa-angles-left"></i>
+    <>
+      <div className={`${styles.container} ${isCollapsed ? styles.collapsedContainer : ""}`}>
+        <div className={styles.content}>
+          <div className={`${styles.profile} ${isCollapsed ? styles.profileCollapsed : ''}`}>
+            <span className={styles.profilePic}>A</span>
+            {!isCollapsed && (
+              <div className={styles.profileName}>
+                <h2>Adolf Lifter</h2>
+                <p>Admin</p>
+              </div>
             )}
-          </span>
-          {!isCollapsed && (
-            <span className={styles.toggleButtonText}>Collapse</span>
-          )}
-        </button>
+          </div>
+
+          <div className={styles.navBar}>
+            {renderNavItems(mainNavItemsData)}
+          </div>
+        </div>
+
+        <div className={styles.bottomContent}>
+          <div className={styles.navBar}>
+            {!isCollapsed && <p className={styles.navDesc}>OTHER</p>}
+            {renderNavItems(currentOtherNavItems)}
+          </div>
+
+          <button
+            onClick={toggleSidebar}
+            className={`${styles.toggleButton} ${isCollapsed ? styles.toggleButtonCollapsed : ''}`}
+            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            <span className={styles.navIconWrapper}>
+              {isCollapsed ? (
+                <i className="fa-regular fa-angles-right"></i>
+              ) : (
+                <i className="fa-regular fa-angles-left"></i>
+              )}
+            </span>
+            {!isCollapsed && (
+              <span className={styles.toggleButtonText}>Collapse</span>
+            )}
+          </button>
+        </div>
       </div>
-    </div>
+
+      {/* Add the LogoutOverlay component */}
+      <LogoutOverlay 
+        isOpen={showLogoutModal}
+        onClose={handleCloseLogoutModal}
+        onConfirm={handleConfirmLogout}
+      />
+    </>
   );
 };
 

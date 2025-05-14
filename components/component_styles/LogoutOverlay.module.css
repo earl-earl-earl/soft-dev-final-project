@@ -1,0 +1,86 @@
+.overlayContainer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modalContent {
+  background-color: white;
+  border-radius: 12px;
+  padding: 30px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 1001;
+  text-align: center;
+  font-family: var(--font-inter-sans), Arial, Helvetica, sans-serif;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.message {
+  font-size: 16px;
+  line-height: 1.5;
+  color: #333;
+  margin-bottom: 30px;
+  padding: 0 10px;
+}
+
+.buttonContainer {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.cancelButton, .confirmButton {
+  flex: 1;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.cancelButton {
+  background-color: #e1f1ff;
+  color: #0069d9;
+}
+
+.cancelButton:hover {
+  background-color: #cce7ff;
+}
+
+.confirmButton {
+  background-color: #dc3545;
+  color: white;
+}
+
+.confirmButton:hover {
+  background-color: #c82333;
+}
+
+.cancelButton:active, .confirmButton:active {
+  transform: scale(0.98);
+}
