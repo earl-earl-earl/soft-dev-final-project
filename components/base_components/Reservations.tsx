@@ -426,69 +426,27 @@ const Reservations = () => {
       return currentReservations.map((item) => {
         const statusCategory = getStatusCategory(item.status);
         const totalGuests = item.guests.adults + item.guests.children + item.guests.seniors;
-
-        return (
-          <tr key={item.id}>
-            <td>{customerLookup[item.customerId]?.name || "N/A"}</td>
-            <td>{item.customerId}</td>
-            <td>{item.id}</td>
-            <td>{roomLookup[item.roomId]?.name || item.roomId}</td>
-            <td>{formatDateForDisplay(item.checkIn)}</td>
-            <td>{formatDateForDisplay(item.checkOut)}</td>
-            <td>{customerLookup[item.customerId]?.phone || "N/A"}</td>
-            <td>{item.guests.adults}</td>
-            <td>{item.guests.children}</td>
-            <td>{item.guests.seniors}</td>
-            <td><strong>{totalGuests}</strong></td>
-            <td>
-              <span
-                className={`${styles.statusPillGeneral} ${
-                  styles[`status${statusCategory}`]
-                }`}
-                title={statusDescriptions[statusCategory]}
-              >
-                {statusCategory.replace("_", " ")}
-              </span>
-            </td>
-            <td>
-              {item.confirmationTime
-                ? formatDateForDisplay(item.confirmationTime)
-                : "N/A"}
-            </td>
-            <td>
-              <span
-                className={`${styles.statusPillGeneral} ${
-                  item.paymentReceived
-                    ? styles.paymentPaid
-                    : styles.paymentNotPaid
-                }`}
-              >
-                {item.paymentReceived ? "Paid" : "Not Paid"}
-              </span>
-            </td>
-            <td>
-              <span
-                className={`${styles.statusPillGeneral} ${
-                  item.type === "online" ? styles.typeOnline : styles.typeDirect
-                }`}
-              >
-                {item.type === "online" ? "Online" : "Direct"}
-              </span>
-            </td>
-            <td>
-              {item.auditedBy ? staffLookup[item.auditedBy] || item.auditedBy : "N/A"}
-            </td>
-          </tr>
-        );
+        return (<tr key={item.id}>
+          <td>{customerLookup[item.customerId]?.name || "N/A"}</td>
+          <td>{item.customerId}</td>
+          <td>{item.id}</td>
+          <td>{roomLookup[item.roomId]?.name || item.roomId}</td>
+          <td>{formatDateForDisplay(item.checkIn)}</td>
+          <td>{formatDateForDisplay(item.checkOut)}</td>
+          <td>{customerLookup[item.customerId]?.phone || "N/A"}</td>
+          <td>{item.guests.adults}</td>
+          <td>{item.guests.children}</td>
+          <td>{item.guests.seniors}</td>
+          <td><strong>{totalGuests}</strong></td>
+          <td><span className={`${styles.statusPillGeneral} ${styles[`status${statusCategory}`]}`} title={statusDescriptions[statusCategory]}>{statusCategory.replace("_", " ")}</span></td>
+          <td>{item.confirmationTime ? formatDateForDisplay(item.confirmationTime) : "N/A"}</td>
+          <td><span className={`${styles.statusPillGeneral} ${item.paymentReceived ? styles.paymentPaid : styles.paymentNotPaid}`}>{item.paymentReceived ? "Paid" : "Not Paid"}</span></td>
+          <td><span className={`${styles.statusPillGeneral} ${item.type === "online" ? styles.typeOnline : styles.typeDirect}`}>{item.type === "online" ? "Online" : "Direct"}</span></td>
+          <td>{item.auditedBy ? staffLookup[item.auditedBy] || item.auditedBy : "N/A"}</td>
+        </tr>);
       });
     } else {
-      return (
-        <tr>
-          <td colSpan={15} className={styles.noReservationsCell}>
-            {searchTerm ? "No reservations found." : "No reservations."}
-          </td>
-        </tr>
-      );
+      return (<tr><td colSpan={16} className={styles.noReservationsCell}>{searchTerm ? "No reservations found." : "No reservations."}</td></tr>);
     }
   }, [currentReservations, searchTerm]);
 

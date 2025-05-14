@@ -558,7 +558,7 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, onEdit, onDeactivate }) => {
 
           <div className={styles.roomActions}>
             <button className={styles.editButton} onClick={onEdit}>
-              <i className="fa-regular fa-pen-to-square"></i>
+              <i className="fa-regular fa-pencil"></i>
               <span className={styles.tooltipText}>Edit</span>
             </button>
             <button className={styles.deactivateButton} onClick={onDeactivate}>

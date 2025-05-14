@@ -25,13 +25,12 @@
 }
 
 /* Set specific column widths */
-.staffTable th:nth-child(1) { width: 12%; } /* Username */
-.staffTable th:nth-child(2) { width: 15%; } /* Name */
-.staffTable th:nth-child(3) { width: 20%; } /* Email */
-.staffTable th:nth-child(4) { width: 15%; } /* Phone */
-.staffTable th:nth-child(5) { width: 10%; } /* Role */
-.staffTable th:nth-child(6) { width: 15%; } /* Position */
-.staffTable th:nth-child(7) { width: 13%; } /* Actions */
+.staffTable th:nth-child(1) { width: 15%; } /* Username - increased width */
+.staffTable th:nth-child(2) { width: 20%; } /* Name - increased width */
+.staffTable th:nth-child(3) { width: 18%; } /* Phone - was 4th column, now 3rd */
+.staffTable th:nth-child(4) { width: 15%; } /* Role - was 5th column, now 4th */
+.staffTable th:nth-child(5) { width: 17%; } /* Position - was 6th column, now 5th */
+.staffTable th:nth-child(6) { width: 15%; } /* Actions - was 7th column, now 6th */
 
 /* Header styling */
 .staffTable th {

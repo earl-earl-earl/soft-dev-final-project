@@ -33,10 +33,9 @@ const StaffTable: React.FC<StaffTableProps> = ({ staffData, currentPage }) => {
           <tr>
             <th>Username</th>
             <th>Name</th>
-            <th>Email</th>
             <th>Phone Number</th>
-            <th>Role</th>{/* Changed from Position to Role */}
-            <th>Position</th>{/* New column for organizational position */}
+            <th>Role</th>
+            <th>Position</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -46,10 +45,9 @@ const StaffTable: React.FC<StaffTableProps> = ({ staffData, currentPage }) => {
               <tr key={staff.id}>
                 <td>{staff.username}</td>
                 <td>{staff.name}</td>
-                <td>{staff.email}</td>
                 <td>{staff.phoneNumber}</td>
-                <td>{staff.role}</td>{/* Changed from position to role */}
-                <td>{staff.position}</td>{/* New column for position */}
+                <td>{staff.role}</td>
+                <td>{staff.position}</td>
                 <td className={styles.actionsCell}>
                   <button className={styles.actionButton} title="Edit">
                     <i className="fa-regular fa-pencil"></i>
@@ -64,7 +62,7 @@ const StaffTable: React.FC<StaffTableProps> = ({ staffData, currentPage }) => {
             ))
           ) : (
             <tr>
-              <td colSpan={7} className={styles.noStaffDataCell}>{/* Updated colspan to 7 */}
+              <td colSpan={6} className={styles.noStaffDataCell}>
                 No staff members to display.
               </td>
             </tr>
