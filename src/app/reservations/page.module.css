@@ -23,7 +23,7 @@
 
 .mainContent {
   flex-grow: 1;
-  padding: 20px 25px;
+  padding: 18px 25px;
   box-sizing: border-box;
   overflow-y: auto;
 }
