@@ -17,70 +17,56 @@
 .staffTable {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
+  table-layout: fixed; /* Controls column widths */
+  background-color: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.staffTable th,
-.staffTable td {
+/* Set specific column widths */
+.staffTable th:nth-child(1) { width: 12%; } /* Username */
+.staffTable th:nth-child(2) { width: 15%; } /* Name */
+.staffTable th:nth-child(3) { width: 20%; } /* Email */
+.staffTable th:nth-child(4) { width: 15%; } /* Phone */
+.staffTable th:nth-child(5) { width: 10%; } /* Role */
+.staffTable th:nth-child(6) { width: 15%; } /* Position */
+.staffTable th:nth-child(7) { width: 13%; } /* Actions */
+
+/* Header styling */
+.staffTable th {
+  background-color: #f8f9fa;
+  color: #495057;
+  font-weight: 600;
   padding: 16px 20px;
   text-align: left;
-  border-bottom: 1px solid #eee;
-  font-size: 0.9rem;
-  word-break: break-word;
+  border-bottom: 1px solid #e9ecef;
 }
 
-.staffTable th {
-  color: var(--nav-text-icon-color);
-  font-weight: 700;
-  font-size: 0.8rem;
+/* Cell styling */
+.staffTable td {
   padding: 16px 20px;
+  border-bottom: 1px solid #e9ecef;
+  color: #343a40;
 }
 
-.staffTable tbody tr:last-child td {
+/* Last row should not have a border */
+.staffTable tr:last-child td {
   border-bottom: none;
 }
 
-/* Username */
-.staffTable th:nth-child(1),
-.staffTable td:nth-child(1) {
-  width: 22%;
-}
-
-/* Name */
-.staffTable th:nth-child(2),
-.staffTable td:nth-child(2) {
-  width: 22%;
-}
-
-/* Email */
-.staffTable th:nth-child(3),
-.staffTable td:nth-child(3) {
-  width: 21%;
-}
-
-/* Phone Number */
-.staffTable th:nth-child(4),
-.staffTable td:nth-child(4) {
-  width: 12%;
-}
-
-/* Position */
-.staffTable th:nth-child(5),
-.staffTable td:nth-child(5) {
-  width: 12%;
-}
-
-/* Actions */
-.staffTable th:nth-child(6),
-.staffTable td:nth-child(6) {
-  width: 11%;
+/* This ensures even spacing for "no staff" message */
+.noStaffDataCell {
+  padding: 30px !important;
   text-align: center;
-  padding-left: 8px;
-  padding-right: 8px;
+  color: #6c757d;
 }
 
+/* Actions column styling */
 .actionsCell {
-  position: inherit;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-start;
 }
 
 .actionButton {

@@ -8,17 +8,34 @@ interface StaffMember {
   name: string;
   email: string;
   phoneNumber: string;
-  position: string;
+  role: string;       // Renamed from position
+  position: string;   // New field for organizational position
 }
 
-const ALL_STAFF_MEMBERS: StaffMember[] = Array.from({ length: 28 }, (_, i) => ({
-  id: `id-${i + 1}`,
-  username: `user${i + 1}`,
-  name: `Name ${i + 1}`,
-  email: `user${i + 1}@example.com`,
-  phoneNumber: "0923 321 7654",
-  position: "Staff",
-}));
+// Position options (organizational hierarchy)
+const positions = [
+  "Staff Manager",
+  "Technical Staff",
+  "Senior Staff",
+  "Junior Staff",
+  "Temporary Staff",
+  "Trainee"
+];
+
+const ALL_STAFF_MEMBERS: StaffMember[] = Array.from({ length: 28 }, (_, i) => {
+  // Create varied positions but keep role as "Staff"
+  const positionIndex = i % positions.length;
+  
+  return {
+    id: `id-${i + 1}`,
+    username: `user${i + 1}`,
+    name: `Name ${i + 1}`,
+    email: `user${i + 1}@example.com`,
+    phoneNumber: "0923 321 7654",
+    role: "Staff",                     // All have the same role
+    position: positions[positionIndex] // Varied positions
+  };
+});
 
 const ITEMS_PER_PAGE = 9;
 

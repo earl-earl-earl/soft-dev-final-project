@@ -59,6 +59,8 @@ export interface ReservationItem {
     children: number;
     seniors: number;
   };
+  auditedBy?: string;
+  type: "online" | "direct"; // New field
 }
 
 const createMockDate = (
@@ -87,6 +89,8 @@ export const reservationsData: ReservationItem[] = [
       children: 1,
       seniors: 0,
     },
+    auditedBy: "staff001",
+    type: "online",
   },
   {
     id: "A1701",
@@ -102,6 +106,8 @@ export const reservationsData: ReservationItem[] = [
       children: 0,
       seniors: 2,
     },
+    auditedBy: "staff002",
+    type: "direct",
   },
   {
     id: "A1669",
@@ -117,6 +123,8 @@ export const reservationsData: ReservationItem[] = [
       children: 2,
       seniors: 1,
     },
+    auditedBy: "staff003",
+    type: "online",
   },
   {
     id: "A1526",
@@ -131,6 +139,8 @@ export const reservationsData: ReservationItem[] = [
       children: 0,
       seniors: 0,
     },
+    auditedBy: "staff004",
+    type: "direct",
   },
   {
     id: "A1487",
@@ -146,6 +156,8 @@ export const reservationsData: ReservationItem[] = [
       children: 3,
       seniors: 0,
     },
+    auditedBy: "staff005",
+    type: "online",
   },
   {
     id: "A1666",
@@ -160,6 +172,8 @@ export const reservationsData: ReservationItem[] = [
       children: 1,
       seniors: 0,
     },
+    auditedBy: "staff006",
+    type: "direct",
   },
   {
     id: "A1234",
@@ -174,6 +188,8 @@ export const reservationsData: ReservationItem[] = [
       children: 0,
       seniors: 0,
     },
+    auditedBy: "staff007",
+    type: "online",
   },
   {
     id: "A5678",
@@ -189,6 +205,8 @@ export const reservationsData: ReservationItem[] = [
       children: 2,
       seniors: 1,
     },
+    auditedBy: "staff008",
+    type: "direct",
   },
   {
     id: "A9101",
@@ -204,6 +222,8 @@ export const reservationsData: ReservationItem[] = [
       children: 0,
       seniors: 2,
     },
+    auditedBy: "staff009",
+    type: "online",
   },
   {
     id: "A1121",
@@ -218,6 +238,8 @@ export const reservationsData: ReservationItem[] = [
       children: 0,
       seniors: 0,
     },
+    auditedBy: "staff010",
+    type: "direct",
   },
 ];
 
@@ -280,6 +302,22 @@ const statusDescriptions: Record<string, string> = {
   "Accepted": "Set manually by staff after verifying downpayment",
   "Rejected": "Set by staff/admin upon rejection",
   "Expired": "Automatically set by the system after 48 hours without payment"
+};
+
+const staffLookup: { [key: string]: string } = {
+  staff001: "Torremoro, Regine",
+  staff002: "Cruz, Carlos",
+  staff003: "Santos, Ana",
+  staff004: "Reyes, Miguel",
+  staff005: "Bautista, Sofia",
+  staff006: "Aquino, Jennifer",
+  staff007: "Mendoza, Ramon",
+  staff008: "Villanueva, Isabel",
+  staff009: "Dela Cruz, Antonio",
+  staff010: "Garcia, Maria Luisa",
+  staff011: "Tan, Joseph",
+  staff012: "Flores, Christine",
+  staff015: "Pascual, Eduardo"
 };
 
 const Reservations = () => {
@@ -428,13 +466,25 @@ const Reservations = () => {
                 {item.paymentReceived ? "Paid" : "Not Paid"}
               </span>
             </td>
+            <td>
+              <span
+                className={`${styles.statusPillGeneral} ${
+                  item.type === "online" ? styles.typeOnline : styles.typeDirect
+                }`}
+              >
+                {item.type === "online" ? "Online" : "Direct"}
+              </span>
+            </td>
+            <td>
+              {item.auditedBy ? staffLookup[item.auditedBy] || item.auditedBy : "N/A"}
+            </td>
           </tr>
         );
       });
     } else {
       return (
         <tr>
-          <td colSpan={14} className={styles.noReservationsCell}>
+          <td colSpan={15} className={styles.noReservationsCell}>
             {searchTerm ? "No reservations found." : "No reservations."}
           </td>
         </tr>
@@ -576,6 +626,8 @@ const Reservations = () => {
                   <th>Status</th>
                   <th>Confirmation</th>
                   <th>Payment</th>
+                  <th>Type</th> {/* New column */}
+                  <th>Audited By</th>
                 </tr>
               </thead>
               <tbody>{tableBodyContent}</tbody>

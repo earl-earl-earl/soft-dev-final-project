@@ -269,6 +269,7 @@ const RoomDashboard: React.FC = () => {
 
   const [rooms, setRooms] = useState<Room[]>(roomsData);
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "Occupied" | "Vacant">("all");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [animate, setAnimate] = useState(false);
 
@@ -282,12 +283,13 @@ const RoomDashboard: React.FC = () => {
     setAnimate(false);
     const timer = setTimeout(() => setAnimate(true), 50);
     return () => clearTimeout(timer);
-  }, [currentPage, searchTerm]);
+  }, [currentPage, searchTerm, statusFilter]); // Add statusFilter dependency
 
   const filteredRooms = rooms.filter(
-    (room) =>
-      room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      room.roomNumber.toLowerCase().includes(searchTerm.toLowerCase())
+    (room) => 
+      (statusFilter === "all" || room.status === statusFilter) && // Filter by status
+      (room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      room.roomNumber.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const roomsPerPage = 6;
@@ -356,6 +358,26 @@ const RoomDashboard: React.FC = () => {
           <h2>Rooms</h2>
           <div className={styles.headerActions}>
             <div className={styles.searchContainer}>
+              <div className={styles.statusFilter}>
+                <button 
+                  className={`${styles.statusButton} ${statusFilter === "all" ? styles.activeFilter : ""}`}
+                  onClick={() => setStatusFilter("all")}
+                >
+                  All
+                </button>
+                <button 
+                  className={`${styles.statusButton} ${statusFilter === "Occupied" ? styles.activeFilter : ""}`}
+                  onClick={() => setStatusFilter("Occupied")}
+                >
+                  Occupied
+                </button>
+                <button 
+                  className={`${styles.statusButton} ${statusFilter === "Vacant" ? styles.activeFilter : ""}`}
+                  onClick={() => setStatusFilter("Vacant")}
+                >
+                  Vacant
+                </button>
+              </div>
               <div className={styles.searchBar}>
                 <i className={`fa-regular fa-magnifying-glass ${styles.searchIcon}`}></i>
                 <input

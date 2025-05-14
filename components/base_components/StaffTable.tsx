@@ -8,7 +8,8 @@ interface StaffMember {
   name: string;
   email: string;
   phoneNumber: string;
-  position: string;
+  role: string;       // Changed from position to role
+  position: string;   // New field for organizational position
 }
 
 interface StaffTableProps {
@@ -34,7 +35,8 @@ const StaffTable: React.FC<StaffTableProps> = ({ staffData, currentPage }) => {
             <th>Name</th>
             <th>Email</th>
             <th>Phone Number</th>
-            <th>Position</th>
+            <th>Role</th>{/* Changed from Position to Role */}
+            <th>Position</th>{/* New column for organizational position */}
             <th>Actions</th>
           </tr>
         </thead>
@@ -46,7 +48,8 @@ const StaffTable: React.FC<StaffTableProps> = ({ staffData, currentPage }) => {
                 <td>{staff.name}</td>
                 <td>{staff.email}</td>
                 <td>{staff.phoneNumber}</td>
-                <td>{staff.position}</td>
+                <td>{staff.role}</td>{/* Changed from position to role */}
+                <td>{staff.position}</td>{/* New column for position */}
                 <td className={styles.actionsCell}>
                   <button className={styles.actionButton} title="Edit">
                     <i className="fa-regular fa-pencil"></i>
@@ -61,7 +64,7 @@ const StaffTable: React.FC<StaffTableProps> = ({ staffData, currentPage }) => {
             ))
           ) : (
             <tr>
-              <td colSpan={6} className={styles.noStaffDataCell}>
+              <td colSpan={7} className={styles.noStaffDataCell}>{/* Updated colspan to 7 */}
                 No staff members to display.
               </td>
             </tr>

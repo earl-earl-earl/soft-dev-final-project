@@ -170,7 +170,7 @@
 
 .filterButton:hover {
   background-color: #f8f9fa;
-  color: #007bff;
+  color: #333;
   border-color: #d0d0d0;
 }
 
@@ -620,4 +620,38 @@
   font-size: 18px;
   color: #6c757d;
   text-align: center;
+}
+
+.statusFilter {
+  display: flex;
+  margin-right: 10px;
+}
+
+.statusButton {
+  padding: 8px 15px;
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  font-size: 14px;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.statusButton:hover {
+  background-color: #f8f9fa;
+}
+
+.statusButton:first-child {
+  border-radius: 8px 0 0 8px;
+}
+
+.statusButton:last-child {
+  border-radius: 0 8px 8px 0;
+}
+
+.statusButton.activeFilter {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+  font-weight: 500;
 }
