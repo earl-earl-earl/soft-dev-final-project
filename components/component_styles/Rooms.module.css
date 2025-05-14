@@ -84,9 +84,38 @@
   margin-bottom: 20px;
 }
 
-.roomsHeader h2 {
-  font-size: 24px;
-  font-weight: 600;
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.newRoomButton {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: 0.2s ease;
+}
+
+.newRoomButton:hover {
+  background-color: var(--primary-550);
+}
+
+.newRoomButton:active {
+  background-color: var(--primary-600);
+}
+
+.newRoomButton i {
+  font-size: 16px;
+  line-height: 1;
 }
 
 .searchContainer {
@@ -233,6 +262,34 @@
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   position: relative;
   height: 225px;
+}
+
+.roomCard.deactivated {
+  background-color: #f8f8f8;
+  position: relative;
+}
+
+.roomCard.deactivated::after {
+  content: 'Inactive';  /* Changed from 'Deactivated' */
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #6c757d;
+  color: white;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  opacity: 1;
+}
+
+.roomCard.deactivated .roomTitle h3,
+.roomCard.deactivated .lastUpdated,
+.roomCard.deactivated .amenitiesSection,
+.roomCard.deactivated .roomStatus,
+.roomCard.deactivated .roomCapacity,
+.roomCard.deactivated .priceSection,
+.roomCard.deactivated .amenitiesList li {
+  opacity: 0.6;
 }
 
 .roomContent {
@@ -427,6 +484,60 @@
 
 .editButton:hover .tooltipText, 
 .deleteButton:hover .tooltipText {
+  opacity: 1;
+  visibility: visible;
+}
+
+.deactivateButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  transition: color 0.2s ease, background-color 0.2s ease;
+  border-radius: 50%;
+  position: relative;
+}
+
+.deactivateButton:hover {
+  color: #dc3545;
+  background-color: #fff5f5;
+}
+
+.deactivateButton .tooltipText {
+  position: absolute;
+  bottom: calc(100% + 5px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  background-color: #333;
+  color: white;
+  font-size: 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 1050;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  pointer-events: none;
+}
+
+.deactivateButton .tooltipText::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: #333 transparent transparent transparent;
+}
+
+.deactivateButton:hover .tooltipText {
   opacity: 1;
   visibility: visible;
 }

@@ -18,6 +18,7 @@ interface Room {
   price: number;
   status: RoomStatus;
   occupant?: Occupant;
+  isActive: boolean;
 }
 
 interface Stats {
@@ -52,6 +53,7 @@ const RoomDashboard: React.FC = () => {
       price: 3500.0,
       status: "Occupied",
       occupant: { name: "Lozada, Daven J." },
+      isActive: true,
     },
     {
       id: "002",
@@ -63,6 +65,7 @@ const RoomDashboard: React.FC = () => {
       price: 2000.0,
       status: "Occupied",
       occupant: { name: "Segura, Paul J." },
+      isActive: true,
     },
     {
       id: "003",
@@ -73,6 +76,7 @@ const RoomDashboard: React.FC = () => {
       amenities: ["Free Entrance", "Breakfast for 6"],
       price: 5000.0,
       status: "Vacant",
+      isActive: true,
     },
     {
       id: "004",
@@ -83,6 +87,7 @@ const RoomDashboard: React.FC = () => {
       amenities: ["Free Entrance", "Breakfast for 4"],
       price: 3500.0,
       status: "Vacant",
+      isActive: true,
     },
     {
       id: "005",
@@ -94,6 +99,7 @@ const RoomDashboard: React.FC = () => {
       price: 3000.0,
       status: "Occupied",
       occupant: { name: "James, LeBron" },
+      isActive: true,
     },
     {
       id: "006",
@@ -104,6 +110,7 @@ const RoomDashboard: React.FC = () => {
       amenities: ["Free Entrance for 10"],
       price: 7000.0,
       status: "Vacant",
+      isActive: true,
     },
     {
       id: "007",
@@ -115,6 +122,7 @@ const RoomDashboard: React.FC = () => {
       price: 2500.0,
       status: "Occupied",
       occupant: { name: "Garcia, Maria L." },
+      isActive: true,
     },
     {
       id: "008",
@@ -125,6 +133,7 @@ const RoomDashboard: React.FC = () => {
       amenities: ["Free Entrance", "Breakfast for 5", "Private Balcony"],
       price: 4500.0,
       status: "Vacant",
+      isActive: true,
     },
     {
       id: "009",
@@ -136,6 +145,7 @@ const RoomDashboard: React.FC = () => {
       price: 3200.0,
       status: "Occupied",
       occupant: { name: "Santos, Juan C." },
+      isActive: true,
     },
     {
       id: "010",
@@ -146,6 +156,7 @@ const RoomDashboard: React.FC = () => {
       amenities: ["Free Entrance", "Breakfast for 4", "Pool Access"],
       price: 3800.0,
       status: "Vacant",
+      isActive: true,
     },
     {
       id: "011",
@@ -157,6 +168,7 @@ const RoomDashboard: React.FC = () => {
       price: 2200.0,
       status: "Occupied",
       occupant: { name: "Reyes, Ana B." },
+      isActive: true,
     },
     {
       id: "012",
@@ -167,6 +179,7 @@ const RoomDashboard: React.FC = () => {
       amenities: ["Free Entrance", "Breakfast for 8", "BBQ Area"],
       price: 6500.0,
       status: "Vacant",
+      isActive: true,
     },
     {
       id: "013",
@@ -178,6 +191,7 @@ const RoomDashboard: React.FC = () => {
       price: 5200.0,
       status: "Occupied",
       occupant: { name: "Cruz, Ricardo D." },
+      isActive: true,
     },
     {
       id: "014",
@@ -188,6 +202,7 @@ const RoomDashboard: React.FC = () => {
       amenities: ["Free Entrance", "Breakfast for 4", "Beach Front"],
       price: 4000.0,
       status: "Vacant",
+      isActive: true,
     },
     {
       id: "015",
@@ -199,6 +214,7 @@ const RoomDashboard: React.FC = () => {
       price: 3300.0,
       status: "Occupied",
       occupant: { name: "Lim, Margaret T." },
+      isActive: true,
     },
     {
       id: "016",
@@ -213,6 +229,7 @@ const RoomDashboard: React.FC = () => {
       ],
       price: 9000.0,
       status: "Vacant",
+      isActive: true,
     },
     {
       id: "017",
@@ -224,6 +241,7 @@ const RoomDashboard: React.FC = () => {
       price: 4800.0,
       status: "Occupied",
       occupant: { name: "Mendoza, Carlos F." },
+      isActive: true,
     },
     {
       id: "018",
@@ -234,6 +252,7 @@ const RoomDashboard: React.FC = () => {
       amenities: ["Free Entrance", "Breakfast for 7", "Nature Trail Access"],
       price: 6200.0,
       status: "Vacant",
+      isActive: true,
     },
     {
       id: "019",
@@ -244,6 +263,7 @@ const RoomDashboard: React.FC = () => {
       amenities: ["Free Entrance", "Breakfast for 3", "Meditation Garden"],
       price: 3700.0,
       status: "Vacant",
+      isActive: true,
     },
   ];
 
@@ -286,33 +306,21 @@ const RoomDashboard: React.FC = () => {
     // edit functionality
   };
 
-  const handleDelete = (roomId: string) => {
-    if (window.confirm("Are you sure you want to delete this room?")) {
-      const updatedRooms = rooms.filter((room) => room.id !== roomId);
-      setRooms(updatedRooms);
-
-      const newFilteredRooms = updatedRooms.filter(
-        (room) =>
-          room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          room.roomNumber.toLowerCase().includes(searchTerm.toLowerCase())
+  const handleDeactivate = (roomId: string) => {
+    if (window.confirm("Are you sure you want to deactivate this room?")) {
+      const updatedRooms = rooms.map((room) =>
+        room.id === roomId ? { ...room, isActive: !room.isActive } : room
       );
-
-      const newTotalPages = Math.ceil(newFilteredRooms.length / roomsPerPage);
-
-      if (currentPage > newTotalPages) {
-        setCurrentPage(Math.max(1, newTotalPages));
-      }
-
-      if (
-        currentPage === newTotalPages &&
-        newFilteredRooms.slice(
-          (currentPage - 1) * roomsPerPage,
-          currentPage * roomsPerPage
-        ).length === 0
-      ) {
-        setCurrentPage(Math.max(1, currentPage - 1));
-      }
+      setRooms(updatedRooms);
     }
+  };
+
+  const handleAddRoom = () => {
+    console.log("Adding a new room");
+    // Here you would typically:
+    // 1. Show a modal form
+    // 2. Handle form submission
+    // 3. Add the new room to the rooms state
   };
 
   const isSingleRow = currentRooms.length <= 3;
@@ -346,20 +354,25 @@ const RoomDashboard: React.FC = () => {
       <div className={styles.topContent}>
         <div className={styles.roomsHeader}>
           <h2>Rooms</h2>
-          <div className={styles.searchContainer}>
-            <div className={styles.searchBar}>
-              <i className={`fa-regular fa-magnifying-glass ${styles.searchIcon}`}></i>
-              <input
-                type="text"
-                className={styles.searchInput}
-                placeholder="Search rooms"
-                value={searchTerm}
-                onChange={handleSearch}
-              />
+          <div className={styles.headerActions}>
+            <div className={styles.searchContainer}>
+              <div className={styles.searchBar}>
+                <i className={`fa-regular fa-magnifying-glass ${styles.searchIcon}`}></i>
+                <input
+                  type="text"
+                  className={styles.searchInput}
+                  placeholder="Search rooms"
+                  value={searchTerm}
+                  onChange={handleSearch}
+                />
+              </div>
+              <button className={styles.filterButton}>
+                <i className="fa-regular fa-filter"></i>
+                <span className={styles.tooltipText}>Filter</span>
+              </button>
             </div>
-            <button className={styles.filterButton}>
-              <i className="fa-regular fa-filter"></i>
-              <span className={styles.tooltipText}>Filter</span>
+            <button className={styles.newRoomButton} onClick={handleAddRoom}>
+              <i className="fa-regular fa-plus"></i> New Room
             </button>
           </div>
         </div>
@@ -375,7 +388,7 @@ const RoomDashboard: React.FC = () => {
                 key={room.id}
                 room={room}
                 onEdit={() => handleEdit(room.id)}
-                onDelete={() => handleDelete(room.id)}
+                onDeactivate={() => handleDeactivate(room.id)} // Changed from onDelete
               />
             ))
           ) : (
@@ -459,11 +472,11 @@ const StatsCard: React.FC<StatsCardProps> = ({
 interface RoomCardProps {
   room: Room;
   onEdit: () => void;
-  onDelete: () => void;
+  onDeactivate: () => void; // Changed from onDelete
 }
 
-const RoomCard: React.FC<RoomCardProps> = ({ room, onEdit, onDelete }) => (
-  <div className={styles.roomCard}>
+const RoomCard: React.FC<RoomCardProps> = ({ room, onEdit, onDeactivate }) => (
+  <div className={`${styles.roomCard} ${!room.isActive ? styles.deactivated : ""}`}>
     <div className={styles.roomContent}>
       {/* Left Column */}
       <div className={styles.leftColumn}>
@@ -520,9 +533,11 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, onEdit, onDelete }) => (
             <i className="fa-regular fa-pen-to-square"></i>
             <span className={styles.tooltipText}>Edit</span>
           </button>
-          <button className={styles.deleteButton} onClick={onDelete}>
-            <i className="fa-regular fa-trash"></i>
-            <span className={styles.tooltipText}>Delete</span>
+          <button className={styles.deactivateButton} onClick={onDeactivate}>
+            <i className={`fa-regular ${room.isActive ? "fa-circle-minus" : "fa-circle-plus"}`}></i>
+            <span className={styles.tooltipText}>
+              {room.isActive ? "Deactivate" : "Activate"}
+            </span>
           </button>
         </div>
       </div>

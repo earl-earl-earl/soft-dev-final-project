@@ -291,6 +291,7 @@ const Reservations = () => {
   );
   const [animateTable, setAnimateTable] = useState(false);
   const [animateStats, setAnimateStats] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
     setAnimateStats(false);
@@ -299,11 +300,17 @@ const Reservations = () => {
   }, []);
 
   const filteredReservations = useMemo(() => {
+    let reservations = reservationsData;
+    if (statusFilter !== "all") {
+      reservations = reservations.filter(
+        (reservation) => getStatusCategory(reservation.status) === statusFilter
+      );
+    }
     if (!searchTerm.trim()) {
-      return reservationsData;
+      return reservations;
     }
     const lowerSearchTerm = searchTerm.toLowerCase();
-    return reservationsData.filter((reservation) => {
+    return reservations.filter((reservation) => {
       const customerName = customerLookup[reservation.customerId]?.name || "";
       const customerPhone = customerLookup[reservation.customerId]?.phone || "";
       const roomName = roomLookup[reservation.roomId]?.name || "";
@@ -323,7 +330,7 @@ const Reservations = () => {
         statusCategory.includes(lowerSearchTerm)
       );
     });
-  }, [searchTerm]);
+  }, [searchTerm, statusFilter]);
 
   const totalPages = useMemo(() => {
     return Math.max(1, Math.ceil(filteredReservations.length / ITEMS_PER_PAGE));
@@ -331,7 +338,7 @@ const Reservations = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, statusFilter]);
 
   useEffect(() => {
     setAnimateTable(false);
@@ -500,6 +507,24 @@ const Reservations = () => {
             <h2 className={styles.listTitle}>Reservation List</h2>
             <div className={styles.actionButtons}>
               <div className={styles.listControls}>
+                <div className={styles.statusFilterWrapper}>
+                  <div className={styles.iconTooltipWrapper}>
+                    <select 
+                      className={styles.statusFilter}
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                    >
+                      <option value="all">All Statuses</option>
+                      <option value="Accepted">Accepted</option>
+                      <option value="Pending">Pending</option>
+                      <option value="Cancelled">Cancelled</option>
+                      <option value="Rejected">Rejected</option>
+                      <option value="Expired">Expired</option>
+                      <option value="Confirmed_Pending_Payment">Confirmed Pending Payment</option>
+                    </select>
+                    <span className={styles.tooltipText}>Filter by status</span>
+                  </div>
+                </div>
                 <div className={styles.searchBar}>
                   <i
                     className={`fa-regular fa-magnifying-glass ${styles.searchIcon}`}
