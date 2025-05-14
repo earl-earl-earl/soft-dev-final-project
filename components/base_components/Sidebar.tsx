@@ -23,7 +23,7 @@ interface NavDescItem {
 type NavItem = NavLinkItem | NavDescItem;
 
 const mainNavItemsData: NavItem[] = [
-  { type: "link", href: "/dashboard", iconClass: "fa-regular fa-house", activeIconClass: "fa-solid fa-house", text: "Overview" },
+  { type: "link", href: "/dashboard", iconClass: "fa-regular fa-house", activeIconClass: "fa-solid fa-house", text: "Dashboard" },
   { type: "desc", text: "DAILY OPERATIONS" },
   { type: "link", href: "/reservations", iconClass: "fa-regular fa-calendar", activeIconClass: "fa-solid fa-calendar", text: "Reservations" },
   { type: "link", href: "/guests", iconClass: "fa-regular fa-users", activeIconClass: "fa-solid fa-users", text: "Guests" },

@@ -2,7 +2,7 @@
 
 import Sidebar from "@components/base_components/Sidebar";
 import Header from "@components/base_components/Header";
-import Rooms from "@components/base_components/Rooms";
+import Dashboard from "@components/base_components/Dashboard";
 import styles from "./page.module.css";
 import { useSidebar } from "@components/base_components/SidebarContext";
 
@@ -17,9 +17,9 @@ export default function Home() {
     <div className={styles.pageContainer}>
       <Sidebar /> 
       <div className={`${styles.contentWrapper} ${contentWrapperMarginClass}`}>
-        <Header title="Rooms" />
+        <Header title="Dashboard" />
         <main className={styles.mainContent}>
-          <Rooms />
+          <Dashboard />
         </main>
       </div>
     </div>

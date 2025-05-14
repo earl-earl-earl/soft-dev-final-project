@@ -4,6 +4,7 @@
   justify-content: space-between;
   gap: 25px;
   height: 100%;
+  background-color: transparent;
 }
 
 .listHeader {
@@ -107,7 +108,7 @@
 .tableContainer {
   background-color: white;
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   overflow-x: auto;
   opacity: 0;
   transform: translateY(10px);

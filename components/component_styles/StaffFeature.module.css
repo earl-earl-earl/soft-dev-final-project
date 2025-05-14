@@ -4,6 +4,7 @@
   justify-content: space-between;
   gap: 25px;
   height: 100%;
+  background-color: transparent;
 }
 
 .controlsHeader {

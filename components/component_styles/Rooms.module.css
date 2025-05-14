@@ -1,0 +1,512 @@
+.roomDashboard {
+  font-family: 'Inter', sans-serif;
+  width: 100%;
+  height: 100%;
+  margin: 0 auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.statsContainer {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-content: flex-start;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.statsCard {
+  background-color: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  opacity: 0;
+  transform: translateY(15px);
+  transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+}
+
+.statsCard.animate {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.statsCard h3 {
+  color: #8b909a;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 5px;
+  margin-top: 0;
+}
+
+.positive {
+  color: #4CAF50;
+}
+
+.negative {
+  color: #F44336;
+}
+
+.statsValue {
+  font-size: 36px;
+  font-weight: 700;
+  margin: 10px 0;
+}
+
+.statsChange {
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: auto;
+}
+
+.statsContainer .statsCard:nth-child(1) {
+  transition-delay: 0.1s;
+}
+
+.statsContainer .statsCard:nth-child(2) {
+  transition-delay: 0.2s;
+}
+
+.statsContainer .statsCard:nth-child(3) {
+  transition-delay: 0.3s;
+}
+
+.roomsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.roomsHeader h2 {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.searchContainer {
+  display: flex;
+  align-items: center;
+}
+
+.searchBar {
+  display: flex;
+  align-items: center;
+  background-color: white;
+  padding: 8px 12px;
+  border-radius: 8px 0 0 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.searchIcon {
+  color: #888;
+  margin-right: 8px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.searchInput {
+  border: none;
+  outline: none;
+  font-size: 14px;
+  background-color: transparent;
+  color: #343a40;
+  width: 200px;
+}
+
+.searchInput::placeholder {
+  color: #aaa;
+}
+
+.filterButton {
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  padding: 8px 10px;
+  border-radius: 0 8px 8px 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--nav-text-icon-color);
+  position: relative;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  height: 35px;
+  width: 40px;
+}
+
+.filterButton:hover {
+  background-color: #f8f9fa;
+  color: #007bff;
+  border-color: #d0d0d0;
+}
+
+.filterButton i {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.filterButton .tooltipText {
+  position: absolute;
+  top: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  background-color: #333;
+  color: white;
+  font-size: 12px;
+  font-family: var(--font-inter-sans), Arial, Helvetica, sans-serif;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 1050;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease 0.05s, visibility 0.15s ease 0.05s;
+  pointer-events: none;
+}
+
+.filterButton .tooltipText::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent #333 transparent;
+}
+
+.filterButton:hover .tooltipText {
+  opacity: 1;
+  visibility: visible;
+}
+
+.roomsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-content: start;
+  gap: 20px;
+  overflow-y: auto;
+  padding-right: 5px;
+  height: 100%;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+.singleRowGrid {
+  align-items: start;
+  margin-top: 0;
+}
+
+.roomsGrid::-webkit-scrollbar {
+  width: 6px;
+}
+
+.roomsGrid::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.roomsGrid::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+
+.roomsGrid::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.roomsGrid.fadeIn {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.roomCard {
+  background-color: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  position: relative;
+  height: 225px;
+}
+
+.roomContent {
+  display: flex;
+  height: 100%;
+}
+
+.leftColumn {
+  flex: 1;
+  padding: 0 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.rightColumn {
+  width: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  border-left: 1px solid #f0f0f0;
+  padding: 0 15px;
+}
+
+.roomTitle h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.roomNumber {
+  color: #8b909a;
+  font-size: 14px;
+  font-weight: normal;
+}
+
+.lastUpdated {
+  font-size: 12px;
+  color: #8b909a;
+  margin: 5px 0 15px;
+}
+
+.roomCapacity {
+  text-align: center;
+}
+
+.roomCapacity span {
+  font-size: 12px;
+  color: #8b909a;
+}
+
+.capacityValue {
+  background: #f0f4f8;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-weight: 600;
+  margin-top: 5px;
+}
+
+.amenitiesSection {
+  margin-bottom: 20px;
+}
+
+.amenitiesSection h4 {
+  font-size: 14px;
+  color: #8b909a;
+  margin-bottom: 10px;
+}
+
+.amenitiesList {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.amenitiesList li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+.amenitiesList li i {
+  color: #4CAF50;
+}
+
+.roomStatus {
+  display: flex;
+  align-items: center;
+}
+
+.status {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.occupied {
+  color: #F44336;
+}
+
+.vacant {
+  color: #4CAF50;
+}
+
+.occupantName {
+  font-size: 14px;
+  color: #8b909a;
+}
+
+.priceSection { 
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.roomPrice {
+  font-size: 16px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.currency {
+  color: #8b909a;
+}
+
+.roomActions {
+  display: flex;
+  gap: 10px;
+}
+
+.editButton, .deleteButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  transition: color 0.2s ease, background-color 0.2s ease;
+  border-radius: 50%;
+}
+
+.editButton:hover {
+  color: #007bff;
+  background-color: #f0f7ff;
+}
+
+.deleteButton:hover {
+  color: #dc3545;
+  background-color: #fff5f5;
+}
+
+.editButton, .deleteButton {
+  position: relative;
+}
+
+.editButton .tooltipText, 
+.deleteButton .tooltipText {
+  position: absolute;
+  bottom: calc(100% + 5px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  background-color: #333;
+  color: white;
+  font-size: 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 1050;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  pointer-events: none;
+}
+
+.editButton .tooltipText::before, 
+.deleteButton .tooltipText::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: #333 transparent transparent transparent;
+}
+
+.editButton:hover .tooltipText, 
+.deleteButton:hover .tooltipText {
+  opacity: 1;
+  visibility: visible;
+}
+
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0px;
+  margin-top: auto;
+}
+
+.paginationButton,
+.pageNumber {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  color: #007bff;
+  padding: 8px 15px;
+  margin: 0 3px;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.paginationButton {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 15px 20px;
+  border-radius: 10px;
+}
+
+.paginationButton:hover:not(:disabled),
+.pageNumber:hover:not(.active) {
+  background-color: #e9ecef;
+  border-color: #ced4da;
+}
+
+.paginationButton:disabled {
+  color: #adb5bd;
+  cursor: not-allowed;
+  background-color: #f8f9fa;
+  border-color: #e9ecef;
+}
+
+.pageNumbers {
+  display: flex;
+  align-items: center;
+}
+
+.pageNumber.active {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+  font-weight: 600;
+}
+
+.topContent {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  margin-bottom: 20px;
+}
+
+.noRoomsMessage {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+}
+
+.noRoomsMessage p {
+  font-size: 18px;
+  color: #6c757d;
+  text-align: center;
+}

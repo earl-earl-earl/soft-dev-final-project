@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import styles from "../component_styles/Reservations.module.css";
 
+// Update the StatCard component to accept an 'animate' prop
 interface StatCardProps {
   title: string;
   value: string;
@@ -8,6 +9,7 @@ interface StatCardProps {
   valueIconClass?: string;
   dateRangeColor?: string;
   dateRangeBg?: string;
+  animate?: boolean;
 }
 
 const StatCard: React.FC<StatCardProps> = ({
@@ -17,9 +19,10 @@ const StatCard: React.FC<StatCardProps> = ({
   valueIconClass,
   dateRangeColor = "#6c757d",
   dateRangeBg = "red",
+  animate = false,
 }) => {
   return (
-    <div className={styles.statCard}>
+    <div className={`${styles.statCard} ${animate ? styles.animate : ""}`}>
       <div className={styles.statCardTop}>
         <p className={styles.statTitle}>{title}</p>
         <div className={styles.statValueContainer}>
@@ -41,7 +44,8 @@ const StatCard: React.FC<StatCardProps> = ({
   );
 };
 
-interface ReservationItem {
+// Export the ReservationItem interface
+export interface ReservationItem {
   id: string;
   customerId: string;
   roomId: string;
@@ -50,6 +54,11 @@ interface ReservationItem {
   status: string;
   confirmationTime?: Date;
   paymentReceived: boolean;
+  guests: {
+    adults: number;
+    children: number;
+    seniors: number;
+  };
 }
 
 const createMockDate = (
@@ -62,16 +71,22 @@ const createMockDate = (
   return new Date(year, month - 1, day, hour, minute);
 };
 
-const reservationsData: ReservationItem[] = [
+// Export the reservation data
+export const reservationsData: ReservationItem[] = [
   {
     id: "A1189",
     customerId: "cust101",
     roomId: "R001",
     checkIn: createMockDate(2025, 5, 6, 14, 0),
     checkOut: createMockDate(2025, 5, 8, 12, 0),
-    status: "CONFIRMED_CHECKED_IN",
+    status: "Accepted",
     confirmationTime: createMockDate(2025, 4, 15, 11, 0),
     paymentReceived: true,
+    guests: {
+      adults: 2,
+      children: 1,
+      seniors: 0,
+    },
   },
   {
     id: "A1701",
@@ -79,9 +94,14 @@ const reservationsData: ReservationItem[] = [
     roomId: "R002",
     checkIn: createMockDate(2025, 5, 5, 15, 0),
     checkOut: createMockDate(2025, 5, 8, 11, 0),
-    status: "CONFIRMED_ARRIVING",
+    status: "Accepted",
     confirmationTime: createMockDate(2025, 4, 20, 9, 5),
     paymentReceived: true,
+    guests: {
+      adults: 1,
+      children: 0,
+      seniors: 2,
+    },
   },
   {
     id: "A1669",
@@ -89,9 +109,14 @@ const reservationsData: ReservationItem[] = [
     roomId: "R003",
     checkIn: createMockDate(2025, 5, 2, 18, 0),
     checkOut: createMockDate(2025, 5, 4, 10, 0),
-    status: "CONFIRMED_ARRIVED_LATE",
+    status: "Accepted",
     confirmationTime: createMockDate(2025, 4, 10, 14, 10),
     paymentReceived: true,
+    guests: {
+      adults: 3,
+      children: 2,
+      seniors: 1,
+    },
   },
   {
     id: "A1526",
@@ -99,8 +124,13 @@ const reservationsData: ReservationItem[] = [
     roomId: "R004",
     checkIn: createMockDate(2025, 5, 7, 14, 0),
     checkOut: createMockDate(2025, 5, 13, 11, 0),
-    status: "PENDING_PAYMENT",
+    status: "Confirmed_Pending_Payment",
     paymentReceived: false,
+    guests: {
+      adults: 2,
+      children: 0,
+      seniors: 0,
+    },
   },
   {
     id: "A1487",
@@ -108,9 +138,14 @@ const reservationsData: ReservationItem[] = [
     roomId: "R005",
     checkIn: createMockDate(2025, 5, 4, 10, 0),
     checkOut: createMockDate(2025, 5, 7, 9, 0),
-    status: "COMPLETED_CHECKED_OUT",
+    status: "Accepted",
     confirmationTime: createMockDate(2025, 4, 25, 11, 15),
     paymentReceived: true,
+    guests: {
+      adults: 4,
+      children: 3,
+      seniors: 0,
+    },
   },
   {
     id: "A1666",
@@ -118,8 +153,13 @@ const reservationsData: ReservationItem[] = [
     roomId: "R006",
     checkIn: createMockDate(2025, 5, 7, 16, 0),
     checkOut: createMockDate(2025, 5, 10, 11, 0),
-    status: "CANCELLED_BY_USER",
+    status: "Cancelled",
     paymentReceived: false,
+    guests: {
+      adults: 2,
+      children: 1,
+      seniors: 0,
+    },
   },
   {
     id: "A1234",
@@ -127,8 +167,13 @@ const reservationsData: ReservationItem[] = [
     roomId: "R007",
     checkIn: createMockDate(2025, 5, 8, 14, 0),
     checkOut: createMockDate(2025, 5, 9, 12, 0),
-    status: "PENDING_CONFIRMATION",
+    status: "Pending",
     paymentReceived: false,
+    guests: {
+      adults: 1,
+      children: 0,
+      seniors: 0,
+    },
   },
   {
     id: "A5678",
@@ -136,9 +181,14 @@ const reservationsData: ReservationItem[] = [
     roomId: "R008",
     checkIn: createMockDate(2025, 5, 10, 13, 0),
     checkOut: createMockDate(2025, 5, 14, 11, 0),
-    status: "CONFIRMED_CHECKED_IN",
+    status: "Accepted",
     confirmationTime: createMockDate(2025, 5, 1, 8, 30),
     paymentReceived: true,
+    guests: {
+      adults: 2,
+      children: 2,
+      seniors: 1,
+    },
   },
   {
     id: "A9101",
@@ -146,9 +196,14 @@ const reservationsData: ReservationItem[] = [
     roomId: "R009",
     checkIn: createMockDate(2025, 5, 11, 15, 0),
     checkOut: createMockDate(2025, 5, 13, 10, 0),
-    status: "CONFIRMED_ARRIVING",
+    status: "Accepted",
     confirmationTime: createMockDate(2025, 5, 5, 12, 5),
     paymentReceived: true,
+    guests: {
+      adults: 3,
+      children: 0,
+      seniors: 2,
+    },
   },
   {
     id: "A1121",
@@ -156,8 +211,13 @@ const reservationsData: ReservationItem[] = [
     roomId: "R010",
     checkIn: createMockDate(2025, 5, 12, 14, 0),
     checkOut: createMockDate(2025, 5, 13, 11, 0),
-    status: "CANCELLED_ADMIN",
+    status: "Rejected",
     paymentReceived: false,
+    guests: {
+      adults: 1,
+      children: 0,
+      seniors: 0,
+    },
   },
 ];
 
@@ -178,7 +238,7 @@ const customerLookup: { [key: string]: { name: string; phone: string } } = {
   cust102: { name: "Lozada, Daven Jerthrude", phone: "0954 435 5243" },
   cust103: { name: "Rafael, Earl John", phone: "0912 653 7887" },
   cust104: { name: "Recede, Jhon Biancent", phone: "0930 546 2123" },
-  cust105: { name: "Segura, Paul Justine", phone: "0943 6654 7665" },
+  cust105: { name: "Segura, Paul Justin", phone: "0943 6654 7665" },
   cust106: { name: "James, LeBron", phone: "0965 544 2109" },
   cust107: { name: "Smith, Jane", phone: "0911 222 3333" },
   cust108: { name: "Doe, John", phone: "0988 777 6666" },
@@ -199,30 +259,44 @@ const roomLookup: { [key: string]: { name: string } } = {
   R010: { name: "Bungalow" },
 };
 
-type StatusCategory = "Confirmed" | "Pending" | "Cancelled" | "Other";
+type StatusCategory = "Accepted" | "Pending" | "Cancelled" | "Rejected" | "Expired" | "Confirmed_Pending_Payment";
+
 const getStatusCategory = (rawStatus: string): StatusCategory => {
   const upperStatus = rawStatus.toUpperCase();
-  if (
-    upperStatus.includes("CONFIRMED") ||
-    upperStatus.includes("CHECKED_IN") ||
-    upperStatus.includes("ARRIVING") ||
-    upperStatus.includes("ARRIVED_LATE") ||
-    upperStatus.includes("COMPLETED")
-  )
-    return "Confirmed";
+  if (upperStatus.includes("ACCEPTED")) return "Accepted";
   if (upperStatus.includes("PENDING")) return "Pending";
   if (upperStatus.includes("CANCELLED")) return "Cancelled";
-  return "Other";
+  if (upperStatus.includes("REJECTED")) return "Rejected";
+  if (upperStatus.includes("EXPIRED")) return "Expired";
+  if (upperStatus.includes("CONFIRMED_PENDING_PAYMENT")) return "Confirmed_Pending_Payment";
+  return "Pending";
+};
+
+// Status description map
+const statusDescriptions: Record<string, string> = {
+  "Pending": "Submitted by customer",
+  "Cancelled": "Set by customer only while status is still Pending",
+  "Confirmed_Pending_Payment": "Set by staff/admin upon approval",
+  "Accepted": "Set manually by staff after verifying downpayment",
+  "Rejected": "Set by staff/admin upon rejection",
+  "Expired": "Automatically set by the system after 48 hours without payment"
 };
 
 const Reservations = () => {
   const ITEMS_PER_PAGE = 6;
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentReservations, setCurrentReservations] = useState<
-    ReservationItem[]
-  >([]);
+  const [currentReservations, setCurrentReservations] = useState<ReservationItem[]>(
+    []
+  );
   const [animateTable, setAnimateTable] = useState(false);
+  const [animateStats, setAnimateStats] = useState(false);
+
+  useEffect(() => {
+    setAnimateStats(false);
+    const timer = setTimeout(() => setAnimateStats(true), 50);
+    return () => clearTimeout(timer);
+  }, []);
 
   const filteredReservations = useMemo(() => {
     if (!searchTerm.trim()) {
@@ -306,10 +380,7 @@ const Reservations = () => {
     if (currentReservations.length > 0) {
       return currentReservations.map((item) => {
         const statusCategory = getStatusCategory(item.status);
-        let statusText = item.status;
-        if (statusCategory === "Confirmed") statusText = "Confirmed";
-        if (statusCategory === "Pending") statusText = "Pending";
-        if (statusCategory === "Cancelled") statusText = "Cancelled";
+        const totalGuests = item.guests.adults + item.guests.children + item.guests.seniors;
 
         return (
           <tr key={item.id}>
@@ -318,14 +389,20 @@ const Reservations = () => {
             <td>{item.id}</td>
             <td>{roomLookup[item.roomId]?.name || item.roomId}</td>
             <td>{formatDateForDisplay(item.checkIn)}</td>
+            <td>{formatDateForDisplay(item.checkOut)}</td>
             <td>{customerLookup[item.customerId]?.phone || "N/A"}</td>
+            <td>{item.guests.adults}</td>
+            <td>{item.guests.children}</td>
+            <td>{item.guests.seniors}</td>
+            <td><strong>{totalGuests}</strong></td>
             <td>
               <span
                 className={`${styles.statusPillGeneral} ${
                   styles[`status${statusCategory}`]
                 }`}
+                title={statusDescriptions[statusCategory]}
               >
-                {statusText}
+                {statusCategory.replace("_", " ")}
               </span>
             </td>
             <td>
@@ -350,7 +427,7 @@ const Reservations = () => {
     } else {
       return (
         <tr>
-          <td colSpan={9} className={styles.noReservationsCell}>
+          <td colSpan={14} className={styles.noReservationsCell}>
             {searchTerm ? "No reservations found." : "No reservations."}
           </td>
         </tr>
@@ -387,6 +464,7 @@ const Reservations = () => {
             dateRange="From Jan 01, 2025 - April 30, 2025"
             dateRangeColor="#007bff"
             dateRangeBg="#e7f3ff"
+            animate={animateStats}
           />
           <StatCard
             title="Total Check-outs"
@@ -395,6 +473,7 @@ const Reservations = () => {
             dateRange="From Jan 01, 2025 - April 30, 2025"
             dateRangeColor="#6c757d"
             dateRangeBg="#f8f9fa"
+            animate={animateStats}
           />
           <StatCard
             title="Total Guests"
@@ -403,6 +482,7 @@ const Reservations = () => {
             dateRange="From Jan 01, 2025 - April 30, 2025"
             dateRangeColor="#6c757d"
             dateRangeBg="#f8f9fa"
+            animate={animateStats}
           />
           <StatCard
             title="Occupancy Rate"
@@ -411,6 +491,7 @@ const Reservations = () => {
             dateRange="From Jan 01, 2025 - April 30, 2025"
             dateRangeColor="#6c757d"
             dateRangeBg="#f8f9fa"
+            animate={animateStats}
           />
         </div>
 
@@ -457,7 +538,12 @@ const Reservations = () => {
                   <th>Res. ID</th>
                   <th>Room</th>
                   <th>Check-in</th>
+                  <th>Check-out</th>
                   <th>Phone</th>
+                  <th>Adults</th>
+                  <th>Children</th>
+                  <th>Seniors</th>
+                  <th>Total</th>
                   <th>Status</th>
                   <th>Confirmation</th>
                   <th>Payment</th>

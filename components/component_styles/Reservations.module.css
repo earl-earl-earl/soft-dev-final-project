@@ -87,6 +87,9 @@
   flex-direction: column;
   justify-content: space-between;
   overflow: hidden;
+  opacity: 0;
+  transform: translateY(15px);
+  transition: opacity 0.4s ease-out, transform 0.4s ease-out;
 }
 
 .statCardTop {
@@ -208,17 +211,33 @@
   align-items: center;
   justify-content: center;
   color: var(--nav-text-icon-color);
+  position: relative;
 }
 
 .filterButton i {
   font-size: 17px;
-  line-height: 1;
+}
+
+.exportButton {
+  height: 40px;
+  width: 40px;
+  background-color: var(--primary-color);
+  color: #f9f9f9;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: 0.2s ease;
+  position: relative;
 }
 
 .tableContainer {
   background-color: white;
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   overflow-x: auto;
   opacity: 0;
   transform: translateY(10px);
@@ -336,10 +355,7 @@
   justify-content: center;
   font-size: 16px;
   transition: 0.2s ease;
-}
-
-.exportButton:hover {
-  background-color: var(--primary-550);
+  position: relative;
 }
 
 .noReservationsCell {
@@ -496,67 +512,67 @@
   visibility: visible;
 }
 
-.filterButton {
-  background-color: white;
-  border: 1px solid #e0e0e0;
-  padding: 8px 10px;
-  border-radius: 0 8px 8px 0;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--nav-text-icon-color);
-  position: relative;
-}
-
-.exportButton {
-  height: 40px;
-  width: 40px;
-  background-color: var(--primary-color);
-  color: #f9f9f9;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  transition: 0.2s ease;
-  position: relative;
-}
-
-.tooltipText {
-  position: absolute;
-  top: calc(100% + 7px);
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 5px 10px;
-  background-color: #333;
-  color: white;
-  font-size: 12px;
-  font-family: var(--font-inter-sans), Arial, Helvetica, sans-serif;
-  border-radius: 4px;
-  white-space: nowrap;
-  z-index: 1050;
+/* Stat Card Animations */
+.statCard {
   opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.15s ease 0.05s, visibility 0.15s ease 0.05s;
-  pointer-events: none;
+  transform: translateY(15px);
+  transition: opacity 0.4s ease-out, transform 0.4s ease-out;
 }
 
-.tooltipText::before {
-  content: '';
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border-width: 5px;
-  border-style: solid;
-  border-color: transparent transparent #333 transparent;
-}
-
-.filterButton:hover .tooltipText,
-.exportButton:hover .tooltipText {
+.statCard.animate {
   opacity: 1;
-  visibility: visible;
+  transform: translateY(0);
+}
+
+/* Staggered animation delays for each card */
+.statsCardsContainer .statCard:nth-child(1) {
+  transition-delay: 0.1s;
+}
+
+.statsCardsContainer .statCard:nth-child(2) {
+  transition-delay: 0.2s;
+}
+
+.statsCardsContainer .statCard:nth-child(3) {
+  transition-delay: 0.3s;
+}
+
+.statsCardsContainer .statCard:nth-child(4) {
+  transition-delay: 0.4s;
+}
+
+.statusAccepted {
+  background-color: #e6f4ea;
+  color: #1d7737;
+  border-color: #a3d8b3;
+}
+
+.statusPending {
+  background-color: #fff9c4;
+  color: #b28900;
+  border-color: #ffe57f;
+}
+
+.statusCancelled {
+  background-color: #fde0dd;
+  color: #c9302c;
+  border-color: #f7b9b7;
+}
+
+.statusRejected {
+  background-color: #ffebee;
+  color: #c62828;
+  border-color: #ffcdd2;
+}
+
+.statusExpired {
+  background-color: #e9ecef;
+  color: #495057;
+  border-color: #ced4da;
+}
+
+.statusConfirmed_Pending_Payment {
+  background-color: #e3f2fd;
+  color: #0d47a1;
+  border-color: #bbdefb;
 }
