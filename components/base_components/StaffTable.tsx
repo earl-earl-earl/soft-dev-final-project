@@ -1,4 +1,3 @@
-// components/StaffTable.tsx
 import React, { useState, useEffect } from 'react';
 import styles from '../component_styles/StaffTable.module.css';
 
@@ -8,8 +7,8 @@ interface StaffMember {
   name: string;
   email: string;
   phoneNumber: string;
-  role: string;       // Changed from position to role
-  position: string;   // New field for organizational position
+  role: string;
+  position: string;
 }
 
 interface StaffTableProps {

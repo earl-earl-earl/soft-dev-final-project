@@ -330,20 +330,30 @@ const Reservations = () => {
   const [animateTable, setAnimateTable] = useState(false);
   const [animateStats, setAnimateStats] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [reservationType, setReservationType] = useState<"all" | "online" | "direct">("all"); // New state
 
   useEffect(() => {
     setAnimateStats(false);
     const timer = setTimeout(() => setAnimateStats(true), 50);
     return () => clearTimeout(timer);
-  }, []);
+  }, [reservationType]); // Add reservationType dependency
 
   const filteredReservations = useMemo(() => {
     let reservations = reservationsData;
+    
+    // Filter by reservation type
+    if (reservationType !== "all") {
+      reservations = reservations.filter(reservation => reservation.type === reservationType);
+    }
+    
+    // Filter by status
     if (statusFilter !== "all") {
       reservations = reservations.filter(
         (reservation) => getStatusCategory(reservation.status) === statusFilter
       );
     }
+    
+    // Search filter (existing code)
     if (!searchTerm.trim()) {
       return reservations;
     }
@@ -368,15 +378,47 @@ const Reservations = () => {
         statusCategory.includes(lowerSearchTerm)
       );
     });
-  }, [searchTerm, statusFilter]);
+  }, [searchTerm, statusFilter, reservationType]); // Add reservationType dependency
 
+  // Calculate statistics based on current filter
+  const statistics = useMemo(() => {
+    // Define date range (Jan 1 to Apr 30, 2025)
+    const startDate = new Date(2025, 0, 1);
+    const endDate = new Date(2025, 3, 30); 
+    
+    // Filter reservations by type and date range
+    let reservationsForStats = reservationsData;
+    if (reservationType !== "all") {
+      reservationsForStats = reservationsForStats.filter(r => r.type === reservationType);
+    }
+    
+    // Filter for specified date range
+    reservationsForStats = reservationsForStats.filter(r => 
+      r.checkIn >= startDate && r.checkIn <= endDate
+    );
+    
+    // Calculate statistics
+    const checkIns = reservationsForStats.length;
+    const checkOuts = reservationsForStats.filter(r => r.checkOut <= endDate).length;
+    const totalGuests = reservationsForStats.reduce((sum, r) => 
+      sum + r.guests.adults + r.guests.children + r.guests.seniors, 0);
+    
+    // For occupancy rate, assume 10 rooms with ~120 potential bookings in 4 months
+    const maxPossibleBookings = reservationType === "all" ? 120 : 60;
+    const occupancyRate = Math.round((checkIns / maxPossibleBookings) * 100);
+    
+    return { checkIns, checkOuts, totalGuests, occupancyRate };
+  }, [reservationType]);
+
+  // Calculate total pages
   const totalPages = useMemo(() => {
-    return Math.max(1, Math.ceil(filteredReservations.length / ITEMS_PER_PAGE));
-  }, [filteredReservations]);
+    return Math.ceil(filteredReservations.length / ITEMS_PER_PAGE);
+  }, [filteredReservations, ITEMS_PER_PAGE]);
 
+  // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter]);
+  }, [searchTerm, statusFilter, reservationType]); // Add reservationType dependency
 
   useEffect(() => {
     setAnimateTable(false);
@@ -416,8 +458,10 @@ const Reservations = () => {
       else startPage = Math.max(1, endPage - maxPagesToShow + 1);
     }
     if (totalPages > 0 && endPage > totalPages) endPage = totalPages;
-    if (startPage < 1 && totalPages > 0) startPage = 1;
-    for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pageNumbers.push(i);
+    }
     return pageNumbers;
   };
 
@@ -455,15 +499,23 @@ const Reservations = () => {
       <div className={styles.topContent}>
         <div className={styles.headerTabs}>
           <div className={styles.tabs}>
-            <button className={`${styles.tabButton} ${styles.activeTab}`}>
+            <button 
+              className={`${styles.tabButton} ${reservationType === "all" ? styles.activeTab : ""}`}
+              onClick={() => setReservationType("all")}
+            >
               <i className="fa-regular fa-list"></i> All Reservations
             </button>
-            <button className={styles.tabButton}>
+            <button 
+              className={`${styles.tabButton} ${reservationType === "online" ? styles.activeTab : ""}`}
+              onClick={() => setReservationType("online")}
+            >
               <i className="fa-regular fa-mobile"></i> Online Reservations
             </button>
-            <button className={styles.tabButton}>
-              <i className="fa-regular fa-bell-concierge"></i> Direct
-              Reservations
+            <button 
+              className={`${styles.tabButton} ${reservationType === "direct" ? styles.activeTab : ""}`}
+              onClick={() => setReservationType("direct")}
+            >
+              <i className="fa-regular fa-bell-concierge"></i> Direct Reservations
             </button>
           </div>
           <button className={styles.newReservationButton}>
@@ -474,7 +526,7 @@ const Reservations = () => {
         <div className={styles.statsCardsContainer}>
           <StatCard
             title="Total Check-ins"
-            value="32"
+            value={statistics.checkIns.toString()}
             valueIconClass="fa-regular fa-person-to-portal"
             dateRange="From Jan 01, 2025 - April 30, 2025"
             dateRangeColor="#007bff"
@@ -483,7 +535,7 @@ const Reservations = () => {
           />
           <StatCard
             title="Total Check-outs"
-            value="29"
+            value={statistics.checkOuts.toString()}
             valueIconClass="fa-regular fa-person-from-portal"
             dateRange="From Jan 01, 2025 - April 30, 2025"
             dateRangeColor="#6c757d"
@@ -492,7 +544,7 @@ const Reservations = () => {
           />
           <StatCard
             title="Total Guests"
-            value="24"
+            value={statistics.totalGuests.toString()}
             valueIconClass="fa-regular fa-people-simple"
             dateRange="From Jan 01, 2025 - April 30, 2025"
             dateRangeColor="#6c757d"
@@ -501,7 +553,7 @@ const Reservations = () => {
           />
           <StatCard
             title="Occupancy Rate"
-            value="24"
+            value={`${statistics.occupancyRate}%`}
             valueIconClass="fa-regular fa-chart-line"
             dateRange="From Jan 01, 2025 - April 30, 2025"
             dateRangeColor="#6c757d"
