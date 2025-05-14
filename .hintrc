@@ -5,10 +5,11 @@
   "hints": {
     "no-inline-styles": "off",
     "axe/forms": [
-      "default",
-      {
-        "select-name": "off"
-      }
+      // "default",
+      // {
+      //   "select-name": "off"
+      // }
     ]
   }
+  // "hints": {
 }
