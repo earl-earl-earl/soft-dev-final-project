@@ -34,16 +34,11 @@ const getMainNavItems = (role: string): NavItem[] => {
   ];
   
   // Role-specific items
-  if (role === 'super_admin') {
+  if (role === 'super_admin' || 'admin') {
     // Super admin sees both staff and admins
     baseItems.push(
       { type: "link", href: "/staff", iconClass: "fa-regular fa-user-tie", activeIconClass: "fa-solid fa-user-tie", text: "Staff" },
       { type: "link", href: "/admins", iconClass: "fa-regular fa-user-gear", activeIconClass: "fa-solid fa-user-gear", text: "Admins" }
-    );
-  } else if (role === 'admin') {
-    // Admin sees only staff
-    baseItems.push(
-      { type: "link", href: "/staff", iconClass: "fa-regular fa-user-tie", activeIconClass: "fa-solid fa-user-tie", text: "Staff" }
     );
   }
   // Staff sees neither

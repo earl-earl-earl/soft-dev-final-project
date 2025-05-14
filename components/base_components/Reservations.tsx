@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import styles from "../component_styles/Reservations.module.css";
+import NewReservationOverlay, { ReservationData } from "../overlay_components/NewReservationOverlay";
+import FilterOverlay, { FilterOptions } from "../overlay_components/FilterOverlay";
+import ExportOverlay from "../overlay_components/ExportOverlay";
 
 // Update the StatCard component to accept an 'animate' prop
 interface StatCardProps {
@@ -331,12 +334,37 @@ const Reservations = () => {
   const [animateStats, setAnimateStats] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [reservationType, setReservationType] = useState<"all" | "online" | "direct">("all"); // New state
+  const [isNewReservationOpen, setIsNewReservationOpen] = useState(false);
+  const [availableRooms, setAvailableRooms] = useState<string[]>([]);
+  const [isFilterOpen, setIsFilterOpen] = useState(false); // New filter state
+  const [filterOptions, setFilterOptions] = useState({
+    checkInStart: '',
+    checkInEnd: '',
+    checkOutStart: '',
+    checkOutEnd: '',
+    paymentStatus: 'all',
+    minGuests: '',
+    maxGuests: '',
+    roomId: 'all'
+  }); // New filter options state
+  const [isExportOpen, setIsExportOpen] = useState(false);
 
   useEffect(() => {
     setAnimateStats(false);
     const timer = setTimeout(() => setAnimateStats(true), 50);
     return () => clearTimeout(timer);
   }, [reservationType]); // Add reservationType dependency
+
+  // Generate available rooms from the roomLookup for the overlay
+  useEffect(() => {
+    const rooms = Object.entries(roomLookup).map(([id, details]) => `${details.name} (${id})`);
+    setAvailableRooms(rooms);
+  }, []);
+
+  const roomOptions = Object.entries(roomLookup).map(([id, details]) => ({
+    id,
+    name: details.name
+  }));
 
   const filteredReservations = useMemo(() => {
     let reservations = reservationsData;
@@ -351,6 +379,54 @@ const Reservations = () => {
       reservations = reservations.filter(
         (reservation) => getStatusCategory(reservation.status) === statusFilter
       );
+    }
+    
+    // Apply advanced filters
+    if (filterOptions.checkInStart) {
+      const startDate = new Date(filterOptions.checkInStart);
+      reservations = reservations.filter(r => r.checkIn >= startDate);
+    }
+    
+    if (filterOptions.checkInEnd) {
+      const endDate = new Date(filterOptions.checkInEnd);
+      endDate.setHours(23, 59, 59);
+      reservations = reservations.filter(r => r.checkIn <= endDate);
+    }
+    
+    if (filterOptions.checkOutStart) {
+      const startDate = new Date(filterOptions.checkOutStart);
+      reservations = reservations.filter(r => r.checkOut >= startDate);
+    }
+    
+    if (filterOptions.checkOutEnd) {
+      const endDate = new Date(filterOptions.checkOutEnd);
+      endDate.setHours(23, 59, 59);
+      reservations = reservations.filter(r => r.checkOut <= endDate);
+    }
+    
+    if (filterOptions.paymentStatus !== 'all') {
+      const isPaid = filterOptions.paymentStatus === 'paid';
+      reservations = reservations.filter(r => r.paymentReceived === isPaid);
+    }
+    
+    if (filterOptions.minGuests) {
+      const min = parseInt(filterOptions.minGuests);
+      reservations = reservations.filter(r => {
+        const total = r.guests.adults + r.guests.children + r.guests.seniors;
+        return total >= min;
+      });
+    }
+    
+    if (filterOptions.maxGuests) {
+      const max = parseInt(filterOptions.maxGuests);
+      reservations = reservations.filter(r => {
+        const total = r.guests.adults + r.guests.children + r.guests.seniors;
+        return total <= max;
+      });
+    }
+    
+    if (filterOptions.roomId !== 'all') {
+      reservations = reservations.filter(r => r.roomId === filterOptions.roomId);
     }
     
     // Search filter (existing code)
@@ -378,7 +454,7 @@ const Reservations = () => {
         statusCategory.includes(lowerSearchTerm)
       );
     });
-  }, [searchTerm, statusFilter, reservationType]); // Add reservationType dependency
+  }, [searchTerm, statusFilter, reservationType, filterOptions]); // Add reservationType dependency
 
   // Calculate statistics based on current filter
   const statistics = useMemo(() => {
@@ -423,19 +499,29 @@ const Reservations = () => {
   useEffect(() => {
     setAnimateTable(false);
     let newCurrentPage = currentPage;
+    
+    // Handle zero pages case first
+    if (totalPages === 0) {
+      setCurrentReservations([]);
+      const timer = setTimeout(() => setAnimateTable(true), 50);
+      return () => clearTimeout(timer);
+    }
+    
+    // Adjust current page if needed
     if (newCurrentPage > totalPages) {
-      newCurrentPage = totalPages > 0 ? totalPages : 1;
+      newCurrentPage = totalPages;
       setCurrentPage(newCurrentPage);
-      return;
     }
     if (newCurrentPage < 1) {
       newCurrentPage = 1;
       setCurrentPage(newCurrentPage);
-      return;
     }
+    
+    // Always update currentReservations regardless of page adjustments
     const startIndex = (newCurrentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
     setCurrentReservations(filteredReservations.slice(startIndex, endIndex));
+    
     const timer = setTimeout(() => setAnimateTable(true), 50);
     return () => clearTimeout(timer);
   }, [currentPage, filteredReservations, totalPages]);
@@ -465,34 +551,138 @@ const Reservations = () => {
     return pageNumbers;
   };
 
+  // Make sure tableBodyContent properly shows the no results message
   const tableBodyContent = useMemo(() => {
-    if (currentReservations.length > 0) {
-      return currentReservations.map((item) => {
-        const statusCategory = getStatusCategory(item.status);
-        const totalGuests = item.guests.adults + item.guests.children + item.guests.seniors;
-        return (<tr key={item.id}>
-          <td>{customerLookup[item.customerId]?.name || "N/A"}</td>
-          <td>{item.customerId}</td>
-          <td>{item.id}</td>
-          <td>{roomLookup[item.roomId]?.name || item.roomId}</td>
-          <td>{formatDateForDisplay(item.checkIn)}</td>
-          <td>{formatDateForDisplay(item.checkOut)}</td>
-          <td>{customerLookup[item.customerId]?.phone || "N/A"}</td>
-          <td>{item.guests.adults}</td>
-          <td>{item.guests.children}</td>
-          <td>{item.guests.seniors}</td>
-          <td><strong>{totalGuests}</strong></td>
-          <td><span className={`${styles.statusPillGeneral} ${styles[`status${statusCategory}`]}`} title={statusDescriptions[statusCategory]}>{statusCategory.replace("_", " ")}</span></td>
-          <td>{item.confirmationTime ? formatDateForDisplay(item.confirmationTime) : "N/A"}</td>
-          <td><span className={`${styles.statusPillGeneral} ${item.paymentReceived ? styles.paymentPaid : styles.paymentNotPaid}`}>{item.paymentReceived ? "Paid" : "Not Paid"}</span></td>
-          <td><span className={`${styles.statusPillGeneral} ${item.type === "online" ? styles.typeOnline : styles.typeDirect}`}>{item.type === "online" ? "Online" : "Direct"}</span></td>
-          <td>{item.auditedBy ? staffLookup[item.auditedBy] || item.auditedBy : "N/A"}</td>
-        </tr>);
-      });
-    } else {
-      return (<tr><td colSpan={16} className={styles.noReservationsCell}>{searchTerm ? "No reservations found." : "No reservations."}</td></tr>);
+    // Check if any filters are active
+    const hasActiveFilters = searchTerm || 
+      statusFilter !== "all" || 
+      reservationType !== "all" ||
+      filterOptions.checkInStart ||
+      filterOptions.checkInEnd ||
+      filterOptions.checkOutStart ||
+      filterOptions.checkOutEnd ||
+      filterOptions.paymentStatus !== 'all' ||
+      filterOptions.minGuests ||
+      filterOptions.maxGuests ||
+      filterOptions.roomId !== 'all';
+
+    if (filteredReservations.length === 0) {
+      // If there are no filtered results at all
+      return (
+        <tr>
+          <td colSpan={16} className={styles.noReservationsCell}>
+            {hasActiveFilters 
+              ? "No results matching your search criteria." 
+              : "No reservations."}
+          </td>
+        </tr>
+      );
+    } else if (currentReservations.length === 0) {
+      // If there are filtered results but none on current page
+      return (
+        <tr>
+          <td colSpan={16} className={styles.noReservationsCell}>
+            No results on this page. Please navigate to another page.
+          </td>
+        </tr>
+      );
     }
-  }, [currentReservations, searchTerm]);
+    
+    // Otherwise show the reservations
+    return currentReservations.map((item) => {
+      const statusCategory = getStatusCategory(item.status);
+      const totalGuests = item.guests.adults + item.guests.children + item.guests.seniors;
+      return (<tr key={item.id}>
+        <td>{customerLookup[item.customerId]?.name || "N/A"}</td>
+        <td>{item.customerId}</td>
+        <td>{item.id}</td>
+        <td>{roomLookup[item.roomId]?.name || item.roomId}</td>
+        <td>{formatDateForDisplay(item.checkIn)}</td>
+        <td>{formatDateForDisplay(item.checkOut)}</td>
+        <td>{customerLookup[item.customerId]?.phone || "N/A"}</td>
+        <td>{item.guests.adults}</td>
+        <td>{item.guests.children}</td>
+        <td>{item.guests.seniors}</td>
+        <td><strong>{totalGuests}</strong></td>
+        <td><span className={`${styles.statusPillGeneral} ${styles[`status${statusCategory}`]}`} title={statusDescriptions[statusCategory]}>{statusCategory.replace("_", " ")}</span></td>
+        <td>{item.confirmationTime ? formatDateForDisplay(item.confirmationTime) : "N/A"}</td>
+        <td><span className={`${styles.statusPillGeneral} ${item.paymentReceived ? styles.paymentPaid : styles.paymentNotPaid}`}>{item.paymentReceived ? "Paid" : "Not Paid"}</span></td>
+        <td><span className={`${styles.statusPillGeneral} ${item.type === "online" ? styles.typeOnline : styles.typeDirect}`}>{item.type === "online" ? "Online" : "Direct"}</span></td>
+        <td>{item.auditedBy ? staffLookup[item.auditedBy] || item.auditedBy : "N/A"}</td>
+      </tr>);
+    });
+  }, [currentReservations, filteredReservations, searchTerm, statusFilter, reservationType, filterOptions]);
+
+  // Function to handle new reservation submission
+  const handleNewReservation = (reservationData: ReservationData) => {
+    // Extract roomId from the selected room string "Room Name (RoomId)"
+    const roomIdMatch = reservationData.room.match(/\(([^)]+)\)/);
+    const roomId = roomIdMatch ? roomIdMatch[1] : reservationData.room;
+    
+    // Generate a new unique ID (A + 4 digits)
+    const newId = `A${Math.floor(1000 + Math.random() * 9000)}`;
+    
+    // Find an existing customer or create a new one
+    // For this example, we'll use a dummy customer ID
+    const customerId = `cust${Math.floor(100 + Math.random() * 900)}`;
+    
+    // Create the new reservation object
+    const newReservation: ReservationItem = {
+      id: newId,
+      customerId: customerId,
+      roomId: roomId,
+      checkIn: reservationData.checkIn,
+      checkOut: reservationData.checkOut,
+      status: "Pending",
+      paymentReceived: false,
+      guests: {
+        adults: reservationData.adults,
+        children: reservationData.children,
+        seniors: reservationData.seniors,
+      },
+      auditedBy: "staff015", // Assuming the current user is staff015
+      type: "direct" // As specified, type is fixed to direct
+    };
+    
+    // For demonstration, we'll add this to the start of the array
+    // In a real app, you would likely send an API request to create the reservation
+    reservationsData.unshift(newReservation);
+    
+    // Also add customer data to the lookup
+    customerLookup[customerId] = {
+      name: reservationData.name,
+      phone: reservationData.phone
+    };
+    
+    // Reset filters and go to first page to show the new reservation
+    setStatusFilter("all");
+    setReservationType("all");
+    setSearchTerm("");
+    setCurrentPage(1);
+  };
+
+  const handleApplyFilters = (newFilters: FilterOptions) => {
+    setFilterOptions(newFilters);
+    setIsFilterOpen(false);
+    // Reset to first page when filters change
+    setCurrentPage(1);
+  };
+
+  const handleExport = (format: string) => {
+    // Implement export logic based on the format
+    console.log(`Exporting reservations as ${format}`);
+    
+    // Apply current filters to the exported data
+    const dataToExport = filteredReservations;
+    
+    if (format === 'pdf') {
+      // PDF generation logic would go here
+      console.log(`Exporting ${dataToExport.length} reservations to PDF`);
+    } else if (format === 'csv') {
+      // CSV generation logic would go here
+      console.log(`Exporting ${dataToExport.length} reservations to CSV`);
+    }
+  };
 
   return (
     <div className={styles.container}>
@@ -518,7 +708,10 @@ const Reservations = () => {
               <i className="fa-regular fa-bell-concierge"></i> Direct Reservations
             </button>
           </div>
-          <button className={styles.newReservationButton}>
+          <button 
+            className={styles.newReservationButton} 
+            onClick={() => setIsNewReservationOpen(true)}
+          >
             <i className="fa-regular fa-plus"></i> New Reservation
           </button>
         </div>
@@ -598,7 +791,10 @@ const Reservations = () => {
                   />
                 </div>
                 <div className={styles.iconTooltipWrapper}>
-                  <button className={styles.filterButton}>
+                  <button 
+                    className={styles.filterButton}
+                    onClick={() => setIsFilterOpen(true)}
+                  >
                     <i className="fa-regular fa-filter"></i>
                     <span className={styles.tooltipText}>Filter</span>
                   </button>
@@ -606,7 +802,9 @@ const Reservations = () => {
               </div>
               <div className={styles.exportAction}>
                 <div className={styles.iconTooltipWrapper}>
-                  <button className={styles.exportButton}>
+                  <button 
+                    className={styles.exportButton}
+                    onClick={() => setIsExportOpen(true)}>
                     <i className="fa-regular fa-file-export"></i>
                     <span className={styles.tooltipText}>Export</span>
                   </button>
@@ -684,6 +882,28 @@ const Reservations = () => {
           </button>
         </div>
       )}
+
+      {/* Add the NewReservationOverlay component */}
+      <NewReservationOverlay
+        isOpen={isNewReservationOpen}
+        onClose={() => setIsNewReservationOpen(false)}
+        onSubmit={handleNewReservation}
+        availableRooms={availableRooms}
+      />
+      <FilterOverlay
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        onApply={handleApplyFilters}
+        initialFilters={filterOptions}
+        roomOptions={roomOptions}
+      />
+      
+      {/* Add the Export Overlay */}
+      <ExportOverlay
+        isOpen={isExportOpen}
+        onClose={() => setIsExportOpen(false)}
+        onExport={handleExport}
+      />
     </div>
   );
 };

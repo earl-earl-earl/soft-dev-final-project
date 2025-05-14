@@ -1,0 +1,267 @@
+/* Overlay background styles */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  font-family: var(--font-primary, 'Inter', sans-serif);
+}
+
+/* Overlay header styles */
+.overlayHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.overlayHeader h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #343a40;
+  margin: 0;
+  font-family: var(--font-primary, 'Inter', sans-serif);
+}
+
+.closeButton {
+  font-size: 1.25rem;
+  color: #6b7280;
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.closeButton:hover {
+  color: #374151;
+  background-color: #f3f4f6;
+}
+
+/* Filter form styles */
+.filterForm {
+  overflow-y: auto;
+  max-height: calc(80vh - 60px);
+  font-family: var(--font-primary, 'Inter', sans-serif);
+}
+
+.filterOverlayContent {
+  background-color: white;
+  border-radius: 10px;
+  padding: 1rem;
+  width: 100%;
+  max-width: 34rem;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  animation: modalFadeIn 0.3s ease-out forwards;
+  transform: scale(0.95);
+  font-family: var(--font-primary, 'Inter', sans-serif);
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.filterSection {
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.filterSection h3 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 14px;
+  font-weight: 500;
+  color: #343a40;
+  font-family: var(--font-primary, 'Inter', sans-serif);
+}
+
+.filterRow {
+  display: flex;
+  gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .filterRow {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+.filterField {
+  flex: 1;
+  margin-bottom: 0.5rem;
+}
+
+.filterField label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+  color: #343a40;
+  font-size: 12px;
+  font-family: var(--font-primary, 'Inter', sans-serif);
+}
+
+.filterField input,
+.filterField select,
+.datePicker {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #343a40;
+  transition: all 0.2s ease;
+  background-color: #f9fafb;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  font-family: var(--font-primary, 'Inter', sans-serif);
+}
+
+.filterField input:focus,
+.filterField select:focus,
+.datePicker:focus {
+  outline: none;
+  border-color: var(--primary-color, #2563eb);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  background-color: white;
+}
+
+.filterField input:hover:not(:focus),
+.filterField select:hover:not(:focus),
+.datePicker:hover:not(:focus) {
+  border-color: #9ca3af;
+  background-color: #f3f4f6;
+}
+
+.filterField select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 14px;
+  padding-right: 2rem;
+}
+
+.filterActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.resetButton {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  color: #4b5563;
+  background-color: white;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+  transition: 0.2s ease;
+  min-width: 90px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  font-family: var(--font-primary, 'Inter', sans-serif);
+}
+
+.resetButton:hover {
+  background-color: #f3f4f6;
+  border-color: #c1c7cd;
+}
+
+.applyButton {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  background-color: var(--primary-color, #2563eb);
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+  transition: 0.2s ease;
+  min-width: 90px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  font-family: var(--font-primary, 'Inter', sans-serif);
+}
+
+.applyButton:hover {
+  background-color: var(--primary-550, #1d4ed8);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.applyButton:active {
+  background-color: var(--primary-600, #1e40af);
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* React DatePicker custom styling */
+.filterOverlayContent :global(.react-datepicker-wrapper) {
+  width: 100%;
+}
+
+.filterOverlayContent :global(.react-datepicker__input-container) {
+  width: 100%;
+}
+
+.filterOverlayContent :global(.react-datepicker) {
+  font-family: var(--font-primary, 'Inter', sans-serif);
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.filterOverlayContent :global(.react-datepicker__header) {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.filterOverlayContent :global(.react-datepicker__day--selected) {
+  background-color: var(--primary-color, #2563eb);
+  border-radius: 4px;
+}
+
+.filterOverlayContent :global(.react-datepicker__day--keyboard-selected) {
+  background-color: rgba(59, 130, 246, 0.5);
+  border-radius: 4px;
+}
+
+.filterOverlayContent :global(.react-datepicker__day:hover) {
+  background-color: #e9ecef;
+  border-radius: 4px;
+}
+
+.filterOverlayContent :global(.react-datepicker__day--in-range) {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.filterOverlayContent :global(.react-datepicker__day--in-selecting-range) {
+  background-color: rgba(59, 130, 246, 0.2);
+}

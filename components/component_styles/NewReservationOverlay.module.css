@@ -1,0 +1,262 @@
+.reservationOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.75); /* Darkened from 0.5 to 0.75 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;/* Adds a slight blur effect to the background */
+}
+
+.reservationModal {
+  background-color: white;
+  border-radius: 12px;
+  padding: 1.75rem; /* Slightly increased padding */
+  width: 100%;
+  max-width: 60rem; /* Increased from 42rem to 60rem */
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  animation: modalFadeIn 0.3s ease-out forwards;
+  transform: scale(0.95);
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.modalTitle {
+  font-size: 22px; /* Increased from 1.25rem to match app style */
+  font-weight: 600; /* Adjusted from 700 to match app style */
+  color: #343a40; /* Matches app color scheme */
+}
+
+.closeButton {
+  font-size: 1.5rem;
+  color: #6b7280;
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.closeButton:hover {
+  color: #374151;
+  background-color: #f3f4f6;
+}
+
+.formGroup {
+  margin-bottom: 1.25rem; /* Increased from 1rem */
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .formGrid2 {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .formGrid3 {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+.formLabel {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: 500;
+  color: #343a40;
+  font-size: 14px;
+}
+
+/* Enhanced input and select styling */
+.formInput,
+.formSelect {
+  width: 100%;
+  padding: 0.75rem 1rem; /* Increased padding for taller inputs */
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 15px; /* Slightly larger font */
+  color: #343a40;
+  transition: all 0.2s ease; /* Smooth transition for all property changes */
+  background-color: #f9fafb; /* Very light background for better distinction */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); /* Subtle shadow for depth */
+}
+
+/* Enhanced focus state */
+.formInput:focus,
+.formSelect:focus {
+  outline: none;
+  border-color: var(--primary-color, #2563eb);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15); /* Softer, larger focus ring */
+  background-color: white; /* Change to white on focus */
+}
+
+/* Improved hover state */
+.formInput:hover:not(:focus),
+.formSelect:hover:not(:focus) {
+  border-color: #9ca3af;
+  background-color: #f3f4f6;
+}
+
+/* Readonly inputs styling */
+.formInputReadonly {
+  background-color: #f1f3f5; /* Slightly darker background */
+  color: #6c757d;
+  cursor: not-allowed;
+  border-color: #e5e7eb;
+}
+
+.formInputReadonly:hover {
+  background-color: #f1f3f5 !important; /* Prevent hover effect on readonly */
+  border-color: #e5e7eb !important;
+}
+
+/* Error state */
+.inputError {
+  border-color: #dc3545;
+  background-color: #fff5f5; /* Light red background */
+}
+
+.inputError:focus {
+  box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.15); /* Red focus ring for error state */
+}
+
+.errorMessage {
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 0.375rem;
+  display: flex;
+  align-items: center;
+}
+
+.buttonContainer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.cancelButton {
+  padding: 0.75rem 1.5rem; /* Increased from 0.625rem 1.25rem */
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  color: #4b5563;
+  background-color: white;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 15px; /* Increased from 14px */
+  transition: 0.2s ease;
+  min-width: 120px; /* Ensure minimum button width */
+  height: 46px; /* Fixed height for consistency */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.cancelButton:hover {
+  background-color: #f3f4f6;
+  border-color: #c1c7cd;
+}
+
+.submitButton {
+  padding: 0.75rem 1.5rem; /* Increased from 0.625rem 1.25rem */
+  border: none;
+  border-radius: 8px;
+  color: white;
+  background-color: var(--primary-color, #2563eb);
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 15px; /* Increased from 14px */
+  transition: 0.2s ease;
+  min-width: 120px; /* Ensure minimum button width */
+  height: 46px; /* Fixed height for consistency */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.submitButton:hover {
+  background-color: var(--primary-550, #1d4ed8);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.submitButton:active {
+  background-color: var(--primary-600, #1e40af);
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* React DatePicker styling */
+.reservationModal :global(.react-datepicker-wrapper) {
+  width: 100%;
+}
+
+.reservationModal :global(.react-datepicker__input-container input) {
+  width: 100%;
+  padding: 0.75rem 1rem; /* Match the other inputs */
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #343a40;
+  transition: all 0.2s ease;
+  background-color: #f9fafb;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.reservationModal :global(.react-datepicker__input-container input:focus) {
+  outline: none;
+  border-color: var(--primary-color, #2563eb);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+  background-color: white;
+}
+
+.reservationModal :global(.react-datepicker__input-container input:hover:not(:focus)) {
+  border-color: #9ca3af;
+  background-color: #f3f4f6;
+}
+
+/* Add a styles for select options */
+.formSelect option {
+  padding: 8px;
+  font-size: 15px;
+}
+
+/* Enhanced select styles */
+.formSelect {
+  appearance: none; /* Remove default styling */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px;
+  padding-right: 2.5rem; /* Make room for the custom dropdown arrow */
+}

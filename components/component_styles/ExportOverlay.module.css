@@ -1,0 +1,189 @@
+/* Overlay background styles */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  font-family: var(--font-primary, 'Inter', sans-serif);
+}
+
+/* Overlay header styles */
+.overlayHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.overlayHeader h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #343a40;
+  margin: 0;
+  font-family: var(--font-primary, 'Inter', sans-serif);
+}
+
+.closeButton {
+  font-size: 1.25rem;
+  color: #6b7280;
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.closeButton:hover {
+  color: #374151;
+  background-color: #f3f4f6;
+}
+
+/* Export form styles */
+.exportForm {
+  overflow-y: auto;
+  max-height: calc(80vh - 60px);
+  font-family: var(--font-primary, 'Inter', sans-serif);
+}
+
+.exportOverlayContent {
+  background-color: white;
+  border-radius: 10px;
+  padding: 1.25rem;
+  width: 100%;
+  max-width: 34rem;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  animation: modalFadeIn 0.3s ease-out forwards;
+  transform: scale(0.95);
+  font-family: var(--font-primary, 'Inter', sans-serif);
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.exportSection {
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+}
+
+/* Export options styling */
+.exportOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 1rem 0;
+}
+
+.exportOption {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: #f9fafb;
+}
+
+.exportOption:hover {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.exportOption.selected {
+  background-color: #e6f4ff;
+  border-color: #1890ff;
+}
+
+.exportIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16px;
+  font-size: 1.5rem;
+  color: #6b7280;
+  min-width: 24px;
+}
+
+.selected .exportIcon {
+  color: #1890ff;
+}
+
+.exportText {
+  font-size: 14px;
+  color: #343a40;
+  font-weight: 500;
+}
+
+/* Export actions styling */
+.exportActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.exportButton {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  background-color: var(--primary-color, #2563eb);
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+  transition: 0.2s ease;
+  min-width: 90px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  font-family: var(--font-primary, 'Inter', sans-serif);
+}
+
+.exportButton:hover:not(:disabled) {
+  background-color: var(--primary-550, #1d4ed8);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.exportButton:active:not(:disabled) {
+  background-color: var(--primary-600, #1e40af);
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.exportButton:disabled {
+  background-color: #d9d9d9;
+  cursor: not-allowed;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .exportOverlayContent {
+    width: 90%;
+    padding: 1rem;
+  }
+  
+  .exportOption {
+    padding: 12px;
+  }
+}
