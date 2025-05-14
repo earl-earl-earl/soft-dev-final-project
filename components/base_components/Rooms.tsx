@@ -4,8 +4,10 @@ import styles from "../component_styles/Rooms.module.css";
 
 type RoomStatus = "Occupied" | "Vacant";
 
-interface Occupant {
-  name: string;
+interface Reservation {
+  checkIn: Date;
+  checkOut: Date;
+  guestName: string; // Keep this in case you need it later
 }
 
 interface Room {
@@ -17,7 +19,7 @@ interface Room {
   amenities: string[];
   price: number;
   status: RoomStatus;
-  occupant?: Occupant;
+  reservation?: Reservation; // Replace occupant with reservation
   isActive: boolean;
 }
 
@@ -52,7 +54,11 @@ const RoomDashboard: React.FC = () => {
       amenities: ["Free Entrance", "Breakfast for 4"],
       price: 3500.0,
       status: "Occupied",
-      occupant: { name: "Lozada, Daven J." },
+      reservation: { 
+        guestName: "Lozada, Daven J.",
+        checkIn: new Date(2025, 4, 10),
+        checkOut: new Date(2025, 4, 15)
+      },
       isActive: true,
     },
     {
@@ -64,7 +70,11 @@ const RoomDashboard: React.FC = () => {
       amenities: ["Free Entrance", "Breakfast for 2"],
       price: 2000.0,
       status: "Occupied",
-      occupant: { name: "Segura, Paul J." },
+      reservation: { 
+        guestName: "Segura, Paul J.",
+        checkIn: new Date(2025, 4, 10),
+        checkOut: new Date(2025, 4, 15)
+      },
       isActive: true,
     },
     {
@@ -98,17 +108,21 @@ const RoomDashboard: React.FC = () => {
       amenities: ["Free Entrance", "Breakfast for 3"],
       price: 3000.0,
       status: "Occupied",
-      occupant: { name: "James, LeBron" },
+      reservation: { 
+        guestName: "James, LeBron",
+        checkIn: new Date(2025, 4, 12),
+        checkOut: new Date(2025, 4, 17)
+      },
       isActive: true,
     },
     {
       id: "006",
       name: "Bungalow",
       roomNumber: "#006",
-      capacity: 10,
+      capacity: 2,
       lastUpdated: "May 07, 2024",
-      amenities: ["Free Entrance for 10"],
-      price: 7000.0,
+      amenities: ["Free Entrance", "Breakfast for 2"],
+      price: 2200.0,
       status: "Vacant",
       isActive: true,
     },
@@ -121,18 +135,11 @@ const RoomDashboard: React.FC = () => {
       amenities: ["Free Entrance", "Breakfast for 2", "Ocean View"],
       price: 2500.0,
       status: "Occupied",
-      occupant: { name: "Garcia, Maria L." },
-      isActive: true,
-    },
-    {
-      id: "008",
-      name: "Harmony",
-      roomNumber: "#008",
-      capacity: 5,
-      lastUpdated: "May 07, 2024",
-      amenities: ["Free Entrance", "Breakfast for 5", "Private Balcony"],
-      price: 4500.0,
-      status: "Vacant",
+      reservation: { 
+        guestName: "Garcia, Maria L.",
+        checkIn: new Date(2025, 4, 8),
+        checkOut: new Date(2025, 4, 13)
+      },
       isActive: true,
     },
     {
@@ -144,18 +151,11 @@ const RoomDashboard: React.FC = () => {
       amenities: ["Free Entrance", "Breakfast for 3", "Garden Access"],
       price: 3200.0,
       status: "Occupied",
-      occupant: { name: "Santos, Juan C." },
-      isActive: true,
-    },
-    {
-      id: "010",
-      name: "Oasis",
-      roomNumber: "#010",
-      capacity: 4,
-      lastUpdated: "May 07, 2024",
-      amenities: ["Free Entrance", "Breakfast for 4", "Pool Access"],
-      price: 3800.0,
-      status: "Vacant",
+      reservation: { 
+        guestName: "Santos, Juan C.",
+        checkIn: new Date(2025, 4, 9),
+        checkOut: new Date(2025, 4, 14)
+      },
       isActive: true,
     },
     {
@@ -167,18 +167,11 @@ const RoomDashboard: React.FC = () => {
       amenities: ["Free Entrance", "Breakfast for 2", "Terrace Access"],
       price: 2200.0,
       status: "Occupied",
-      occupant: { name: "Reyes, Ana B." },
-      isActive: true,
-    },
-    {
-      id: "012",
-      name: "Paradise",
-      roomNumber: "#012",
-      capacity: 8,
-      lastUpdated: "May 07, 2024",
-      amenities: ["Free Entrance", "Breakfast for 8", "BBQ Area"],
-      price: 6500.0,
-      status: "Vacant",
+      reservation: { 
+        guestName: "Reyes, Ana B.",
+        checkIn: new Date(2025, 4, 11),
+        checkOut: new Date(2025, 4, 16)
+      },
       isActive: true,
     },
     {
@@ -190,7 +183,11 @@ const RoomDashboard: React.FC = () => {
       amenities: ["Free Entrance", "Breakfast for 6", "Sunset View"],
       price: 5200.0,
       status: "Occupied",
-      occupant: { name: "Cruz, Ricardo D." },
+      reservation: { 
+        guestName: "Cruz, Ricardo D.",
+        checkIn: new Date(2025, 4, 13),
+        checkOut: new Date(2025, 4, 18)
+      },
       isActive: true,
     },
     {
@@ -213,22 +210,11 @@ const RoomDashboard: React.FC = () => {
       amenities: ["Free Entrance", "Breakfast for 3", "Mountain View"],
       price: 3300.0,
       status: "Occupied",
-      occupant: { name: "Lim, Margaret T." },
-      isActive: true,
-    },
-    {
-      id: "016",
-      name: "Retreat",
-      roomNumber: "#016",
-      capacity: 12,
-      lastUpdated: "May 07, 2024",
-      amenities: [
-        "Free Entrance for 12",
-        "Breakfast for 12",
-        "Private Kitchen",
-      ],
-      price: 9000.0,
-      status: "Vacant",
+      reservation: { 
+        guestName: "Lim, Margaret T.",
+        checkIn: new Date(2025, 4, 14),
+        checkOut: new Date(2025, 4, 19)
+      },
       isActive: true,
     },
     {
@@ -240,7 +226,11 @@ const RoomDashboard: React.FC = () => {
       amenities: ["Free Entrance", "Breakfast for 5", "Natural Spring View"],
       price: 4800.0,
       status: "Occupied",
-      occupant: { name: "Mendoza, Carlos F." },
+      reservation: { 
+        guestName: "Mendoza, Carlos F.",
+        checkIn: new Date(2025, 4, 15),
+        checkOut: new Date(2025, 4, 20)
+      },
       isActive: true,
     },
     {
@@ -497,74 +487,91 @@ interface RoomCardProps {
   onDeactivate: () => void; // Changed from onDelete
 }
 
-const RoomCard: React.FC<RoomCardProps> = ({ room, onEdit, onDeactivate }) => (
-  <div className={`${styles.roomCard} ${!room.isActive ? styles.deactivated : ""}`}>
-    <div className={styles.roomContent}>
-      {/* Left Column */}
-      <div className={styles.leftColumn}>
-        <div className={styles.roomTitle}>
-          <h3>
-            {room.name}{" "}
-            <span className={styles.roomNumber}>{room.roomNumber}</span>
-          </h3>
-          <p className={styles.lastUpdated}>Last Updated: {room.lastUpdated}</p>
-        </div>
+const RoomCard: React.FC<RoomCardProps> = ({ room, onEdit, onDeactivate }) => {
+  // Format date function
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
 
-        <div className={styles.amenitiesSection}>
-          <h4>Amenities</h4>
-          <ul className={styles.amenitiesList}>
-            {room.amenities.map((amenity, index) => (
-              <li key={index}>
-                <i className="fa-regular fa-check"></i> {amenity}
-              </li>
-            ))}
-          </ul>
-        </div>
+  return (
+    <div className={`${styles.roomCard} ${!room.isActive ? styles.deactivated : ""}`}>
+      <div className={styles.roomContent}>
+        {/* Left Column */}
+        <div className={styles.leftColumn}>
+          <div className={styles.roomTitle}>
+            <h3>
+              {room.name}{" "}
+              <span className={styles.roomNumber}>{room.roomNumber}</span>
+            </h3>
+            <p className={styles.lastUpdated}>Last Updated: {room.lastUpdated}</p>
+          </div>
 
-        <div className={styles.roomStatus}>
-          <span
-            className={`${styles.status} ${
-              room.status === "Occupied" ? styles.occupied : styles.vacant
-            }`}
-          >
-            {room.status}
-          </span>
-          {room.occupant && (
-            <span className={styles.occupantName}>&nbsp;• {room.occupant.name}</span>
-          )}
-        </div>
-      </div>
+          <div className={styles.amenitiesSection}>
+            <h4>Amenities</h4>
+            <ul className={styles.amenitiesList}>
+              {room.amenities.map((amenity, index) => (
+                <li key={index}>
+                  <i className="fa-regular fa-check"></i> {amenity}
+                </li>
+              ))}
+            </ul>
+          </div>
 
-      <div className={styles.rightColumn}>
-        <div className={styles.roomCapacity}>
-          <span>Capacity</span>
-          <div className={styles.capacityValue}>{room.capacity}</div>
-        </div>
-
-        <div className={styles.priceSection}>
-          <div className={styles.roomPrice}>
-            <span className={styles.currency}>PHP </span>
-            <span className={styles.priceValue}>
-              {room.price.toLocaleString()}.00
+          <div className={styles.roomStatus}>
+            <span
+              className={`${styles.status} ${
+                room.status === "Occupied" ? styles.occupied : styles.vacant
+              }`}
+            >
+              {room.status}
             </span>
+            {room.status === "Occupied" && room.reservation && (
+              <span className={styles.dateSpan}>
+                &nbsp;• {formatDate(room.reservation.checkIn)} - {formatDate(room.reservation.checkOut)}
+              </span>
+            )}
+            {room.status === "Vacant" && (
+              <span className={styles.dateSpan}>
+                &nbsp;• Available
+              </span>
+            )}
           </div>
         </div>
 
-        <div className={styles.roomActions}>
-          <button className={styles.editButton} onClick={onEdit}>
-            <i className="fa-regular fa-pen-to-square"></i>
-            <span className={styles.tooltipText}>Edit</span>
-          </button>
-          <button className={styles.deactivateButton} onClick={onDeactivate}>
-            <i className={`fa-regular ${room.isActive ? "fa-circle-minus" : "fa-circle-plus"}`}></i>
-            <span className={styles.tooltipText}>
-              {room.isActive ? "Deactivate" : "Activate"}
-            </span>
-          </button>
+        <div className={styles.rightColumn}>
+          <div className={styles.roomCapacity}>
+            <span>Capacity</span>
+            <div className={styles.capacityValue}>{room.capacity}</div>
+          </div>
+
+          <div className={styles.priceSection}>
+            <div className={styles.roomPrice}>
+              <span className={styles.currency}>PHP </span>
+              <span className={styles.priceValue}>
+                {room.price.toLocaleString()}.00
+              </span>
+            </div>
+          </div>
+
+          <div className={styles.roomActions}>
+            <button className={styles.editButton} onClick={onEdit}>
+              <i className="fa-regular fa-pen-to-square"></i>
+              <span className={styles.tooltipText}>Edit</span>
+            </button>
+            <button className={styles.deactivateButton} onClick={onDeactivate}>
+              <i className={`fa-regular ${room.isActive ? "fa-circle-minus" : "fa-circle-plus"}`}></i>
+              <span className={styles.tooltipText}>
+                {room.isActive ? "Deactivate" : "Activate"}
+              </span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default RoomDashboard;

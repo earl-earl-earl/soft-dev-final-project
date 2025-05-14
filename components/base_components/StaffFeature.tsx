@@ -8,11 +8,10 @@ interface StaffMember {
   name: string;
   email: string;
   phoneNumber: string;
-  role: string;       // Renamed from position
-  position: string;   // New field for organizational position
+  role: string;
+  position: string;
 }
 
-// Position options (organizational hierarchy)
 const positions = [
   "Staff Manager",
   "Technical Staff",
@@ -23,7 +22,6 @@ const positions = [
 ];
 
 const ALL_STAFF_MEMBERS: StaffMember[] = Array.from({ length: 28 }, (_, i) => {
-  // Create varied positions but keep role as "Staff"
   const positionIndex = i % positions.length;
   
   return {

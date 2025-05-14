@@ -402,6 +402,13 @@
   color: #8b909a;
 }
 
+.dateSpan {
+  font-size: 0.9rem;
+  color: var(--nav-text-icon-color);
+  font-weight: 500;
+  margin-left: 5px;
+}
+
 .priceSection { 
   display: flex;
   align-items: center;
