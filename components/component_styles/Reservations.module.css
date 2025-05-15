@@ -632,3 +632,44 @@
   background-color: #f6ffed;
   color: #52c41a;
 }
+
+.statusDropdown {
+  border: none;
+  border-radius: 20px;
+  padding: 4px 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  width: auto; /* Changed from 100% to auto */
+  min-width: 180px; /* Set a minimum width to fit the longest status option */
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 0.9em;
+  text-align: center;
+  padding-right: 24px; /* Make room for the dropdown arrow */
+  display: inline-block; /* Add this to make width respect content */
+}
+
+/* Maintain your existing status color styles */
+.statusDropdown.statusAccepted {
+  background-color: var(--status-accepted-bg, #d4edda);
+  color: var(--status-accepted-color, #155724);
+}
+
+.statusDropdown.statusPending {
+  background-color: var(--status-pending-bg, #fff3cd);
+  color: var(--status-pending-color, #856404);
+}
+
+/* And so on for other status styles... */
+
+.clickableRow {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.clickableRow:hover {
+  background-color: #f8f9fa;
+}

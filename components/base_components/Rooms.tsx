@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 // import Link from 'next/link';
 import styles from "../component_styles/Rooms.module.css";
 import RoomFilterOverlay, { RoomFilterOptions } from "../overlay_components/RoomFilterOverlay";
+import AddRoomOverlay, { RoomFormData } from "../overlay_components/AddRoomOverlay";
+import EditRoomOverlay from "../overlay_components/EditRoomOverlay";
 
 type RoomStatus = "Occupied" | "Vacant";
 
@@ -22,6 +24,7 @@ interface Room {
   status: RoomStatus;
   reservation?: Reservation; // Replace occupant with reservation
   isActive: boolean;
+  [key: string]: unknown;
 }
 
 interface Stats {
@@ -36,6 +39,9 @@ interface Stats {
 const RoomDashboard: React.FC = () => {
   const [statsAnimate, setStatsAnimate] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isAddRoomOpen, setIsAddRoomOpen] = useState(false);
+  const [isEditRoomOpen, setIsEditRoomOpen] = useState(false);
+  const [currentRoom, setCurrentRoom] = useState<Room | null>(null);
   const [filterOptions, setFilterOptions] = useState<RoomFilterOptions>({
     minCapacity: '',
     maxCapacity: '',
@@ -274,6 +280,8 @@ const RoomDashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<"all" | "Occupied" | "Vacant">("all");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [animate, setAnimate] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setStatsAnimate(false);
@@ -362,8 +370,11 @@ const RoomDashboard: React.FC = () => {
   };
 
   const handleEdit = (roomId: string) => {
-    console.log(`Editing room ${roomId}`);
-    // edit functionality
+    const roomToEdit = rooms.find(room => room.id === roomId);
+    if (roomToEdit) {
+      setCurrentRoom(roomToEdit);
+      setIsEditRoomOpen(true);
+    }
   };
 
   const handleDeactivate = (roomId: string) => {
@@ -375,12 +386,80 @@ const RoomDashboard: React.FC = () => {
     }
   };
 
+  const handleAddRoomSubmit = async (roomData: RoomFormData) => {
+    try {
+      const response = await fetch('/api/rooms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(roomData),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        // Handle validation errors
+        if (data.details) {
+          setFormErrors(data.details);
+          setError('Please fix the errors in the form');
+        } else {
+          setError(data.error || 'Failed to add room');
+        }
+        return;
+      }
+      
+      // Success - add the new room to the UI
+      setRooms([...rooms, data]);
+      setIsAddRoomOpen(false);
+      
+      // Show success message
+      // (implement your success notification logic here)
+      
+    } catch (err) {
+      setError('An unexpected error occurred');
+      console.error(err);
+    }
+  };
+
+  const handleEditRoomSubmit = async (roomData: RoomFormData) => {
+    try {
+      if (!currentRoom) return;
+      
+      // Skip API call - update UI directly (for testing/development)
+      const updatedRooms = rooms.map(room => 
+        room.id === currentRoom.id ? {
+          ...room,
+          name: roomData.name,
+          roomNumber: roomData.roomNumber,
+          capacity: roomData.capacity,
+          price: roomData.price,
+          amenities: roomData.amenities,
+          isActive: roomData.isActive,
+          lastUpdated: new Date().toLocaleDateString('en-US', {
+            month: 'long',
+            day: '2-digit',
+            year: 'numeric'
+          })
+        } : room
+      );
+      
+      setRooms(updatedRooms);
+      setIsEditRoomOpen(false);
+      setCurrentRoom(null);
+      
+      // Show success notification
+      setError(null);
+      console.log("Room updated successfully (UI only)");
+      
+    } catch (err) {
+      setError('An unexpected error occurred');
+      console.error(err);
+    }
+  };
+
   const handleAddRoom = () => {
-    console.log("Adding a new room");
-    // Here you would typically:
-    // 1. Show a modal form
-    // 2. Handle form submission
-    // 3. Add the new room to the rooms state
+    setIsAddRoomOpen(true);
   };
 
   const handleApplyFilters = (newFilters: RoomFilterOptions) => {
@@ -538,6 +617,34 @@ const RoomDashboard: React.FC = () => {
         onApply={handleApplyFilters}
         initialFilters={filterOptions}
       />
+      
+      {error && (
+        <div className={styles.errorMessage}>
+          <i className="fa-regular fa-exclamation-circle"></i> {error}
+          <button onClick={() => setError(null)}>
+            <i className="fa-regular fa-times"></i>
+          </button>
+        </div>
+      )}
+      
+      <AddRoomOverlay 
+        isOpen={isAddRoomOpen}
+        onClose={() => setIsAddRoomOpen(false)}
+        onSubmit={handleAddRoomSubmit}
+        existingRooms={rooms}
+        formErrors={formErrors}
+      />
+      
+      {currentRoom && (
+        <EditRoomOverlay 
+          isOpen={isEditRoomOpen}
+          onClose={() => setIsEditRoomOpen(false)}
+          onSubmit={handleEditRoomSubmit}
+          existingRooms={rooms}
+          formErrors={formErrors}
+          room={currentRoom}
+        />
+      )}
     </div>
   );
 };

@@ -1,0 +1,204 @@
+/* Add these at the top of your file */
+
+.overlayContainer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.overlayContent {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideIn 0.3s ease-out;
+}
+
+.overlayHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.overlayHeader h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #212529;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.closeButton:hover {
+  background-color: #f8f9fa;
+  color: #343a40;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Make sure the body doesn't scroll when overlay is open
+:global(body.overlay-open) {
+  overflow: hidden;
+} */
+
+
+.detailsContainer {
+  padding: 20px;
+}
+
+.detailsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.reservationId {
+  font-size: 18px;
+  font-weight: 600;
+  margin-right: 10px;
+}
+
+.statusBadge, .typeBadge {
+  padding: 5px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-right: 8px;
+}
+
+.dateInfo {
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.detailsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.detailsSection {
+  margin-bottom: 24px;
+}
+
+.detailsSection h3 {
+  font-size: 16px;
+  margin-bottom: 12px;
+  color: #212529;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 8px;
+}
+
+.detailItem {
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.detailLabel {
+  flex: 0 0 120px;
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.detailValue {
+  flex: 1;
+}
+
+.notesSection {
+  margin-top: 20px;
+  border-top: 1px solid #e9ecef;
+  padding-top: 20px;
+}
+
+.notesContent {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  min-height: 100px;
+}
+
+.emptyNotes {
+  color: #adb5bd;
+  font-style: italic;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+  justify-content: flex-end;
+}
+
+.actionButton {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.editButton {
+  background-color: #e7f3ff;
+  color: #0d6efd;
+  border: 1px solid #cfe2ff;
+}
+
+.printButton {
+  background-color: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+}
+
+.paymentButton {
+  background-color: #d1e7dd;
+  color: #198754;
+  border: 1px solid #badbcc;
+}
+
+.paymentStatus {
+  font-weight: 500;
+}
+
+.paid {
+  color: #198754;
+}
+
+.unpaid {
+  color: #dc3545;
+}

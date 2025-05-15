@@ -3,6 +3,7 @@ import styles from "../component_styles/Reservations.module.css";
 import NewReservationOverlay, { ReservationData } from "../overlay_components/NewReservationOverlay";
 import FilterOverlay, { FilterOptions } from "../overlay_components/FilterOverlay";
 import ExportOverlay from "../overlay_components/ExportOverlay";
+import ReservationDetailsOverlay from "../overlay_components/ReservationDetailsOverlay";
 
 // Update the StatCard component to accept an 'animate' prop
 interface StatCardProps {
@@ -63,7 +64,8 @@ export interface ReservationItem {
     seniors: number;
   };
   auditedBy?: string;
-  type: "online" | "direct"; // New field
+  type: "online" | "direct";
+  notes?: string; // Add this field for reservation notes
 }
 
 const createMockDate = (
@@ -94,6 +96,7 @@ export const reservationsData: ReservationItem[] = [
     },
     auditedBy: "staff001",
     type: "online",
+    notes: "Guest requested early check-in if possible. Allergic to seafood. Celebrating wedding anniversary.",
   },
   {
     id: "A1701",
@@ -111,6 +114,7 @@ export const reservationsData: ReservationItem[] = [
     },
     auditedBy: "staff002",
     type: "direct",
+    notes: "Returning guest. Prefers room away from elevator. May require airport pickup service.",
   },
   {
     id: "A1669",
@@ -128,6 +132,7 @@ export const reservationsData: ReservationItem[] = [
     },
     auditedBy: "staff003",
     type: "online",
+    notes: "Guest will be arriving late, around 9pm. Please ensure front desk is aware. Requested extra pillows.",
   },
   {
     id: "A1526",
@@ -286,15 +291,28 @@ const roomLookup: { [key: string]: { name: string } } = {
 
 type StatusCategory = "Accepted" | "Pending" | "Cancelled" | "Rejected" | "Expired" | "Confirmed_Pending_Payment";
 
+// Replace the getStatusCategory function with this improved version
 const getStatusCategory = (rawStatus: string): StatusCategory => {
-  const upperStatus = rawStatus.toUpperCase();
+  // Make an exact match instead of a partial match
+  const status = rawStatus.trim();
+  
+  if (status === "Accepted") return "Accepted";
+  if (status === "Pending") return "Pending";
+  if (status === "Cancelled") return "Cancelled";
+  if (status === "Rejected") return "Rejected";
+  if (status === "Expired") return "Expired";
+  if (status === "Confirmed_Pending_Payment") return "Confirmed_Pending_Payment";
+  
+  // For backward compatibility, if we don't have an exact match:
+  const upperStatus = status.toUpperCase();
   if (upperStatus.includes("ACCEPTED")) return "Accepted";
+  if (upperStatus.includes("CONFIRMED") && upperStatus.includes("PENDING")) return "Confirmed_Pending_Payment";
   if (upperStatus.includes("PENDING")) return "Pending";
   if (upperStatus.includes("CANCELLED")) return "Cancelled";
   if (upperStatus.includes("REJECTED")) return "Rejected";
   if (upperStatus.includes("EXPIRED")) return "Expired";
-  if (upperStatus.includes("CONFIRMED_PENDING_PAYMENT")) return "Confirmed_Pending_Payment";
-  return "Pending";
+  
+  return "Pending"; // Default fallback
 };
 
 // Status description map
@@ -308,7 +326,7 @@ const statusDescriptions: Record<string, string> = {
 };
 
 const staffLookup: { [key: string]: string } = {
-  staff001: "Torremoro, Regine",
+  staff001: "Suarez, Reign",
   staff002: "Cruz, Carlos",
   staff003: "Santos, Ana",
   staff004: "Reyes, Miguel",
@@ -348,6 +366,7 @@ const Reservations = () => {
     roomId: 'all'
   }); // New filter options state
   const [isExportOpen, setIsExportOpen] = useState(false);
+  const [selectedReservation, setSelectedReservation] = useState<ReservationItem | null>(null); // New state
 
   useEffect(() => {
     setAnimateStats(false);
@@ -551,6 +570,26 @@ const Reservations = () => {
     return pageNumbers;
   };
 
+  // Define the status change handler before it's used in dependencies
+  const handleStatusChange = React.useCallback((reservationId: string, newStatus: string) => {
+    // Find the reservation in the data array
+    const index = reservationsData.findIndex(res => res.id === reservationId);
+    if (index !== -1) {
+      // Update the status
+      reservationsData[index].status = newStatus;
+      
+      // Force a re-render
+      setCurrentReservations([...currentReservations]);
+      
+      // In a real application, you'd send an API request to update the status
+      console.log(`Reservation ${reservationId} status updated to ${newStatus}`);
+      
+      // Optional: show a success notification
+      // setStatusUpdateNotification({ id: reservationId, status: newStatus });
+      // setTimeout(() => setStatusUpdateNotification(null), 3000);
+    }
+  }, [currentReservations]);
+
   // Make sure tableBodyContent properly shows the no results message
   const tableBodyContent = useMemo(() => {
     // Check if any filters are active
@@ -592,29 +631,49 @@ const Reservations = () => {
     return currentReservations.map((item) => {
       const statusCategory = getStatusCategory(item.status);
       const totalGuests = item.guests.adults + item.guests.children + item.guests.seniors;
-      return (<tr key={item.id}>
-        <td>{customerLookup[item.customerId]?.name || "N/A"}</td>
-        <td>{item.customerId}</td>
-        <td>{item.id}</td>
-        <td>{roomLookup[item.roomId]?.name || item.roomId}</td>
-        <td>{formatDateForDisplay(item.checkIn)}</td>
-        <td>{formatDateForDisplay(item.checkOut)}</td>
-        <td>{customerLookup[item.customerId]?.phone || "N/A"}</td>
-        <td>{item.guests.adults}</td>
-        <td>{item.guests.children}</td>
-        <td>{item.guests.seniors}</td>
-        <td><strong>{totalGuests}</strong></td>
-        <td><span className={`${styles.statusPillGeneral} ${styles[`status${statusCategory}`]}`} title={statusDescriptions[statusCategory]}>{statusCategory.replace("_", " ")}</span></td>
-        <td>{item.confirmationTime ? formatDateForDisplay(item.confirmationTime) : "N/A"}</td>
-        <td><span className={`${styles.statusPillGeneral} ${item.paymentReceived ? styles.paymentPaid : styles.paymentNotPaid}`}>{item.paymentReceived ? "Paid" : "Not Paid"}</span></td>
-        <td><span className={`${styles.statusPillGeneral} ${item.type === "online" ? styles.typeOnline : styles.typeDirect}`}>{item.type === "online" ? "Online" : "Direct"}</span></td>
-        <td>{item.auditedBy ? staffLookup[item.auditedBy] || item.auditedBy : "N/A"}</td>
-      </tr>);
+      return (
+        <tr 
+          key={item.id} 
+          onClick={() => handleRowClick(item)}
+          className={styles.clickableRow}  // Add this class
+        >
+          <td>{customerLookup[item.customerId]?.name || "N/A"}</td>
+          <td>{item.customerId}</td>
+          <td>{item.id}</td>
+          <td>{roomLookup[item.roomId]?.name || item.roomId}</td>
+          <td>{formatDateForDisplay(item.checkIn)}</td>
+          <td>{formatDateForDisplay(item.checkOut)}</td>
+          <td>{customerLookup[item.customerId]?.phone || "N/A"}</td>
+          <td>{item.guests.adults}</td>
+          <td>{item.guests.children}</td>
+          <td>{item.guests.seniors}</td>
+          <td><strong>{totalGuests}</strong></td>
+          <td>
+            <select 
+              className={`${styles.statusDropdown} ${styles[`status${statusCategory}`]}`}
+              value={item.status}
+              onChange={(e) => handleStatusChange(item.id, e.target.value)}
+              title={statusDescriptions[getStatusCategory(item.status)]}
+            >
+              <option value="Pending">Pending</option>
+              <option value="Confirmed_Pending_Payment">Confirmed Pending Payment</option>
+              <option value="Accepted">Accepted</option>
+              <option value="Rejected">Rejected</option>
+              <option value="Cancelled">Cancelled</option>
+              <option value="Expired">Expired</option>
+            </select>
+          </td>
+          <td>{item.confirmationTime ? formatDateForDisplay(item.confirmationTime) : "N/A"}</td>
+          <td><span className={`${styles.statusPillGeneral} ${item.paymentReceived ? styles.paymentPaid : styles.paymentNotPaid}`}>{item.paymentReceived ? "Paid" : "Not Paid"}</span></td>
+          <td><span className={`${styles.statusPillGeneral} ${item.type === "online" ? styles.typeOnline : styles.typeDirect}`}>{item.type === "online" ? "Online" : "Direct"}</span></td>
+          <td>{item.auditedBy ? staffLookup[item.auditedBy] || item.auditedBy : "N/A"}</td>
+        </tr>
+      );
     });
-  }, [currentReservations, filteredReservations, searchTerm, statusFilter, reservationType, filterOptions]);
+  }, [currentReservations, filteredReservations, searchTerm, statusFilter, reservationType, filterOptions, handleStatusChange]);
 
   // Function to handle new reservation submission
-  const handleNewReservation = (reservationData: ReservationData) => {
+  const handleNewReservation = React.useCallback((reservationData: ReservationData) => {
     // Extract roomId from the selected room string "Room Name (RoomId)"
     const roomIdMatch = reservationData.room.match(/\(([^)]+)\)/);
     const roomId = roomIdMatch ? roomIdMatch[1] : reservationData.room;
@@ -644,44 +703,26 @@ const Reservations = () => {
       type: "direct" // As specified, type is fixed to direct
     };
     
-    // For demonstration, we'll add this to the start of the array
-    // In a real app, you would likely send an API request to create the reservation
+    // Add the new reservation to the reservationsData array
     reservationsData.unshift(newReservation);
     
-    // Also add customer data to the lookup
-    customerLookup[customerId] = {
-      name: reservationData.name,
-      phone: reservationData.phone
-    };
+    // Update the current reservations to show the new one
+    setCurrentPage(1); // Go back to first page
     
-    // Reset filters and go to first page to show the new reservation
-    setStatusFilter("all");
-    setReservationType("all");
-    setSearchTerm("");
-    setCurrentPage(1);
-  };
+    // Close the overlay
+    setIsNewReservationOpen(false);
+    
+    console.log("New reservation created:", newReservation);
+  }, []);
 
-  const handleApplyFilters = (newFilters: FilterOptions) => {
-    setFilterOptions(newFilters);
+  function handleApplyFilters(filters: FilterOptions): void {
+    setFilterOptions(filters);
     setIsFilterOpen(false);
-    // Reset to first page when filters change
-    setCurrentPage(1);
-  };
+  }
 
-  const handleExport = (format: string) => {
-    // Implement export logic based on the format
-    console.log(`Exporting reservations as ${format}`);
-    
-    // Apply current filters to the exported data
-    const dataToExport = filteredReservations;
-    
-    if (format === 'pdf') {
-      // PDF generation logic would go here
-      console.log(`Exporting ${dataToExport.length} reservations to PDF`);
-    } else if (format === 'csv') {
-      // CSV generation logic would go here
-      console.log(`Exporting ${dataToExport.length} reservations to CSV`);
-    }
+  // Add this function to handle row clicks
+  const handleRowClick = (reservation: ReservationItem) => {
+    setSelectedReservation(reservation);
   };
 
   return (
@@ -902,7 +943,15 @@ const Reservations = () => {
       <ExportOverlay
         isOpen={isExportOpen}
         onClose={() => setIsExportOpen(false)}
-        onExport={handleExport}
+        onExport={(data) => console.log('Export data:', data)}
+      />
+      <ReservationDetailsOverlay
+        isOpen={selectedReservation !== null}
+        onClose={() => setSelectedReservation(null)}
+        reservation={selectedReservation}
+        customerLookup={customerLookup}
+        roomLookup={roomLookup}
+        staffLookup={staffLookup}
       />
     </div>
   );

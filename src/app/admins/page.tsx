@@ -2,13 +2,13 @@
 
 import Sidebar from "@components/base_components/Sidebar";
 import Header from "@components/base_components/Header";
-import Dashboard from "@components/base_components/Dashboard";
 import styles from "./page.module.css";
 import { useSidebar } from "@components/base_components/SidebarContext";
 import { useSession } from "@components/hooks/useSession";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import PageLoadingReset from '@/components/PageLoadingReset';
+import AdminFeature from "@components/base_components/AdminFeature";
 
 export default function Home() {
   const { isCollapsed: isSidebarCollapsed } = useSidebar();
@@ -45,10 +45,10 @@ export default function Home() {
     <div className={styles.pageContainer}>
       <Sidebar role={userRole} /> 
       <div className={`${styles.contentWrapper} ${contentWrapperMarginClass}`}>
-        <Header title="Dashboard" />
+        <Header title="Admins" />
         <main className={styles.mainContent}>
           <PageLoadingReset />
-          <Dashboard />
+          <AdminFeature />
         </main>
       </div>
     </div>

@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import styles from "../component_styles/Sidebar.module.css";
 import Link from "next/link";
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useSidebar } from "./SidebarContext";
 import LogoutOverlay from "../overlay_components/LogoutOverlay";
+import { useLoading } from '@/contexts/LoadingContext';
 
 interface NavLinkItem {
   type: "link" | "action";
@@ -66,6 +67,8 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ role }) => {
   const { isCollapsed, toggleSidebar } = useSidebar();
   const currentPathname = usePathname();
+  const router = useRouter();
+  const { setIsLoading } = useLoading();
   const [optimisticActiveHref, setOptimisticActiveHref] = useState<string | null>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -83,10 +86,13 @@ const Sidebar: React.FC<SidebarProps> = ({ role }) => {
   const handleConfirmLogout = () => {
     // Actual logout functionality to implement
     console.log("Logout confirmed");
+    // Show loading state during logout
+    setIsLoading(true);
+    
     // Add actual logout code here:
     // await signOut(); // if using NextAuth
-    // router.push('/login'); // Redirect to login page
-    window.location.href = '/login'; // Simple redirect
+    router.push('/login'); // Use Next.js router for client-side navigation
+    // The loading will be handled by the navigation
   };
 
   const handleCloseLogoutModal = () => {
