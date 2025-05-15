@@ -2,7 +2,13 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import styles from "../component_styles/Dashboard.module.css";
 
-const Dashboard: React.FC = () => {
+// Add role prop to component
+interface DashboardProps {
+  role: string;
+}
+
+// Update component definition to accept props
+const Dashboard: React.FC<DashboardProps> = ({ role }) => {
   const [animate, setAnimate] = useState(false);
 
   useEffect(() => {
@@ -102,26 +108,47 @@ const Dashboard: React.FC = () => {
     },
   ];
 
-  const recentGuests = [
+  const recentAdmins = [
     {
-      userId: "USR001",
-      name: "Ledesma, Marben Jhon",
-      room: "Ohana",
-      isActive: true,
+      id: "id-1",
+      username: "admin1",
+      name: "Admin 1",
+      position: "Admin",
     },
     {
-      userId: "USR003",
-      name: "Rafael, Earl John",
-      room: "Camille",
-      isActive: true,
+      id: "id-2",
+      username: "admin2",
+      name: "Admin 2",
+      position: "Admin",
     },
     {
-      userId: "USR005",
-      name: "Segura, Paul Justin",
-      room: "Kyle",
-      isActive: true,
+      id: "id-3",
+      username: "admin3",
+      name: "Admin 3",
+      position: "Admin",
     },
   ];
+
+  // const recentGuests = [
+  //   {
+  //     userId: "USR001",
+  //     name: "Ledesma, Marben Jhon",
+  //     room: "Ohana",
+  //     isActive: true,
+  //   },
+  //   {
+  //     userId: "USR003",
+  //     name: "Rafael, Earl John",
+  //     room: "Camille",
+  //     isActive: true,
+  //   },
+  //   {
+  //     userId: "USR005",
+  //     name: "Segura, Paul Justin",
+  //     room: "Kyle",
+  //     isActive: true,
+  //   },
+  // ];
 
   return (
     <div className={`${styles.dashboardContainer} ${animate ? styles.fadeIn : ""}`}>
@@ -279,7 +306,11 @@ const Dashboard: React.FC = () => {
         </div>
       </section>
 
-      <div className={styles.twoColumnSection}>
+      <div className={`${(role === 'admin' || role === 'super_admin') 
+        ? styles.twoColumnSection 
+        : styles.fullWidthSection}`}>
+        
+        {/* Staff section - visible to all roles */}
         <section className={styles.dashboardSectionHalf}>
           <div className={styles.sectionHeader}>
             <h2>Staff Overview</h2>
@@ -311,43 +342,39 @@ const Dashboard: React.FC = () => {
           </div>
         </section>
 
-        <section className={styles.dashboardSectionHalf}>
-          <div className={styles.sectionHeader}>
-            <h2>Active Guests</h2>
-            <Link href="/guests" className={styles.seeMoreButton}>
-              <span>See All Guests</span>
-              <i className="fa-regular fa-arrow-right"></i>
-            </Link>
-          </div>
-          
-          <div className={styles.tableContainer}>
-            <table className={styles.dashboardTable}>
-              <thead>
-                <tr>
-                  <th>User ID</th>
-                  <th>Name</th>
-                  <th>Room</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentGuests.map((guest) => (
-                  <tr key={guest.userId}>
-                    <td>{guest.userId}</td>
-                    <td>{guest.name}</td>
-                    <td>{guest.room}</td>
-                    <td className={styles.statusCell}>
-                      <span 
-                        className={`${styles.statusCircle} ${guest.isActive ? styles.statusOnline : styles.statusOffline}`}
-                        title={guest.isActive ? "Online" : "Offline"}
-                      ></span>
-                    </td>
+        {/* Admin section - only visible to admin and super_admin */}
+        {(role === 'admin' || role === 'super_admin') && (
+          <section className={styles.dashboardSectionHalf}>
+            <div className={styles.sectionHeader}>
+              <h2>Admin Overview</h2>
+              <Link href="/admins" className={styles.seeMoreButton}>
+                <span>See All Admins</span>
+                <i className="fa-regular fa-arrow-right"></i>
+              </Link>
+            </div>
+            
+            <div className={styles.tableContainer}>
+              <table className={styles.dashboardTable}>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Username</th>
+                    <th>Position</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                </thead>
+                <tbody>
+                  {recentAdmins.map((admin) => (
+                    <tr key={admin.id}>
+                      <td>{admin.name}</td>
+                      <td>{admin.username}</td>
+                      <td>{admin.position}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

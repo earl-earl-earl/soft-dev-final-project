@@ -160,3 +160,168 @@
   font-size: 1rem;
   border-bottom: none;
 }
+
+/* Modal styles */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+  background-color: white;
+  border-radius: 8px;
+  width: 550px;
+  max-width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.modalBody {
+  padding: 20px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.modalFooter {
+  padding: 15px 20px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: #666;
+}
+
+.formGroup {
+  margin-bottom: 15px;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.formControl {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.primaryButton {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.secondaryButton {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.formSectionTitle {
+  margin-top: 20px;
+  margin-bottom: 15px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eaeaea;
+  color: #4b5563;
+  font-size: 16px;
+}
+
+.passwordInputContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.eyeIcon {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 16px;
+}
+
+.formSectionTitle:first-of-type {
+  margin-top: 0;
+}
+
+.deactivatedRow {
+  opacity: 0.6;
+  background-color: #f8f9fa;
+}
+
+.statusBadge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.statusActive {
+  background-color: #e6f4ea;
+  color: #1d7737;
+  border: 1px solid #a3d8b3;
+}
+
+.statusInactive {
+  background-color: #f1f3f4;
+  color: #5f6368;
+  border: 1px solid #dadce0;
+}
+
+.activateButton:hover {
+  color: #1d7737;
+  background-color: rgba(29, 119, 55, 0.1);
+}
+
+.warningIcon {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.warningIcon i {
+  color: var(--warning-color);
+  font-size: 48px;
+}

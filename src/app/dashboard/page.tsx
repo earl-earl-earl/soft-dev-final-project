@@ -6,51 +6,31 @@ import Dashboard from "@components/base_components/Dashboard";
 import styles from "./page.module.css";
 import { useSidebar } from "@components/base_components/SidebarContext";
 import { useSession } from "@components/hooks/useSession";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import PageLoadingReset from '@/components/PageLoadingReset';
+import NavigationProgress from "@components/base_components/NavigationProcess"; // Adjust the path as necessary
 
 export default function Home() {
   const { isCollapsed: isSidebarCollapsed } = useSidebar();
-  const { userRole, loading: sessionLoading } = useSession();
-  const router = useRouter();
+  const { userRole } = useSession();
 
-  // Use NextAuth to check authentication status - no need for duplicate Supabase check
-  useEffect(() => {
-    if (!sessionLoading && !userRole) {
-      router.push('/login');
-    }
-  }, [userRole, sessionLoading, router]);
 
   const contentWrapperMarginClass = isSidebarCollapsed
     ? styles.contentWrapperCollapsed
     : styles.contentWrapperExpanded;
 
-  // Show loading state while checking authentication or fetching user role
-  if (sessionLoading) {
-    return (
-      <div className={styles.loadingContainer}>
-        <div className={styles.loadingSpinner}></div>
-        <p>Loading...</p>
-      </div>
-    );
-  }
-
-  // If not authenticated, don't render anything (redirect will happen in useEffect)
-  if (!userRole) {
-    return null;
-  }
-
   return (
-    <div className={styles.pageContainer}>
-      <Sidebar role={userRole} /> 
-      <div className={`${styles.contentWrapper} ${contentWrapperMarginClass}`}>
-        <Header title="Dashboard" />
-        <main className={styles.mainContent}>
-          <PageLoadingReset />
-          <Dashboard />
-        </main>
+    <>
+      <NavigationProgress />
+      <div className={styles.pageContainer}>
+        <Sidebar role={userRole || 'guest'} />
+        <div
+          className={`${styles.contentWrapper} ${contentWrapperMarginClass}`}
+        >
+          <Header title="Dashboard" />
+          <main className={styles.mainContent}>
+            <Dashboard />
+          </main>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

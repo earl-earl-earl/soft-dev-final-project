@@ -650,6 +650,7 @@
   text-align: center;
   padding-right: 24px; /* Make room for the dropdown arrow */
   display: inline-block; /* Add this to make width respect content */
+  z-index: 999999;
 }
 
 /* Maintain your existing status color styles */

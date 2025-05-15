@@ -46,10 +46,43 @@
   color: #6c757d;
   border-left: 1px solid #ddd;
   margin-left: 5px;
+  position: relative; /* <-- Add this line */
 }
 
-.filterButton:hover {
-  color: #343a40;
+/* --- Tooltip Styling (You can reuse/adapt from other modules) --- */
+.tooltipText {
+  position: absolute;
+  top: calc(100% + 5px); /* Position ABOVE the button */
+  left: 50%;
+  transform: translateX(-50%); /* Center horizontally */
+  padding: 5px 10px;
+  background-color: #333;
+  color: white;
+  font-size: 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 1050; /* Ensure it's on top */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease 0.05s, visibility 0.15s ease 0.05s;
+  pointer-events: none; /* So tooltip doesn't interfere with hover */
+}
+
+.tooltipText::before {
+  content: '';
+  position: absolute;
+  bottom: 100%; /* Arrow is at the top of the tooltip span (pointing down) */
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent #333 transparent; /* Makes arrow point down */
+}
+
+/* --- Rule to SHOW the tooltip on hover --- */
+.filterButton:hover .tooltipText {
+   opacity: 1;
+   visibility: visible;
 }
 
 .addButton {
@@ -139,55 +172,157 @@
   gap: 20px;
 }
 
-/* StaffFeature.module.css */
+/* Add to your CSS file */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
 
-/* ... your existing styles ... */
+.modal {
+  background-color: white;
+  border-radius: 8px;
+  width: 550px;
+  max-width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
 
-.filterButton {
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.modalBody {
+  padding: 20px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.modalFooter {
+  padding: 15px 20px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.closeButton {
   background: none;
   border: none;
-  padding: 10px;
+  font-size: 18px;
   cursor: pointer;
-  color: #6c757d;
-  border-left: 1px solid #ddd;
-  margin-left: 5px;
-  position: relative; /* <-- Add this line */
+  color: #666;
 }
 
-/* --- Tooltip Styling (You can reuse/adapt from other modules) --- */
-.tooltipText {
-  position: absolute;
-  top: calc(100% + 5px); /* Position ABOVE the button */
-  left: 50%;
-  transform: translateX(-50%); /* Center horizontally */
-  padding: 5px 10px;
-  background-color: #333;
-  color: white;
-  font-size: 12px;
+.formGroup {
+  margin-bottom: 15px;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.formControl {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
   border-radius: 4px;
-  white-space: nowrap;
-  z-index: 1050; /* Ensure it's on top */
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.15s ease 0.05s, visibility 0.15s ease 0.05s;
-  pointer-events: none; /* So tooltip doesn't interfere with hover */
+  font-size: 14px;
 }
 
-.tooltipText::before {
-  content: '';
+.primaryButton {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.secondaryButton {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.formSectionTitle {
+  margin-top: 20px;
+  margin-bottom: 15px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eaeaea;
+  color: #4b5563;
+  font-size: 16px;
+}
+
+.passwordInputContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.eyeIcon {
   position: absolute;
-  bottom: 100%; /* Arrow is at the top of the tooltip span (pointing down) */
-  left: 50%;
-  transform: translateX(-50%);
-  border-width: 5px;
-  border-style: solid;
-  border-color: transparent transparent #333 transparent; /* Makes arrow point down */
+  right: 10px;
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 16px;
 }
 
-/* --- Rule to SHOW the tooltip on hover --- */
-.filterButton:hover .tooltipText {
-   opacity: 1;
-   visibility: visible;
+/* Add margin to the first section title to eliminate extra space at top */
+.formSectionTitle:first-of-type {
+  margin-top: 0;
 }
 
-/* ... rest of your styles ... */
+.formRow {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.sortDirectionToggle {
+  display: flex;
+  height: 38px;
+}
+
+.sortDirectionButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  flex: 1;
+  transition: background-color 0.2s;
+}
+
+.sortDirectionButton:hover {
+  background-color: #e5e7eb;
+}

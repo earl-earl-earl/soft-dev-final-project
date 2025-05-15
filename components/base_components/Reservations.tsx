@@ -133,122 +133,7 @@ export const reservationsData: ReservationItem[] = [
     auditedBy: "staff003",
     type: "online",
     notes: "Guest will be arriving late, around 9pm. Please ensure front desk is aware. Requested extra pillows.",
-  },
-  {
-    id: "A1526",
-    customerId: "cust104",
-    roomId: "R004",
-    checkIn: createMockDate(2025, 5, 7, 14, 0),
-    checkOut: createMockDate(2025, 5, 13, 11, 0),
-    status: "Confirmed_Pending_Payment",
-    paymentReceived: false,
-    guests: {
-      adults: 2,
-      children: 0,
-      seniors: 0,
-    },
-    auditedBy: "staff004",
-    type: "direct",
-  },
-  {
-    id: "A1487",
-    customerId: "cust105",
-    roomId: "R005",
-    checkIn: createMockDate(2025, 5, 4, 10, 0),
-    checkOut: createMockDate(2025, 5, 7, 9, 0),
-    status: "Accepted",
-    confirmationTime: createMockDate(2025, 4, 25, 11, 15),
-    paymentReceived: true,
-    guests: {
-      adults: 4,
-      children: 3,
-      seniors: 0,
-    },
-    auditedBy: "staff005",
-    type: "online",
-  },
-  {
-    id: "A1666",
-    customerId: "cust106",
-    roomId: "R006",
-    checkIn: createMockDate(2025, 5, 7, 16, 0),
-    checkOut: createMockDate(2025, 5, 10, 11, 0),
-    status: "Cancelled",
-    paymentReceived: false,
-    guests: {
-      adults: 2,
-      children: 1,
-      seniors: 0,
-    },
-    auditedBy: "staff006",
-    type: "direct",
-  },
-  {
-    id: "A1234",
-    customerId: "cust107",
-    roomId: "R007",
-    checkIn: createMockDate(2025, 5, 8, 14, 0),
-    checkOut: createMockDate(2025, 5, 9, 12, 0),
-    status: "Pending",
-    paymentReceived: false,
-    guests: {
-      adults: 1,
-      children: 0,
-      seniors: 0,
-    },
-    auditedBy: "staff007",
-    type: "online",
-  },
-  {
-    id: "A5678",
-    customerId: "cust108",
-    roomId: "R008",
-    checkIn: createMockDate(2025, 5, 10, 13, 0),
-    checkOut: createMockDate(2025, 5, 14, 11, 0),
-    status: "Accepted",
-    confirmationTime: createMockDate(2025, 5, 1, 8, 30),
-    paymentReceived: true,
-    guests: {
-      adults: 2,
-      children: 2,
-      seniors: 1,
-    },
-    auditedBy: "staff008",
-    type: "direct",
-  },
-  {
-    id: "A9101",
-    customerId: "cust109",
-    roomId: "R009",
-    checkIn: createMockDate(2025, 5, 11, 15, 0),
-    checkOut: createMockDate(2025, 5, 13, 10, 0),
-    status: "Accepted",
-    confirmationTime: createMockDate(2025, 5, 5, 12, 5),
-    paymentReceived: true,
-    guests: {
-      adults: 3,
-      children: 0,
-      seniors: 2,
-    },
-    auditedBy: "staff009",
-    type: "online",
-  },
-  {
-    id: "A1121",
-    customerId: "cust110",
-    roomId: "R010",
-    checkIn: createMockDate(2025, 5, 12, 14, 0),
-    checkOut: createMockDate(2025, 5, 13, 11, 0),
-    status: "Rejected",
-    paymentReceived: false,
-    guests: {
-      adults: 1,
-      children: 0,
-      seniors: 0,
-    },
-    auditedBy: "staff010",
-    type: "direct",
-  },
+  }
 ];
 
 // Sort reservationsData by checkIn date in ascending order
@@ -266,27 +151,13 @@ const formatDateForDisplay = (date: Date | undefined): string => {
 const customerLookup: { [key: string]: { name: string; phone: string } } = {
   cust101: { name: "Ledesma, Marben Jhon", phone: "0972 786 8762" },
   cust102: { name: "Lozada, Daven Jerthrude", phone: "0954 435 5243" },
-  cust103: { name: "Rafael, Earl John", phone: "0912 653 7887" },
-  cust104: { name: "Recede, Jhon Biancent", phone: "0930 546 2123" },
-  cust105: { name: "Segura, Paul Justin", phone: "0943 6654 7665" },
-  cust106: { name: "James, LeBron", phone: "0965 544 2109" },
-  cust107: { name: "Smith, Jane", phone: "0911 222 3333" },
-  cust108: { name: "Doe, John", phone: "0988 777 6666" },
-  cust109: { name: "Garcia, Maria", phone: "0922 333 4444" },
-  cust110: { name: "Williams, David", phone: "0933 444 5555" },
+  cust103: { name: "Rafael, Earl John", phone: "0912 653 7887" }
 };
 
 const roomLookup: { [key: string]: { name: string } } = {
   R001: { name: "Ohana" },
   R002: { name: "Resthouse" },
   R003: { name: "Camille" },
-  R004: { name: "Phillip" },
-  R005: { name: "Kyle" },
-  R006: { name: "Emil" },
-  R007: { name: "Deluxe Suite" },
-  R008: { name: "Standard" },
-  R009: { name: "Family Room" },
-  R010: { name: "Bungalow" },
 };
 
 type StatusCategory = "Accepted" | "Pending" | "Cancelled" | "Rejected" | "Expired" | "Confirmed_Pending_Payment";
@@ -635,7 +506,7 @@ const Reservations = () => {
         <tr 
           key={item.id} 
           onClick={() => handleRowClick(item)}
-          className={styles.clickableRow}  // Add this class
+          className={styles.clickableRow}
         >
           <td>{customerLookup[item.customerId]?.name || "N/A"}</td>
           <td>{item.customerId}</td>
@@ -653,6 +524,7 @@ const Reservations = () => {
               className={`${styles.statusDropdown} ${styles[`status${statusCategory}`]}`}
               value={item.status}
               onChange={(e) => handleStatusChange(item.id, e.target.value)}
+              onClick={(e) => e.stopPropagation()} // Add this line to stop propagation
               title={statusDescriptions[getStatusCategory(item.status)]}
             >
               <option value="Pending">Pending</option>
@@ -875,7 +747,7 @@ const Reservations = () => {
                   <th>Status</th>
                   <th>Confirmation</th>
                   <th>Payment</th>
-                  <th>Type</th> {/* New column */}
+                  <th>Type</th>
                   <th>Audited By</th>
                 </tr>
               </thead>

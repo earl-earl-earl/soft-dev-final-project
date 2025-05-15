@@ -8,15 +8,16 @@ import { useSidebar } from "@components/base_components/SidebarContext";
 import { useSession } from "@components/hooks/useSession";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import NavigationProgress from "@components/base_components/NavigationProcess";
 
 export default function Home() {
   const { isCollapsed: isSidebarCollapsed } = useSidebar();
   const { userRole, loading: sessionLoading } = useSession();
   const router = useRouter();
-  
+
   useEffect(() => {
     if (!sessionLoading && !userRole) {
-      router.push('/login');
+      router.push("/login");
     }
   }, [userRole, sessionLoading, router]);
 
@@ -24,28 +25,20 @@ export default function Home() {
     ? styles.contentWrapperCollapsed
     : styles.contentWrapperExpanded;
 
-  if (sessionLoading) {
-    return (
-      <div className={styles.loadingContainer}>
-        <div className={styles.loadingSpinner}></div>
-        <p>Loading...</p>
-      </div>
-    );
-  }
-
-  if (!userRole) {
-    return null;
-  }
-
   return (
-    <div className={styles.pageContainer}>
-      <Sidebar role={userRole} /> 
-      <div className={`${styles.contentWrapper} ${contentWrapperMarginClass}`}>
-        <Header title="Guests" />
-        <main className={styles.mainContent}>
-          <Guests />
-        </main>
+    <>
+      <NavigationProgress />
+      <div className={styles.pageContainer}>
+        <Sidebar role={userRole || ""} />
+        <div
+          className={`${styles.contentWrapper} ${contentWrapperMarginClass}`}
+        >
+          <Header title="Guests" />
+          <main className={styles.mainContent}>
+            <Guests />
+          </main>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
