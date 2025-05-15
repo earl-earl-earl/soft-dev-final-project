@@ -1,11 +1,25 @@
 import { supabase } from "@/lib/supabaseClient";
 
 export const fetchReservations = async () => {
+  // First, let's check the actual schema of the customers table
+  const { data: customerFields, error: schemaError } = await supabase
+    .from('customers')
+    .select('*')
+    .limit(1);
+  
+  if (schemaError) {
+    console.error("Error checking customer schema:", schemaError.message);
+  } else {
+    console.log("Customer table fields:", Object.keys(customerFields[0] || {}));
+  }
+
+  // Now fetch reservations with the correct field names
   const { data, error } = await supabase
     .from("reservations")
     .select(`
       id,
       customer_id,
+      customer_name,
       room_id,
       check_in,
       check_out,
@@ -17,10 +31,9 @@ export const fetchReservations = async () => {
       payment_received,
       source,
       message,
-      type,
       audited_by,
-      customers (
-        name,
+      customers:customer_id (
+        user_id,
         phone_number
       ),
       staff:audited_by (
@@ -33,5 +46,6 @@ export const fetchReservations = async () => {
     return [];
   }
 
+  console.log("First reservation:", data?.[0]);
   return data;
 };

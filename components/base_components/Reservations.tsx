@@ -5,7 +5,7 @@ import FilterOverlay, { FilterOptions } from "../overlay_components/FilterOverla
 import ExportOverlay from "../overlay_components/ExportOverlay";
 import ReservationDetailsOverlay from "../overlay_components/ReservationDetailsOverlay";
 import { submitReservation } from "@/contexts/newReservation";
-
+import { fetchReservations } from "@/utils/fetchReservations";
 
 // Update the StatCard component to accept an 'animate' prop
 interface StatCardProps {
@@ -240,6 +240,9 @@ const Reservations = () => {
   }); // New filter options state
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState<ReservationItem | null>(null); // New state
+  const [reservations, setReservations] = useState<ReservationItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setAnimateStats(false);
@@ -259,16 +262,17 @@ const Reservations = () => {
   }));
 
   const filteredReservations = useMemo(() => {
-    let reservations = reservationsData;
+    // Use reservations from state instead of mock data
+    let reservationsList = reservations;
     
     // Filter by reservation type
     if (reservationType !== "all") {
-      reservations = reservations.filter(reservation => reservation.type === reservationType);
+      reservationsList = reservationsList.filter(reservation => reservation.type === reservationType);
     }
     
     // Filter by status
     if (statusFilter !== "all") {
-      reservations = reservations.filter(
+      reservationsList = reservationsList.filter(
         (reservation) => getStatusCategory(reservation.status) === statusFilter
       );
     }
@@ -276,34 +280,34 @@ const Reservations = () => {
     // Apply advanced filters
     if (filterOptions.checkInStart) {
       const startDate = new Date(filterOptions.checkInStart);
-      reservations = reservations.filter(r => r.checkIn >= startDate);
+      reservationsList = reservationsList.filter(r => r.checkIn >= startDate);
     }
     
     if (filterOptions.checkInEnd) {
       const endDate = new Date(filterOptions.checkInEnd);
       endDate.setHours(23, 59, 59);
-      reservations = reservations.filter(r => r.checkIn <= endDate);
+      reservationsList = reservationsList.filter(r => r.checkIn <= endDate);
     }
     
     if (filterOptions.checkOutStart) {
       const startDate = new Date(filterOptions.checkOutStart);
-      reservations = reservations.filter(r => r.checkOut >= startDate);
+      reservationsList = reservationsList.filter(r => r.checkOut >= startDate);
     }
     
     if (filterOptions.checkOutEnd) {
       const endDate = new Date(filterOptions.checkOutEnd);
       endDate.setHours(23, 59, 59);
-      reservations = reservations.filter(r => r.checkOut <= endDate);
+      reservationsList = reservationsList.filter(r => r.checkOut <= endDate);
     }
     
     if (filterOptions.paymentStatus !== 'all') {
       const isPaid = filterOptions.paymentStatus === 'paid';
-      reservations = reservations.filter(r => r.paymentReceived === isPaid);
+      reservationsList = reservationsList.filter(r => r.paymentReceived === isPaid);
     }
     
     if (filterOptions.minGuests) {
       const min = parseInt(filterOptions.minGuests);
-      reservations = reservations.filter(r => {
+      reservationsList = reservationsList.filter(r => {
         const total = r.guests.adults + r.guests.children + r.guests.seniors;
         return total >= min;
       });
@@ -311,22 +315,22 @@ const Reservations = () => {
     
     if (filterOptions.maxGuests) {
       const max = parseInt(filterOptions.maxGuests);
-      reservations = reservations.filter(r => {
+      reservationsList = reservationsList.filter(r => {
         const total = r.guests.adults + r.guests.children + r.guests.seniors;
         return total <= max;
       });
     }
     
     if (filterOptions.roomId !== 'all') {
-      reservations = reservations.filter(r => r.roomId === filterOptions.roomId);
+      reservationsList = reservationsList.filter(r => r.roomId === filterOptions.roomId);
     }
     
-    // Search filter (existing code)
+    // Search filter
     if (!searchTerm.trim()) {
-      return reservations;
+      return reservationsList;
     }
     const lowerSearchTerm = searchTerm.toLowerCase();
-    return reservations.filter((reservation) => {
+    return reservationsList.filter((reservation) => {
       const customerName = customerLookup[reservation.customerId]?.name || "";
       const customerPhone = customerLookup[reservation.customerId]?.phone || "";
       const roomName = roomLookup[reservation.roomId]?.name || "";
@@ -346,16 +350,16 @@ const Reservations = () => {
         statusCategory.includes(lowerSearchTerm)
       );
     });
-  }, [searchTerm, statusFilter, reservationType, filterOptions]); // Add reservationType dependency
+  }, [reservations, searchTerm, statusFilter, reservationType, filterOptions]); // Add reservationType dependency
 
   // Calculate statistics based on current filter
   const statistics = useMemo(() => {
-    // Define date range (Jan 1 to Apr 30, 2025)
+    // Define date range
     const startDate = new Date(2025, 0, 1);
     const endDate = new Date(2025, 3, 30); 
     
     // Filter reservations by type and date range
-    let reservationsForStats = reservationsData;
+    let reservationsForStats = reservations; // Use state data instead of mock
     if (reservationType !== "all") {
       reservationsForStats = reservationsForStats.filter(r => r.type === reservationType);
     }
@@ -376,7 +380,7 @@ const Reservations = () => {
     const occupancyRate = Math.round((checkIns / maxPossibleBookings) * 100);
     
     return { checkIns, checkOuts, totalGuests, occupancyRate };
-  }, [reservationType]);
+  }, [reservations, reservationType]); // Update dependency
 
   // Calculate total pages
   const totalPages = useMemo(() => {
@@ -445,23 +449,28 @@ const Reservations = () => {
 
   // Define the status change handler before it's used in dependencies
   const handleStatusChange = React.useCallback((reservationId: string, newStatus: string) => {
-    // Find the reservation in the data array
-    const index = reservationsData.findIndex(res => res.id === reservationId);
+    // Create a new array to avoid direct state mutation
+    const updatedReservations = [...reservations];
+    const index = updatedReservations.findIndex(res => res.id === reservationId);
+    
     if (index !== -1) {
       // Update the status
-      reservationsData[index].status = newStatus;
+      updatedReservations[index].status = newStatus;
       
-      // Force a re-render
-      setCurrentReservations([...currentReservations]);
+      // Update state
+      setReservations(updatedReservations);
       
-      // In a real application, you'd send an API request to update the status
+      // Force update of current reservations
+      setCurrentReservations(currentReservations.map(res => 
+        res.id === reservationId ? {...res, status: newStatus} : res
+      ));
+      
+      // Here you would also update the database
+      // updateReservationStatus(reservationId, newStatus);
+      
       console.log(`Reservation ${reservationId} status updated to ${newStatus}`);
-      
-      // Optional: show a success notification
-      // setStatusUpdateNotification({ id: reservationId, status: newStatus });
-      // setTimeout(() => setStatusUpdateNotification(null), 3000);
     }
-  }, [currentReservations]);
+  }, [reservations, currentReservations]);
 
   // Make sure tableBodyContent properly shows the no results message
   const tableBodyContent = useMemo(() => {
@@ -570,6 +579,53 @@ const Reservations = () => {
     setSelectedReservation(reservation);
   };
 
+  // Add this useEffect to fetch data when component mounts
+  useEffect(() => {
+    const loadReservations = async () => {
+      setIsLoading(true);
+      try {
+        const data = await fetchReservations();
+        if (data && data.length > 0) {
+          // Transform the data to match ReservationItem interface
+          const formattedData: ReservationItem[] = data.map(item => ({
+            id: item.id,
+            customerId: item.customer_id,
+            roomId: item.room_id,
+            checkIn: new Date(item.check_in),
+            checkOut: new Date(item.check_out),
+            status: item.status || "Pending",
+            confirmationTime: item.confirmation_time ? new Date(item.confirmation_time) : undefined,
+            paymentReceived: item.payment_received || false,
+            guests: {
+              adults: item.num_adults || 0,
+              children: item.num_children || 0,
+              seniors: item.num_seniors || 0,
+            },
+            auditedBy: item.audited_by,
+            type: item.source === "online" ? "online" : "direct",
+            notes: item.message,
+          }));
+          
+          // Sort by check-in date
+          formattedData.sort((a, b) => b.checkIn.getTime() - a.checkIn.getTime());
+          
+          setReservations(formattedData);
+        } else {
+          // If no data, use empty array
+          setReservations([]);
+        }
+        setError(null);
+      } catch (err) {
+        console.error("Error loading reservations:", err);
+        setError("Failed to load reservations");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadReservations();
+  }, []);
+
   return (
     <div className={styles.container}>
       <div className={styles.topContent}>
@@ -643,7 +699,9 @@ const Reservations = () => {
 
         <div className={styles.reservationListSection}>
           <div className={styles.listHeader}>
-            <h2 className={styles.listTitle}>Reservation List</h2>
+            <h2 className={styles.listTitle}>
+              {isLoading ? "Loading Reservations..." : "Reservation List"}
+            </h2>
             <div className={styles.actionButtons}>
               <div className={styles.listControls}>
                 <div className={styles.statusFilterWrapper}>
@@ -698,35 +756,48 @@ const Reservations = () => {
               </div>
             </div>
           </div>
-          <div
-            className={`${styles.tableContainer} ${
-              animateTable ? styles.tableFadeIn : ""
-            }`}
-          >
-            <table className={styles.reservationTable}>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Customer ID</th>
-                  <th>Res. ID</th>
-                  <th>Room</th>
-                  <th>Check-in</th>
-                  <th>Check-out</th>
-                  <th>Phone</th>
-                  <th>Adults</th>
-                  <th>Children</th>
-                  <th>Seniors</th>
-                  <th>Total</th>
-                  <th>Status</th>
-                  <th>Confirmation</th>
-                  <th>Payment</th>
-                  <th>Type</th>
-                  <th>Audited By</th>
-                </tr>
-              </thead>
-              <tbody>{tableBodyContent}</tbody>
-            </table>
-          </div>
+          {isLoading ? (
+            <div className={styles.loadingContainer}>
+              <p>Fetching reservation data...</p>
+              <div className={styles.spinner}></div>
+            </div>
+          ) : error ? (
+            <div className={styles.errorContainer}>
+              <p>Error: {error}</p>
+              <button 
+                onClick={() => window.location.reload()} 
+                className={styles.retryButton}
+              >
+                Retry
+              </button>
+            </div>
+          ) : (
+            <div className={`${styles.tableContainer} ${animateTable ? styles.tableFadeIn : ""}`}>
+              <table className={styles.reservationTable}>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Customer ID</th>
+                    <th>Res. ID</th>
+                    <th>Room</th>
+                    <th>Check-in</th>
+                    <th>Check-out</th>
+                    <th>Phone</th>
+                    <th>Adults</th>
+                    <th>Children</th>
+                    <th>Seniors</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Confirmation</th>
+                    <th>Payment</th>
+                    <th>Type</th>
+                    <th>Audited By</th>
+                  </tr>
+                </thead>
+                <tbody>{tableBodyContent}</tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
       {filteredReservations.length > 0 && totalPages > 1 && (
