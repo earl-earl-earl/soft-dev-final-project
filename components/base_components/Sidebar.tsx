@@ -24,6 +24,7 @@ interface NavDescItem {
 type NavItem = NavLinkItem | NavDescItem;
 
 const getMainNavItems = (role: string): NavItem[] => {
+
   // Base navigation items that everyone can see
   const baseItems: NavItem[] = [
     { type: "link", href: "/dashboard", iconClass: "fa-regular fa-house", activeIconClass: "fa-solid fa-house", text: "Dashboard" },
@@ -34,14 +35,18 @@ const getMainNavItems = (role: string): NavItem[] => {
   ];
   
   // Role-specific items
-  if (role === 'super_admin' || 'admin') {
+  if (role === 'super_admin' || role === 'admin') {
     // Super admin sees both staff and admins
     baseItems.push(
       { type: "link", href: "/staff", iconClass: "fa-regular fa-user-tie", activeIconClass: "fa-solid fa-user-tie", text: "Staff" },
       { type: "link", href: "/admins", iconClass: "fa-regular fa-user-gear", activeIconClass: "fa-solid fa-user-gear", text: "Admins" }
     );
+  } else if (role === 'staff') {
+    // staff sees only staff
+    baseItems.push(
+      { type: "link", href: "/staff", iconClass: "fa-regular fa-user-tie", activeIconClass: "fa-solid fa-user-tie", text: "Staff" }
+    );
   }
-  // Staff sees neither
 
   return baseItems;
 };
@@ -55,6 +60,7 @@ const otherNavItemsData = (handleLogoutCallback: () => void): NavItem[] => [
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface SidebarProps {
   role: string; // Add role prop
+
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ role }) => {

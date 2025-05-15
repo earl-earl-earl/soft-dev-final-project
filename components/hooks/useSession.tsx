@@ -1,24 +1,43 @@
 // hooks/useSession.ts
 "use client";
 
-import { useSession as useNextAuthSession } from "next-auth/react";
-import { Session } from "next-auth";
-
-// Extend the Session type to include role property
-interface CustomSession extends Session {
-  user: {
-    id?: string | undefined;
-    name?: string | null;
-    email?: string | null;
-    image?: string | null;
-    role?: string | undefined;
-  };
-}
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 export function useSession() {
-  const { data: session, status } = useNextAuthSession();
-  const loading = status === "loading";
-  const userRole = (session as CustomSession)?.user?.role || null;
-  
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      setLoading(true);
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData?.session?.user;
+
+      if (!user) {
+        setUserRole(null);
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      if (error || !data) {
+        setUserRole(null);
+      } else {
+        setUserRole(data.role);
+      }
+
+      setLoading(false);
+    };
+
+    fetchUserRole();
+  }, []);
+
   return { userRole, loading };
 }

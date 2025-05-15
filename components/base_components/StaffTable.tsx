@@ -14,10 +14,12 @@ interface StaffMember {
 interface StaffTableProps {
   staffData: StaffMember[];
   currentPage: number;
+  role: string;
 }
 
-const StaffTable: React.FC<StaffTableProps> = ({ staffData, currentPage }) => {
+const StaffTable: React.FC<StaffTableProps> = ({ staffData, currentPage, role}) => {
   const [animate, setAnimate] = useState(false);
+  const [isAdmin, setAdmin] = useState(false);
 
   useEffect(() => {
     setAnimate(false);
@@ -25,6 +27,10 @@ const StaffTable: React.FC<StaffTableProps> = ({ staffData, currentPage }) => {
     return () => clearTimeout(timer);
   }, [currentPage]);
 
+  useEffect(() => {
+    setAdmin(role === "admin" || role === "super_admin");
+  }, [role]);
+  
   return (
     <div className={`${styles.tableContainer} ${animate ? styles.fadeIn : ''}`} key={currentPage}>
       <table className={styles.staffTable}>
@@ -47,16 +53,19 @@ const StaffTable: React.FC<StaffTableProps> = ({ staffData, currentPage }) => {
                 <td>{staff.phoneNumber}</td>
                 <td>{staff.role}</td>
                 <td>{staff.position}</td>
-                <td className={styles.actionsCell}>
-                  <button className={styles.actionButton} title="Edit">
-                    <i className="fa-regular fa-pencil"></i>
-                    <span className={styles.tooltipText}>Edit</span>
-                  </button>
-                  <button className={`${styles.actionButton} ${styles.deactivateButton}`} title="Deactivate">
-                    <i className="fa-regular fa-circle-minus"></i>
-                    <span className={styles.tooltipText}>Deactivate</span>
-                  </button>
-                </td>
+                {isAdmin && (
+  <td className={styles.actionsCell}>
+    <button className={styles.actionButton} title="Edit">
+      <i className="fa-regular fa-pencil"></i>
+      <span className={styles.tooltipText}>Edit</span>
+    </button>
+    <button className={`${styles.actionButton} ${styles.deactivateButton}`} title="Deactivate">
+      <i className="fa-regular fa-circle-minus"></i>
+      <span className={styles.tooltipText}>Deactivate</span>
+    </button>
+  </td>
+)}
+
               </tr>
             ))
           ) : (
@@ -70,6 +79,7 @@ const StaffTable: React.FC<StaffTableProps> = ({ staffData, currentPage }) => {
       </table>
     </div>
   );
-};
+  }
+;
 
 export default StaffTable;

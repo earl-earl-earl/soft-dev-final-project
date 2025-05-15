@@ -1,16 +1,15 @@
-"use client"
+"use client";
 
 import styles from "./page.module.css";
 import Image from "next/image";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient"; // adjust import path if needed
 
 export default function Home() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
@@ -20,35 +19,17 @@ export default function Home() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
-    
-    try {
-      const result = await signIn("credentials", {
-        username,
-        password,
-        redirect: false,
-      });
 
-      if (result?.error) {
-        // Handle error
-        let errorMessage = result.error;
-        
-        // Translate generic NextAuth errors to more helpful messages
-        if (result.error === "CredentialsSignin") {
-          errorMessage = "Invalid username or password";
-        }
-        
-        throw new Error(errorMessage);
-      }
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-      // Successful login
-      router.push("/dashboard");
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "An error occurred during login";
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
+    if (error) {
+      setError(error.message);
+    } else {
+      router.push("/dashboard"); // redirect after successful login
     }
   };
 
@@ -64,28 +45,26 @@ export default function Home() {
         />
         <h1 className={styles.title}>Cabas-an Cold Springs</h1>
       </header>
+
       <main className={styles.content}>
         <div className={styles.welcomeTitle}>
           <h2 className={styles.welcome}>Welcome back</h2>
-          <p>Sign in to access your admin dashboard</p>
+          <p>Some subtitle text. Lorem ipsum dolor sit amet.</p>
         </div>
-        {error && (
-          <div className={styles.errorMessage}>
-            {error}
-          </div>
-        )}
+
         <form onSubmit={handleLogin} className={styles.form}>
           <div className={styles.inputDiv}>
-            <label htmlFor="username">Username</label>
-            <input 
-              type="text"
-              id="username" 
-              placeholder="Enter your username" 
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required 
+            <label htmlFor="email">Email</label>
+            <input
+              type="email"
+              id="email"
+              placeholder="Enter your email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
+
           <div className={styles.inputDiv}>
             <div className={styles.passwordLabelContainer}>
               <label htmlFor="password">Password</label>
@@ -93,31 +72,33 @@ export default function Home() {
                 Forgot password?
               </a>
             </div>
+
             <div className={styles.passwordContainer}>
               <input
                 type={showPassword ? "text" : "password"}
                 id="password"
                 placeholder="Enter your password"
+                required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
               />
-              <i 
-                className={`fa-regular fa${showPassword ? "-eye-slash" : "-eye"}`} 
+              <i
+                className={`fa-regular fa${
+                  showPassword ? "-eye-slash" : "-eye"
+                }`}
                 onClick={togglePasswordVisibility}
               ></i>
             </div>
+
+            <div className={styles.notice}>
+              <p>• Lorem ipsum dolor sit amet consectetur.</p>
+            </div>
           </div>
-          <button 
-            type="submit" 
-            className={styles.loginButton}
-            disabled={loading}
-          >
-            {loading ? (
-              <i className="fa-solid fa-spinner-third fa-spin"></i>
-            ) : (
-              "Login"
-            )}
+
+          {error && <p className={styles.error}>{error}</p>}
+
+          <button type="submit" className={styles.loginButton}>
+            Login
           </button>
         </form>
       </main>
