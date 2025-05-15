@@ -20,7 +20,7 @@ interface StaffTableProps {
 
 const StaffTable: React.FC<StaffTableProps> = ({ staffData, currentPage, role}) => {
   const [animate, setAnimate] = useState(false);
-  const [/* admin */, setAdmin] = useState(false);
+  const [isAdmin, setAdmin] = useState(false);
   
   // Add state for edit form
   const [isEditStaffOpen, setIsEditStaffOpen] = useState(false);
@@ -125,7 +125,9 @@ const StaffTable: React.FC<StaffTableProps> = ({ staffData, currentPage, role}) 
             <th>Phone Number</th>
             <th>Role</th>
             <th>Position</th>
-            <th>Actions</th>
+            {isAdmin && (
+              <th>Actions</th>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -137,6 +139,7 @@ const StaffTable: React.FC<StaffTableProps> = ({ staffData, currentPage, role}) 
                 <td>{staff.phoneNumber}</td>
                 <td>{staff.role}</td>
                 <td>{staff.position}</td>
+                {isAdmin && (
                 <td className={styles.actionsCell}>
                   <button 
                     className={styles.actionButton} 
@@ -155,6 +158,7 @@ const StaffTable: React.FC<StaffTableProps> = ({ staffData, currentPage, role}) 
                     <span className={styles.tooltipText}>Deactivate</span>
                   </button>
                 </td>
+                )}
               </tr>
             ))
           ) : (

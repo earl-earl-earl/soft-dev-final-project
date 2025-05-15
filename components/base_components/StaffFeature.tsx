@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import StaffTable from "./StaffTable";
 import styles from "../component_styles/StaffFeature.module.css";
+import { useSessionContext } from "@/contexts/SessionContext";
 
 interface StaffMember {
   id: string;
@@ -38,6 +39,7 @@ const ALL_STAFF_MEMBERS: StaffMember[] = Array.from({ length: 3 }, (_, i) => {
 const ITEMS_PER_PAGE = 9;
 
 const StaffFeature: React.FC = () => {
+  const {  role } = useSessionContext()
   const [currentPage, setCurrentPage] = useState(1);
   const [currentStaff, setCurrentStaff] = useState<StaffMember[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -280,7 +282,7 @@ const StaffFeature: React.FC = () => {
         </div>
 
         {currentStaff.length > 0 ? (
-          <StaffTable staffData={currentStaff} currentPage={currentPage} role={""} />
+          <StaffTable staffData={currentStaff} currentPage={currentPage} role={role ?? "staff"} />
         ) : (
           <p className={styles.noResults}>
             {searchTerm.trim()

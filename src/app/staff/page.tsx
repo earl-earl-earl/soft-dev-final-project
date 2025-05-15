@@ -8,7 +8,6 @@ import StaffFeature from "@components/base_components/StaffFeature";
 import { useSession } from "@components/hooks/useSession";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import NavigationProgress from "@components/base_components/NavigationProcess";
 
 export default function StaffPage() {
   const { isCollapsed: isSidebarCollapsed } = useSidebar();
@@ -18,7 +17,7 @@ export default function StaffPage() {
   // Use NextAuth to check authentication status
   useEffect(() => {
     if (!sessionLoading && !userRole) {
-      router.push("/login");
+      router.push('/login');
     }
   }, [userRole, sessionLoading, router]);
 
@@ -26,20 +25,30 @@ export default function StaffPage() {
     ? styles.contentWrapperCollapsed
     : styles.contentWrapperExpanded;
 
-  return (
-    <>
-      <NavigationProgress />
-      <div className={styles.pageContainer}>
-        <Sidebar role={"super_admin"}/* {userRole || "super_admin"} */ />
-        <div
-          className={`${styles.contentWrapper} ${contentWrapperMarginClass}`}
-        >
-          <Header title="Staff" />
-          <main className={styles.mainContent}>
-            <StaffFeature />
-          </main>
-        </div>
+  // Show loading state while checking authentication or fetching user role
+  if (sessionLoading) {
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.loadingSpinner}></div>
+        <p>Loading...</p>
       </div>
-    </>
+    );
+  }
+
+  // If not authenticated, don't render anything (redirect will happen in useEffect)
+  if (!userRole) {
+    return null;
+  }
+
+  return (
+    <div className={styles.pageContainer}>
+      <Sidebar role={userRole} />
+      <div className={`${styles.contentWrapper} ${contentWrapperMarginClass}`}>
+        <Header title="Staff" />
+        <main className={styles.mainContent}>
+          <StaffFeature />
+        </main>
+      </div>
+    </div>
   );
 }

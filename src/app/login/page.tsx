@@ -11,7 +11,6 @@ export default function Home() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false); // Add loading state
   const router = useRouter();
 
   const togglePasswordVisibility = () => {
@@ -21,23 +20,16 @@ export default function Home() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setLoading(true); // Set loading to true when login starts
 
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-      if (error) {
-        setError(error.message);
-      } else {
-        router.push("/dashboard"); // redirect after successful login
-      }
-    } catch {
-      setError("An unexpected error occurred");
-    } finally {
-      setLoading(false); // Set loading to false when login completes or fails
+    if (error) {
+      setError(error.message);
+    } else {
+      router.push("/dashboard"); // redirect after successful login
     }
   };
 
@@ -105,16 +97,8 @@ export default function Home() {
 
           {error && <p className={styles.error}>{error}</p>}
 
-          <button
-            type="submit"
-            className={styles.loginButton}
-            disabled={loading}
-          >
-            {loading ? (
-              <i className="fa-regular fa-spinner-third fa-spin"></i>
-            ) : (
-              "Login"
-            )}
+          <button type="submit" className={styles.loginButton}>
+            Login
           </button>
         </form>
       </main>

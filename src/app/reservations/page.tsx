@@ -5,41 +5,50 @@ import Header from "@components/base_components/Header";
 import styles from "./page.module.css";
 import Reservations from "@components/base_components/Reservations";
 import { useSidebar } from "@components/base_components/SidebarContext";
-import { useSession } from "@components/hooks/useSession";
+import { useSessionContext } from "@/contexts/SessionContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import NavigationProgress from "@components/base_components/NavigationProcess";
 
 export default function Home() {
   const { isCollapsed: isSidebarCollapsed } = useSidebar();
-  const { userRole, loading: sessionLoading } = useSession();
+  const { user, role, loading } = useSessionContext(); // Global session context
+
   const router = useRouter();
 
-  // Use NextAuth to check authentication status
   useEffect(() => {
-    if (!sessionLoading && !userRole) {
+    if (!loading && !role) {
       router.push("/login");
     }
-  }, [userRole, sessionLoading, router]);
+  }, [role, loading, router]);
 
   const contentWrapperMarginClass = isSidebarCollapsed
     ? styles.contentWrapperCollapsed
     : styles.contentWrapperExpanded;
 
-  return (
-    <>
-      <NavigationProgress />
-      <div className={styles.pageContainer}>
-        <Sidebar role={userRole || ""} />
-        <div
-          className={`${styles.contentWrapper} ${contentWrapperMarginClass}`}
-        >
-          <Header title="Reservations" />
-          <main className={styles.mainContent}>
-            <Reservations />
-          </main>
-        </div>
+  // Loading state
+  if (loading) {
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.loadingSpinner}></div>
+        <p>Loading...</p>
       </div>
-    </>
+    );
+  }
+
+  // Block rendering while unauthenticated
+  if (!role) {
+    return null;
+  }
+
+  return (
+    <div className={styles.pageContainer}>
+      <Sidebar role={role} />
+      <div className={`${styles.contentWrapper} ${contentWrapperMarginClass}`}>
+        <Header title="Reservations" />
+        <main className={styles.mainContent}>
+          <Reservations />
+        </main>
+      </div>
+    </div>
   );
 }
