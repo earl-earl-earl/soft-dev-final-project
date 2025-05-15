@@ -4,6 +4,8 @@ import NewReservationOverlay, { ReservationData } from "../overlay_components/Ne
 import FilterOverlay, { FilterOptions } from "../overlay_components/FilterOverlay";
 import ExportOverlay from "../overlay_components/ExportOverlay";
 import ReservationDetailsOverlay from "../overlay_components/ReservationDetailsOverlay";
+import { submitReservation } from "@/contexts/newReservation";
+
 
 // Update the StatCard component to accept an 'animate' prop
 interface StatCardProps {
@@ -545,47 +547,18 @@ const Reservations = () => {
   }, [currentReservations, filteredReservations, searchTerm, statusFilter, reservationType, filterOptions, handleStatusChange]);
 
   // Function to handle new reservation submission
-  const handleNewReservation = React.useCallback((reservationData: ReservationData) => {
-    // Extract roomId from the selected room string "Room Name (RoomId)"
-    const roomIdMatch = reservationData.room.match(/\(([^)]+)\)/);
-    const roomId = roomIdMatch ? roomIdMatch[1] : reservationData.room;
-    
-    // Generate a new unique ID (A + 4 digits)
-    const newId = `A${Math.floor(1000 + Math.random() * 9000)}`;
-    
-    // Find an existing customer or create a new one
-    // For this example, we'll use a dummy customer ID
-    const customerId = `cust${Math.floor(100 + Math.random() * 900)}`;
-    
-    // Create the new reservation object
-    const newReservation: ReservationItem = {
-      id: newId,
-      customerId: customerId,
-      roomId: roomId,
-      checkIn: reservationData.checkIn,
-      checkOut: reservationData.checkOut,
-      status: "Pending",
-      paymentReceived: false,
-      guests: {
-        adults: reservationData.adults,
-        children: reservationData.children,
-        seniors: reservationData.seniors,
-      },
-      auditedBy: "staff015", // Assuming the current user is staff015
-      type: "direct" // As specified, type is fixed to direct
-    };
-    
-    // Add the new reservation to the reservationsData array
-    reservationsData.unshift(newReservation);
-    
-    // Update the current reservations to show the new one
-    setCurrentPage(1); // Go back to first page
-    
-    // Close the overlay
-    setIsNewReservationOpen(false);
-    
-    console.log("New reservation created:", newReservation);
-  }, []);
+  const handleNewReservation = async (reservationData: ReservationData) => {
+    const result = await submitReservation(reservationData);
+  
+    if (result.success) {
+      alert("Reservation successfully created!");
+      setIsNewReservationOpen(false);
+      // Optional: refresh reservation list here if you're loading from DB
+    } else {
+      alert("Failed to create reservation: " + result.message);
+    }
+  };
+  
 
   function handleApplyFilters(filters: FilterOptions): void {
     setFilterOptions(filters);
