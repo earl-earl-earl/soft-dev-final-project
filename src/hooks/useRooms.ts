@@ -1,166 +1,160 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Room, RoomFormData } from '../types/room';
-
-// Mock data for development
-const initialRoomsData: Room[] = [
-  {
-    id: "001",
-    name: "Emil",
-    roomNumber: "#001",
-    capacity: 4,
-    lastUpdated: "May 07, 2024",
-    amenities: ["Free Entrance", "Breakfast for 4"],
-    price: 3500.0,
-    status: "Occupied",
-    reservation: { 
-      guestName: "Lozada, Daven J.",
-      checkIn: new Date(2025, 4, 10),
-      checkOut: new Date(2025, 4, 15)
-    },
-    isActive: true,
-  },
-  {
-    id: "002",
-    name: "Ohana",
-    roomNumber: "#002",
-    capacity: 2,
-    lastUpdated: "May 07, 2024",
-    amenities: ["Free Entrance", "Breakfast for 2"],
-    price: 2000.0,
-    status: "Occupied",
-    reservation: { 
-      guestName: "Segura, Paul J.",
-      checkIn: new Date(2025, 4, 10),
-      checkOut: new Date(2025, 4, 15)
-    },
-    isActive: true,
-  },
-  {
-    id: "003",
-    name: "Kyle",
-    roomNumber: "#003",
-    capacity: 6,
-    lastUpdated: "May 07, 2024",
-    amenities: ["Free Entrance", "Breakfast for 6"],
-    price: 5000.0,
-    status: "Vacant",
-    isActive: true,
-  }
-];
+import { fetchRooms } from '../utils/fetchRooms';
 
 export interface UseRoomsReturn {
   rooms: Room[];
+  isLoading: boolean;
   error: string | null;
   formErrors: Record<string, string>;
   addRoom: (roomData: RoomFormData) => Promise<void>;
   updateRoom: (roomId: string, roomData: RoomFormData) => Promise<void>;
   toggleRoomStatus: (roomId: string) => Promise<void>;
   clearError: () => void;
+  refreshRooms: () => Promise<void>;
 }
 
 export const useRooms = (): UseRoomsReturn => {
-  const [rooms, setRooms] = useState<Room[]>(initialRoomsData);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const clearError = useCallback(() => setError(null), []);
 
+  const refreshRooms = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const result = await fetchRooms();
+      if (result.rooms) {
+        setRooms(result.rooms);
+      }
+      setError(null);
+    } catch (err) {
+      console.error("Error loading rooms:", err);
+      setError(err instanceof Error ? err.message : "Failed to load rooms");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Load rooms when the component mounts
+  useEffect(() => {
+    refreshRooms();
+  }, [refreshRooms]);
+
   const addRoom = useCallback(async (roomData: RoomFormData) => {
     try {
-      // In a real app, this would be an API call
-      // const response = await fetch('/api/rooms', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(roomData),
-      // });
-      // const data = await response.json();
+      // Make a real API call to create a room
+      const response = await fetch('/api/rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(roomData),
+      });
       
-      // Simulate successful response for now
-      const newRoom: Room = {
-        id: `00${rooms.length + 1}`,
-        ...roomData,
-        status: "Vacant",
-        lastUpdated: new Date().toLocaleDateString('en-US', {
-          month: 'long',
-          day: '2-digit',
-          year: 'numeric'
-        })
-      };
+      const data = await response.json();
       
-      setRooms([...rooms, newRoom]);
+      if (!response.ok) {
+        if (data.details) {
+          setFormErrors(data.details);
+        } else {
+          throw new Error(data.error || 'Failed to create room');
+        }
+        return;
+      }
+      
+      // Refresh rooms to get the latest data
+      await refreshRooms();
       setFormErrors({});
       setError(null);
       
     } catch (err) {
-      setError('An unexpected error occurred');
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
       console.error(err);
     }
-  }, [rooms]);
+  }, [refreshRooms]);
 
   const updateRoom = useCallback(async (roomId: string, roomData: RoomFormData) => {
     try {
-      // In a real app, this would be an API call
-      // const response = await fetch(`/api/rooms/${roomId}`, {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(roomData),
-      // });
-      // const data = await response.json();
+      // Make a real API call to update a room
+      const response = await fetch(`/api/rooms`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: roomId,
+          ...roomData
+        }),
+      });
       
-      // Simulate successful response
-      const updatedRooms = rooms.map(room => 
-        room.id === roomId ? {
-          ...room,
-          ...roomData,
-          lastUpdated: new Date().toLocaleDateString('en-US', {
-            month: 'long',
-            day: '2-digit',
-            year: 'numeric'
-          })
-        } : room
-      );
+      const data = await response.json();
       
-      setRooms(updatedRooms);
+      if (!response.ok) {
+        if (data.details) {
+          setFormErrors(data.details);
+        } else {
+          throw new Error(data.error || 'Failed to update room');
+        }
+        return;
+      }
+      
+      // Refresh rooms to get the latest data
+      await refreshRooms();
       setFormErrors({});
       setError(null);
       
     } catch (err) {
-      setError('An unexpected error occurred');
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
       console.error(err);
     }
-  }, [rooms]);
+  }, [refreshRooms]);
 
   const toggleRoomStatus = useCallback(async (roomId: string) => {
     try {
-      // In a real app, this would be an API call
-      // const response = await fetch(`/api/rooms/${roomId}/toggle-status`, {
-      //   method: 'PUT'
-      // });
-      // const data = await response.json();
+      // Find the room to get its current status
+      const room = rooms.find(r => r.id === roomId);
+      if (!room) {
+        throw new Error('Room not found');
+      }
       
-      // Simulate successful response
-      const updatedRooms = rooms.map(room => 
-        room.id === roomId 
-          ? { ...room, isActive: !room.isActive } 
-          : room
-      );
+      // Update the room with the opposite isActive status
+      const response = await fetch(`/api/rooms`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: roomId,
+          name: room.name,
+          roomNumber: room.roomNumber,
+          capacity: room.capacity,
+          price: room.price,
+          amenities: room.amenities,
+          isActive: !room.isActive
+        }),
+      });
       
-      setRooms(updatedRooms);
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to toggle room status');
+      }
+      
+      // Refresh rooms to get the latest data
+      await refreshRooms();
       setError(null);
       
     } catch (err) {
-      setError('An unexpected error occurred');
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
       console.error(err);
     }
-  }, [rooms]);
+  }, [rooms, refreshRooms]);
 
   return {
     rooms,
+    isLoading,
     error,
     formErrors,
     addRoom,
     updateRoom,
     toggleRoomStatus,
-    clearError
+    clearError,
+    refreshRooms
   };
 };

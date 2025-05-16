@@ -21,7 +21,6 @@ const AdminForm: React.FC<AdminFormProps> = ({
   submitLabel
 }) => {
   const initialData: AdminFormData = admin ? {
-    username: admin.username,
     name: admin.name,
     email: admin.email,
     phoneNumber: admin.phoneNumber,
@@ -30,7 +29,6 @@ const AdminForm: React.FC<AdminFormProps> = ({
     password: "",
     confirmPassword: ""
   } : {
-    username: "",
     name: "",
     email: "",
     phoneNumber: "",
@@ -79,20 +77,6 @@ const AdminForm: React.FC<AdminFormProps> = ({
         <form onSubmit={handleSubmit}>
           <div className={styles.modalBody}>
             <h4 className={styles.formSectionTitle}>User Details</h4>
-            {!admin && (
-              <div className={styles.formGroup}>
-                <label htmlFor="username">Username</label>
-                <input
-                  type="text"
-                  id="username"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleChange}
-                  className={styles.formControl}
-                  required
-                />
-              </div>
-            )}
             <div className={styles.formGroup}>
               <label htmlFor="name">Full Name</label>
               <input

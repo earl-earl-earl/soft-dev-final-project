@@ -1,6 +1,5 @@
 export interface AdminMember {
   id: string;
-  username: string;
   name: string;
   email: string;
   phoneNumber: string;

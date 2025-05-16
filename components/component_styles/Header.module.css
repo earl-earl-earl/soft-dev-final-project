@@ -166,11 +166,14 @@
 }
 
 .calendarDropdown :global(.react-datepicker__day--today) {
+  background-color: #017bff !important;
+  color: white !important;
   font-weight: bold;
 }
 
 .calendarDropdown :global(.react-datepicker__day--today:not(.react-datepicker__day--selected)) {
-  color: #6c757d !important; /* Gray color for today's date */
+  background-color: #017bff !important;
+  color: white !important; /* Change from gray to white for better contrast */
 }
 
 .calendarDropdown :global(.react-datepicker__day--outside-month) {
@@ -261,10 +264,34 @@
 }
 
 .calendarDropdown :global(.react-datepicker__day--selected:hover) {
-  background-color: transparent !important;
+  background-color: var(--primary-600) !important;
 }
 
 /* Adjust hover effect for arrival days to maintain visibility */
 .arrivalDay:hover::after {
+  background-color: white;
+}
+
+/* Add or update the todayHighlight class */
+.todayHighlight {
+  background-color: var(--primary-color) !important;
+  color: white !important;
+  font-weight: bold;
+}
+
+/* Update the existing today styles */
+.calendarDropdown :global(.react-datepicker__day--today) {
+  background-color: #017bff !important;
+  color: white !important;
+  font-weight: bold;
+}
+
+.calendarDropdown :global(.react-datepicker__day--today:not(.react-datepicker__day--selected)) {
+  background-color: #017bff !important;
+  color: white !important; /* Change from gray to white for better contrast */
+}
+
+/* Make sure the arrival indicator is visible on today's date */
+.todayHighlight.arrivalDay::after {
   background-color: white;
 }

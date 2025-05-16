@@ -1,55 +1,71 @@
-import { useState, useCallback } from 'react';
-import { StaffMember, StaffFormData, POSITIONS } from '../../src/types/staff';
-
-// Mock data - would be replaced with API calls in production
-const INITIAL_STAFF: StaffMember[] = Array.from({ length: 3 }, (_, i) => {
-  const positionIndex = i % POSITIONS.length;
-  
-  return {
-    id: `id-${i + 1}`,
-    username: `user${i + 1}`,
-    name: `Name ${i + 1}`,
-    email: `user${i + 1}@example.com`,
-    phoneNumber: "0923 321 7654",
-    role: "Staff", 
-    position: POSITIONS[positionIndex],
-    isActive: true
-  };
-});
+import { useState, useCallback, useEffect } from 'react';
+import { StaffMember, StaffFormData } from '../types/staff';
+import { fetchStaff, subscribeToStaffChanges } from '../utils/fetchStaff';
+import { supabase } from '@/lib/supabaseClient';
 
 export function useStaff() {
-  const [staff, setStaff] = useState<StaffMember[]>(INITIAL_STAFF);
-  const [isLoading, setIsLoading] = useState(false);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Set up real-time subscription when component mounts
+  useEffect(() => {
+    console.log("Setting up staff subscription");
+    
+    // Subscribe to changes and update state when data changes
+    const subscription = subscribeToStaffChanges((result) => {
+      setStaff(result.staff);
+      setIsLoading(false);
+      setError(null);
+    });
+    
+    // Clean up subscription when component unmounts
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+  
+  const refreshStaff = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const result = await fetchStaff();
+      setStaff(result.staff);
+      setError(null);
+    } catch (err) {
+      console.error("Error loading staff:", err);
+      setError(err instanceof Error ? err.message : "Failed to load staff");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
   
   const addStaff = useCallback(async (staffData: StaffFormData) => {
     try {
       setIsLoading(true);
-      // In a real app, this would be an API call
-      // const response = await fetch('/api/staff', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(staffData)
-      // });
-      // const data = await response.json();
       
-      // For now, simulate adding a staff member
-      const newStaff: StaffMember = {
-        id: `id-${Date.now()}`,
-        username: staffData.email.split('@')[0],
-        name: staffData.name,
-        email: staffData.email,
-        phoneNumber: staffData.phoneNumber,
-        role: staffData.role,
-        position: staffData.position,
-        isActive: true
-      };
+      // Make a real API call to create a staff member
+      const { data, error: insertError } = await supabase
+        .from('staff')
+        .insert([{
+          username: staffData.email.split('@')[0],
+          name: staffData.name,
+          email: staffData.email,
+          phone_number: staffData.phoneNumber,
+          role: staffData.role,
+          position: staffData.position,
+          is_active: true
+        }])
+        .select();
       
-      setStaff(prevStaff => [...prevStaff, newStaff]);
+      if (insertError) {
+        throw new Error(insertError.message);
+      }
+      
+      // The subscription will automatically update the UI with the new data
       setError(null);
       return { success: true };
     } catch (err) {
-      setError('Failed to add staff member');
+      setError('Failed to add staff member: ' + (err instanceof Error ? err.message : String(err)));
       console.error(err);
       return { success: false, error: 'Failed to add staff member' };
     } finally {
@@ -60,32 +76,28 @@ export function useStaff() {
   const updateStaff = useCallback(async (staffId: string, staffData: Partial<StaffFormData>) => {
     try {
       setIsLoading(true);
-      // In a real app, this would be an API call
-      // const response = await fetch(`/api/staff/${staffId}`, {
-      //   method: 'PATCH',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(staffData)
-      // });
-      // const data = await response.json();
       
-      // For now, simulate updating a staff member
-      setStaff(prevStaff => prevStaff.map(member => 
-        member.id === staffId 
-          ? { 
-              ...member, 
-              name: staffData.name || member.name,
-              email: staffData.email || member.email,
-              phoneNumber: staffData.phoneNumber || member.phoneNumber,
-              role: staffData.role || member.role,
-              position: staffData.position || member.position,
-            } 
-          : member
-      ));
+      // Make a real API call to update a staff member
+      const { error: updateError } = await supabase
+        .from('staff')
+        .update({
+          name: staffData.name,
+          email: staffData.email,
+          phone_number: staffData.phoneNumber,
+          role: staffData.role,
+          position: staffData.position,
+        })
+        .eq('user_id', staffId);
       
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+      
+      // The subscription will automatically update the UI with the new data
       setError(null);
       return { success: true };
     } catch (err) {
-      setError('Failed to update staff member');
+      setError('Failed to update staff member: ' + (err instanceof Error ? err.message : String(err)));
       console.error(err);
       return { success: false, error: 'Failed to update staff member' };
     } finally {
@@ -96,29 +108,36 @@ export function useStaff() {
   const toggleStaffStatus = useCallback(async (staffId: string) => {
     try {
       setIsLoading(true);
-      // In a real app, this would be an API call
-      // const response = await fetch(`/api/staff/${staffId}/toggle-status`, {
-      //   method: 'POST'
-      // });
-      // const data = await response.json();
       
-      // For now, simulate toggling status
-      setStaff(prevStaff => prevStaff.map(member => 
-        member.id === staffId 
-          ? { ...member, isActive: !member.isActive } 
-          : member
-      ));
+      // Find the staff member to get the current status
+      const staffMember = staff.find(member => member.id === staffId);
+      if (!staffMember) {
+        throw new Error('Staff member not found');
+      }
       
+      // Make a real API call to toggle the status
+      const { error: updateError } = await supabase
+        .from('staff')
+        .update({
+          is_active: !staffMember.isActive
+        })
+        .eq('user_id', staffId);
+      
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+      
+      // The subscription will automatically update the UI with the new data
       setError(null);
       return { success: true };
     } catch (err) {
-      setError('Failed to toggle staff status');
+      setError('Failed to toggle staff status: ' + (err instanceof Error ? err.message : String(err)));
       console.error(err);
       return { success: false, error: 'Failed to toggle staff status' };
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [staff]);
   
   return {
     staff,
@@ -126,6 +145,7 @@ export function useStaff() {
     error,
     addStaff,
     updateStaff,
-    toggleStaffStatus
+    toggleStaffStatus,
+    refreshStaff
   };
 }

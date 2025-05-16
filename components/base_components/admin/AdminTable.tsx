@@ -35,7 +35,7 @@ const AdminTable: React.FC<AdminTableProps> = ({
       <table className={styles.staffTable}>
         <thead>
           <tr>
-            <th>Username</th>
+            <th>Email</th>
             <th>Name</th>
             <th>Phone Number</th>
             <th>Role</th>
@@ -47,7 +47,7 @@ const AdminTable: React.FC<AdminTableProps> = ({
           {adminData && adminData.length > 0 ? (
             adminData.map((admin) => (
               <tr key={admin.id} className={admin.isActive === false ? styles.deactivatedRow : ''}>
-                <td>{admin.username}</td>
+                <td>{admin.email}</td>
                 <td>{admin.name}</td>
                 <td>{admin.phoneNumber}</td>
                 <td>{admin.role}</td>

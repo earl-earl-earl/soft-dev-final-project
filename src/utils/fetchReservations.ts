@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabaseClient";
 
 export interface CustomerLookup {
-  [key: string]: { phone: string; name: string; };  // Include both phone and name
+  [key: string]: { name: string; };  // Include both phone and name
 }
 
 export interface StaffLookup {
@@ -13,6 +13,7 @@ export interface RoomLookup {
 }
 
 export interface FetchReservationsResult {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   reservations: any[];
   customerLookup: CustomerLookup;
   staffLookup: StaffLookup;
@@ -58,8 +59,7 @@ export const fetchReservations = async (): Promise<FetchReservationsResult> => {
     const { data: customerData, error: customerError } = await supabase
       .from('customers')
       .select(`
-        user_id,
-        phone_number
+        user_id
       `)
       .in('user_id', customerIds);
     
@@ -72,7 +72,6 @@ export const fetchReservations = async (): Promise<FetchReservationsResult> => {
         const customerId = customer.user_id;
         // Just store the phone number, we'll get names from reservations
         customerLookup[customerId] = {
-          phone: customer.phone_number || 'No phone data',
           name: '' // Empty placeholder that will be filled from reservations
         };
       });
@@ -134,7 +133,6 @@ export const fetchReservations = async (): Promise<FetchReservationsResult> => {
       // Otherwise create a new entry with the name
       else {
         customerLookup[customerId] = {
-          phone: 'No phone data',
           name: reservation.customer_name
         };
       }
@@ -148,7 +146,6 @@ export const fetchReservations = async (): Promise<FetchReservationsResult> => {
       // If customer doesn't exist in lookup yet
       if (!customerLookup[customerId]) {
         customerLookup[customerId] = {
-          phone: 'No phone data',
           name: reservation.customer_name || 'Unknown Name'
         };
       } 
@@ -180,5 +177,81 @@ export const fetchReservations = async (): Promise<FetchReservationsResult> => {
     customerLookup,
     staffLookup,
     roomLookup
+  };
+};
+
+// Real-time subscription functionality
+let reservationsSubscription: { unsubscribe: () => void } | null = null;
+
+export const subscribeToReservationChanges = (
+  onReservationsChange: (result: FetchReservationsResult) => void
+): { unsubscribe: () => void } => {
+  // Unsubscribe from existing subscription if there is one
+  if (reservationsSubscription) {
+    reservationsSubscription.unsubscribe();
+  }
+
+  console.log("Setting up real-time subscription to reservations...");
+  
+  // Initial fetch to get current state
+  fetchReservations().then(onReservationsChange);
+  
+  // Subscribe to changes in the reservations table
+  reservationsSubscription = supabase
+    .channel('reservation-changes')
+    .on('postgres_changes', 
+      { 
+        event: '*', 
+        schema: 'public', 
+        table: 'reservations' 
+      }, 
+      () => {
+        console.log("Reservation change detected, fetching updated data...");
+        fetchReservations().then(onReservationsChange);
+      }
+    )
+    .on('postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'customers'
+      },
+      () => {
+        console.log("Customer change detected, fetching updated reservation data...");
+        fetchReservations().then(onReservationsChange);
+      }
+    )
+    .on('postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'staff'
+      },
+      () => {
+        console.log("Staff change detected, fetching updated reservation data...");
+        fetchReservations().then(onReservationsChange);
+      }
+    )
+    .on('postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'rooms'
+      },
+      () => {
+        console.log("Room change detected, fetching updated reservation data...");
+        fetchReservations().then(onReservationsChange);
+      }
+    )
+    .subscribe();
+
+  return {
+    unsubscribe: () => {
+      if (reservationsSubscription) {
+        console.log("Unsubscribing from reservation changes...");
+        reservationsSubscription.unsubscribe();
+        reservationsSubscription = null;
+      }
+    }
   };
 };

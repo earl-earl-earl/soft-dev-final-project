@@ -7,7 +7,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { format, isSameDay } from 'date-fns';
 
 import styles from "../component_styles/Header.module.css";
-import { reservationsData } from './Reservations'; 
+import { useReservations } from "../../src/hooks/useReservations";
 
 interface HeaderProps {
   title: string;
@@ -17,6 +17,9 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [todayDate] = useState<Date>(new Date()); // Store today's date separately
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  
+  // Use the hook to get reservation data
+  const { reservations } = useReservations();
 
   const handleDateChange = (date: Date | null) => {
     // Update the selectedDate state for internal use
@@ -36,7 +39,12 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
 
   // Function to determine if a date has confirmed arrivals
   const hasArrivals = (date: Date) => {
-    return reservationsData.some(reservation => {
+    // Check if reservations is available
+    if (!reservations || reservations.length === 0) {
+      return false;
+    }
+
+    return reservations.some(reservation => {
       // Check for multiple status types that indicate confirmed bookings
       const confirmedStatuses = ['Accepted', 'Confirmed_Pending_Payment'];
       const isConfirmed = confirmedStatuses.includes(reservation.status);
