@@ -5,6 +5,7 @@ export interface ReservationGuests {
 }
 
 export interface ReservationItem {
+  timestamp: Date;
   id: string;
   customerId: string;
   roomId: string;
@@ -20,7 +21,8 @@ export interface ReservationItem {
 }
 
 export interface CustomerLookup {
-  [key: string]: { 
+  [key: string]: {
+    customer_name_at_booking: string; 
     name: string; 
     phone: string;
   };

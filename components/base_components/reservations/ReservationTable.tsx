@@ -40,7 +40,7 @@ const ReservationTable: React.FC<ReservationTableProps> = ({
     if (isLoading) {
       return (
         <tr>
-          <td colSpan={16} className={styles.noReservationsCell}>
+          <td colSpan={14} className={styles.noReservationsCell}>
             Loading reservations...
           </td>
         </tr>
@@ -50,7 +50,7 @@ const ReservationTable: React.FC<ReservationTableProps> = ({
     if (reservations.length === 0) {
       return (
         <tr>
-          <td colSpan={16} className={styles.noReservationsCell}>
+          <td colSpan={14} className={styles.noReservationsCell}>
             {hasActiveFilters 
               ? "No results matching your search criteria." 
               : "No reservations found."}
@@ -68,9 +68,8 @@ const ReservationTable: React.FC<ReservationTableProps> = ({
           onClick={() => onRowClick(item)}
           className={styles.clickableRow}
         >
+          <td>{formatDateForDisplay(item.timestamp || new Date())}</td>
           <td>{customerLookup[item.customerId]?.name || "N/A"}</td>
-          <td>{item.customerId}</td>
-          <td>{item.id}</td>
           <td>{roomLookup[item.roomId]?.name || item.roomId}</td>
           <td>{formatDateForDisplay(item.checkIn)}</td>
           <td>{formatDateForDisplay(item.checkOut)}</td>
@@ -121,9 +120,8 @@ const ReservationTable: React.FC<ReservationTableProps> = ({
           <table className={styles.reservationTable}>
             <thead>
               <tr>
+                <th>Reserved On</th>
                 <th>Name</th>
-                <th>Customer ID</th>
-                <th>Res. ID</th>
                 <th>Room</th>
                 <th>Check-in</th>
                 <th>Check-out</th>

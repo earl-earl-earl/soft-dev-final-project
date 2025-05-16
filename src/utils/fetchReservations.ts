@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabaseClient";
 
 export interface CustomerLookup {
-  [key: string]: { name: string; };  // Include both phone and name
+  [key: string]: { name: string; phone: string };  // Include both phone and name
 }
 
 export interface StaffLookup {
@@ -57,22 +57,17 @@ export const fetchReservations = async (): Promise<FetchReservationsResult> => {
   // Fetch user data for customers (phone numbers only)
   if (customerIds.length > 0) {
     const { data: customerData, error: customerError } = await supabase
-      .from('customers')
-      .select(`
-        user_id
-      `)
-      .in('user_id', customerIds);
-    
+      .from("customers")
+      .select("id, full_name, phone_number")
+      .in("id", customerIds);
+
     if (customerError) {
       console.error("Error fetching customers:", customerError.message);
-    } else if (customerData) {
-      console.log("Customer data found:", customerData.length);
-      
-      customerData.forEach(customer => {
-        const customerId = customer.user_id;
-        // Just store the phone number, we'll get names from reservations
-        customerLookup[customerId] = {
-          name: '' // Empty placeholder that will be filled from reservations
+    } else {
+      customerData?.forEach(customer => {
+        customerLookup[customer.id] = {
+          phone: customer.phone_number || "No phone data",
+          name: customer.full_name || "Unknown"
         };
       });
     }
@@ -133,7 +128,8 @@ export const fetchReservations = async (): Promise<FetchReservationsResult> => {
       // Otherwise create a new entry with the name
       else {
         customerLookup[customerId] = {
-          name: reservation.customer_name
+          name: reservation.customer_name,
+          phone: customerLookup[customerId]?.phone_number || 'No phone data'
         };
       }
     }
@@ -146,7 +142,8 @@ export const fetchReservations = async (): Promise<FetchReservationsResult> => {
       // If customer doesn't exist in lookup yet
       if (!customerLookup[customerId]) {
         customerLookup[customerId] = {
-          name: reservation.customer_name || 'Unknown Name'
+          name: reservation.customer_name || 'Unknown Name',
+          phone: 'No phone data'
         };
       } 
       // If entry exists but has no name, update it
