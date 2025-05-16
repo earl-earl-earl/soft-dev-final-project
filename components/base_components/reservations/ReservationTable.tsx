@@ -62,6 +62,21 @@ const ReservationTable: React.FC<ReservationTableProps> = ({
     return reservations.map((item) => {
       const statusCategory = getStatusCategory(item.status);
       const totalGuests = item.guests.adults + item.guests.children + item.guests.seniors;
+
+      const getAllowedStatuses = () => {
+        const allowed: string[] = [];
+        if (item.source === "staff_manual") {
+          allowed.push("Confirmed_Pending_Payment", "Accepted");
+        } else if (item.source === "mobile" && item.status === "Pending") {
+          allowed.push("Confirmed_Pending_Payment", "Rejected");
+        } else {
+          allowed.push("Pending", "Confirmed_Pending_Payment", "Accepted", "Rejected");
+        }
+        return allowed;
+      };
+
+      const allowedStatuses = getAllowedStatuses();
+
       return (
         <tr 
           key={item.id} 
@@ -79,24 +94,30 @@ const ReservationTable: React.FC<ReservationTableProps> = ({
           <td>{item.guests.seniors}</td>
           <td><strong>{totalGuests}</strong></td>
           <td>
-            <select 
+            <select
               className={`${styles.statusDropdown} ${styles[`status${statusCategory}`]}`}
               value={item.status}
               onChange={(e) => onStatusChange(item.id, e.target.value)}
               onClick={(e) => e.stopPropagation()}
               title={statusDescriptions[statusCategory] || item.status}
             >
-              <option value="Pending">Pending</option>
-              <option value="Confirmed_Pending_Payment">Confirmed Pending Payment</option>
-              <option value="Accepted">Accepted</option>
-              <option value="Rejected">Rejected</option>
-              <option value="Cancelled">Cancelled</option>
-              <option value="Expired">Expired</option>
+              {allowedStatuses.includes("Pending") && <option value="Pending">Pending</option>}
+              {allowedStatuses.includes("Confirmed_Pending_Payment") && <option value="Confirmed_Pending_Payment">Confirmed Pending Payment</option>}
+              {allowedStatuses.includes("Accepted") && <option value="Accepted">Accepted</option>}
+              {allowedStatuses.includes("Rejected") && <option value="Rejected">Rejected</option>}
             </select>
           </td>
           <td>{item.confirmationTime ? formatDateForDisplay(item.confirmationTime) : "N/A"}</td>
-          <td><span className={`${styles.statusPillGeneral} ${item.paymentReceived ? styles.paymentPaid : styles.paymentNotPaid}`}>{item.paymentReceived ? "Paid" : "Not Paid"}</span></td>
-          <td><span className={`${styles.statusPillGeneral} ${item.type === "online" ? styles.typeOnline : styles.typeDirect}`}>{item.type.charAt(0).toUpperCase() + item.type.slice(1)}</span></td>
+          <td>
+            <span className={`${styles.statusPillGeneral} ${item.paymentReceived ? styles.paymentPaid : styles.paymentNotPaid}`}>
+              {item.paymentReceived ? "Paid" : "Not Paid"}
+            </span>
+          </td>
+          <td>
+            <span className={`${styles.statusPillGeneral} ${item.type === "online" ? styles.typeOnline : styles.typeDirect}`}>
+              {item.type.charAt(0).toUpperCase() + item.type.slice(1)}
+            </span>
+          </td>
           <td>{item.auditedBy ? staffLookup[item.auditedBy] || item.auditedBy : "N/A"}</td>
         </tr>
       );
