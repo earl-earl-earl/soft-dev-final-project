@@ -10,12 +10,12 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import NavigationProgress from "@components/base_components/NavigationProcess";
 
-export default function StaffPage() {
+export default function Home() {
   const { isCollapsed: isSidebarCollapsed } = useSidebar();
   const { userRole, loading: sessionLoading } = useSession();
   const router = useRouter();
 
-  // Use NextAuth to check authentication status
+  // Use NextAuth to check authentication status - no need for duplicate Supabase check
   useEffect(() => {
     if (!sessionLoading && !userRole) {
       router.push("/login");
@@ -27,22 +27,12 @@ export default function StaffPage() {
     : styles.contentWrapperExpanded;
 
   // Show loading state while checking authentication or fetching user role
-  if (sessionLoading) {
-    return (
-      <>
-        <NavigationProgress />
-      </>
-    );
-  }
-
-  // If not authenticated, don't render anything (redirect will happen in useEffect)
-  if (!userRole) return null;
 
   return (
     <>
       <NavigationProgress />
       <div className={styles.pageContainer}>
-        <Sidebar role={userRole} />
+        <Sidebar role={userRole || ""} />
         <div
           className={`${styles.contentWrapper} ${contentWrapperMarginClass}`}
         >
