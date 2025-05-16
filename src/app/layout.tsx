@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import Providers from "@components/Providers";
+import Providers from "@contexts/Providers";
 import { SessionProvider } from "@/contexts/SessionContext";
 
 const interSans = Inter({
