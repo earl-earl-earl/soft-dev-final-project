@@ -18,7 +18,7 @@ export default function StaffPage() {
   // Use NextAuth to check authentication status
   useEffect(() => {
     if (!sessionLoading && !userRole) {
-      router.push('/login');
+      router.push("/login");
     }
   }, [userRole, sessionLoading, router]);
 
@@ -30,28 +30,28 @@ export default function StaffPage() {
   if (sessionLoading) {
     return (
       <>
-            <NavigationProgress />
-            </>
+        <NavigationProgress />
+      </>
     );
   }
 
   // If not authenticated, don't render anything (redirect will happen in useEffect)
-  if (!userRole) {
-    return null;
-  }
+  if (!userRole) return null;
 
   return (
     <>
       <NavigationProgress />
-    <div className={styles.pageContainer}>
-      <Sidebar role={userRole} />
-      <div className={`${styles.contentWrapper} ${contentWrapperMarginClass}`}>
-        <Header title="Staff" />
-        <main className={styles.mainContent}>
-          <StaffFeature />
-        </main>
+      <div className={styles.pageContainer}>
+        <Sidebar role={userRole} />
+        <div
+          className={`${styles.contentWrapper} ${contentWrapperMarginClass}`}
+        >
+          <Header title="Staff" />
+          <main className={styles.mainContent}>
+            <StaffFeature />
+          </main>
+        </div>
       </div>
-    </div>
     </>
   );
 }

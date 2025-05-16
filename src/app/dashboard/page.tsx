@@ -28,10 +28,9 @@ export default function DashboardPage() {
 
   if (sessionLoading) {
     return (
-      <div className={styles.loadingContainer}>
-        <div className={styles.loadingSpinner}></div>
-        <p>Loading...</p>
-      </div>
+      <>
+      <NavigationProgress />
+      </>
     );
   }
 
