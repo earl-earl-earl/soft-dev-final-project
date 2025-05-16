@@ -8,6 +8,7 @@ export interface RoomFormData {
   price: number;
   amenities: string[];
   isActive: boolean;
+  images: File[]; // Add this new field
 }
 
 interface EditRoomOverlayProps {
@@ -24,6 +25,7 @@ interface EditRoomOverlayProps {
     price: number;
     amenities: string[];
     isActive: boolean;
+    images?: File[] | string[]; // Add this to support both new files and existing image URLs
     [key: string]: unknown;
   };
 }
@@ -36,13 +38,15 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
   formErrors = {}, // Set default to empty object if not provided
   room
 }) => {
+  // Initialize with empty images array if not provided
   const [formData, setFormData] = useState<RoomFormData>({
     name: room.name,
     roomNumber: room.roomNumber,
     capacity: room.capacity,
     price: room.price,
     amenities: [...room.amenities],
-    isActive: room.isActive
+    isActive: room.isActive,
+    images: Array.isArray(room.images) ? [...room.images] as File[] : [] // Convert to File[] if available
   });
   
   // Create local state for form errors initialized with props
@@ -50,6 +54,8 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
   const [amenityInput, setAmenityInput] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Update form data when room prop changes
@@ -60,7 +66,8 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
       capacity: room.capacity,
       price: room.price,
       amenities: [...room.amenities],
-      isActive: room.isActive
+      isActive: room.isActive,
+      images: Array.isArray(room.images) ? [...room.images] as File[] : []
     });
   }, [room]);
 
@@ -115,8 +122,8 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
     
     if (!trimmedAmenity) return;
     
-    if (formData.amenities.length >= 3) {
-      setError('Maximum 3 amenities allowed');
+    if (formData.amenities.length >= 10) {  // Changed from 3 to 10
+      setError('Maximum 10 amenities allowed');  // Changed from 3 to 10
       return;
     }
     
@@ -149,6 +156,45 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
     }
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    
+    // Validate file types
+    const invalidFiles = files.filter(file => !file.type.startsWith('image/'));
+    if (invalidFiles.length > 0) {
+      setImageError('Only image files are allowed');
+      return;
+    }
+    
+    // Check total number of images (existing + new)
+    const totalImages = formData.images.length + files.length;
+    if (totalImages > 3) {
+      setImageError('Maximum 3 images allowed');
+      return;
+    }
+    
+    // Add new images
+    setFormData(prev => ({
+      ...prev,
+      images: [...prev.images, ...files].slice(0, 3)
+    }));
+    
+    setImageError(null);
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
+    setImageError(null);
+  };
+
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
     
@@ -172,6 +218,14 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
       errors.price = 'Price must be greater than 0';
     }
     
+    // Validate images
+    if (formData.images.length !== 3) {
+      setImageError('Exactly 3 images are required');
+      errors.images = 'Exactly 3 images are required';
+    } else {
+      setImageError(null);
+    }
+    
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -190,6 +244,14 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
     // If validation passes, submit the form data
     console.log('Form is valid, calling onSubmit');
     onSubmit(formData);
+  };
+
+  // Helper function to get image preview URL
+  const getImagePreviewUrl = (image: File | string) => {
+    if (typeof image === 'string') {
+      return image; // It's already a URL
+    }
+    return URL.createObjectURL(image); // It's a File object
   };
 
   return (
@@ -274,7 +336,7 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
             </div>
             
             <div className={styles.filterField}>
-              <label>Amenities (max 3)</label>
+              <label>Amenities (max 10)</label>  {/* Changed from 3 to 10 */}
               <div className={styles.amenityInputContainer} ref={dropdownRef}>
                 <input 
                   type="text"
@@ -283,14 +345,14 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
                   onKeyDown={handleKeyDown}
                   onFocus={() => amenityInput && setDropdownOpen(true)}
                   placeholder="Type or select amenity"
-                  disabled={formData.amenities.length >= 3}
+                  disabled={formData.amenities.length >= 10 /* Changed from 3 to 10 */}
                   className={error ? styles.inputError : ''}
                 />
                 <button 
                   type="button" 
                   className={styles.addButton}
                   onClick={() => addAmenity()}
-                  disabled={formData.amenities.length >= 3 || !amenityInput.trim()}
+                  disabled={formData.amenities.length >= 10 || !amenityInput.trim() /* Changed from 3 to 10 */}
                 >
                   Add
                 </button>
@@ -345,6 +407,60 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
                 </div>
                 <span className={formData.isActive ? styles.activeLabel : ''}>Active</span>
               </div>
+            </div>
+          </div>
+
+          {/* Add this new section for image upload */}
+          <div className={styles.filterSection}>
+            <h3>Room Images</h3>
+            <div className={styles.filterField}>
+              <label className={styles.requiredField}>Upload Images (exactly 3)</label>
+              
+              <div className={styles.imageUploadContainer}>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  ref={fileInputRef}
+                  style={{ display: 'none' }}
+                  multiple
+                />
+                
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className={styles.uploadButton}
+                  disabled={formData.images.length >= 3}
+                >
+                  <i className="fa-regular fa-image"></i> Select Images
+                </button>
+                
+                <span className={styles.uploadInfo}>
+                  {formData.images.length}/3 images selected
+                </span>
+              </div>
+              
+              {imageError && <p className={styles.errorText}>{imageError}</p>}
+              
+              {formData.images.length > 0 && (
+                <div className={styles.imagePreviewContainer}>
+                  {formData.images.map((image, index) => (
+                    <div key={index} className={styles.imagePreview}>
+                      <img
+                        src={getImagePreviewUrl(image)}
+                        alt={`Room preview ${index + 1}`}
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => removeImage(index)}
+                        className={styles.removeImageButton}
+                      >
+                        <i className="fa-regular fa-xmark"></i>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

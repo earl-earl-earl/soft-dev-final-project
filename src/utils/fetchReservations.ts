@@ -102,7 +102,7 @@ export const fetchReservations = async (): Promise<FetchReservationsResult> => {
   if (roomIds.length > 0) {
     const { data: roomData, error: roomError } = await supabase
       .from('rooms')
-      .select('id, name')
+      .select('id, name, room_price')
       .in('id', roomIds);
       
     if (roomError) {
@@ -129,7 +129,7 @@ export const fetchReservations = async (): Promise<FetchReservationsResult> => {
       else {
         customerLookup[customerId] = {
           name: reservation.customer_name,
-          phone: customerLookup[customerId]?.phone_number || 'No phone data'
+          phone: customerLookup[customerId]?.phone || 'No phone data'
         };
       }
     }

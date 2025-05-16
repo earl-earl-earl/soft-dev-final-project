@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styles from '../component_styles/FilterOverlay.module.css';
+import Image from 'next/image';
 
 export interface RoomFormData {
   name: string;
@@ -8,6 +9,7 @@ export interface RoomFormData {
   price: number;
   amenities: string[];
   isActive: boolean;
+  images: File[]; // Add this new field
 }
 
 interface AddRoomOverlayProps {
@@ -31,7 +33,8 @@ const AddRoomOverlay: React.FC<AddRoomOverlayProps> = ({
     capacity: 1,
     price: 0,
     amenities: [],
-    isActive: true // Default to active
+    isActive: true,
+    images: [] // Initialize empty images array
   });
   
   // Create local state for form errors initialized with props
@@ -39,6 +42,8 @@ const AddRoomOverlay: React.FC<AddRoomOverlayProps> = ({
   const [amenityInput, setAmenityInput] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Extract unique amenities from existing rooms
@@ -92,8 +97,8 @@ const AddRoomOverlay: React.FC<AddRoomOverlayProps> = ({
     
     if (!trimmedAmenity) return;
     
-    if (formData.amenities.length >= 3) {
-      setError('Maximum 3 amenities allowed');
+    if (formData.amenities.length >= 10) {  // Changed from 3 to 10
+      setError('Maximum 10 amenities allowed');  // Changed from 3 to 10
       return;
     }
     
@@ -126,6 +131,46 @@ const AddRoomOverlay: React.FC<AddRoomOverlayProps> = ({
     }
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    
+    // Validate file types
+    const invalidFiles = files.filter(file => !file.type.startsWith('image/'));
+    if (invalidFiles.length > 0) {
+      setImageError('Only image files are allowed');
+      return;
+    }
+    
+    // Check total number of images (existing + new)
+    const totalImages = formData.images.length + files.length;
+    if (totalImages > 3) {
+      setImageError('Maximum 3 images allowed');
+      return;
+    }
+    
+    // Add new images
+    setFormData(prev => ({
+      ...prev,
+      images: [...prev.images, ...files].slice(0, 3)
+    }));
+    
+    setImageError(null);
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
+    setImageError(null);
+  };
+
+  // Modify validateForm to include image validation
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
     
@@ -147,6 +192,14 @@ const AddRoomOverlay: React.FC<AddRoomOverlayProps> = ({
     // Validate price
     if (formData.price <= 0) {
       errors.price = 'Price must be greater than 0';
+    }
+    
+    // Validate images
+    if (formData.images.length !== 3) {
+      setImageError('Exactly 3 images are required');
+      errors.images = 'Exactly 3 images are required';
+    } else {
+      setImageError(null);
     }
     
     setFormErrors(errors);
@@ -239,7 +292,7 @@ const AddRoomOverlay: React.FC<AddRoomOverlayProps> = ({
             </div>
             
             <div className={styles.filterField}>
-              <label>Amenities (max 3)</label>
+              <label>Amenities (max 10)</label>  {/* Changed from 3 to 10 */}
               <div className={styles.amenityInputContainer} ref={dropdownRef}>
                 <input 
                   type="text"
@@ -248,14 +301,14 @@ const AddRoomOverlay: React.FC<AddRoomOverlayProps> = ({
                   onKeyDown={handleKeyDown}
                   onFocus={() => amenityInput && setDropdownOpen(true)}
                   placeholder="Type or select amenity"
-                  disabled={formData.amenities.length >= 3}
+                  disabled={formData.amenities.length >= 10}  {/* Changed from 3 to 10 */}
                   className={error ? styles.inputError : ''}
                 />
                 <button 
                   type="button" 
                   className={styles.addButton}
                   onClick={() => addAmenity()}
-                  disabled={formData.amenities.length >= 3 || !amenityInput.trim()}
+                  disabled={formData.amenities.length >= 10 || !amenityInput.trim()}  {/* Changed from 3 to 10 */}
                 >
                   Add
                 </button>
@@ -298,6 +351,63 @@ const AddRoomOverlay: React.FC<AddRoomOverlayProps> = ({
             </div>
           </div>
 
+          <div className={styles.filterSection}>
+            <h3>Room Images</h3>
+            <div className={styles.filterField}>
+              <label className={styles.requiredField}>Upload Images (exactly 3)</label>
+              
+              <div className={styles.imageUploadContainer}>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  ref={fileInputRef}
+                  style={{ display: 'none' }}
+                  multiple
+                />
+                
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className={styles.uploadButton}
+                  disabled={formData.images.length >= 3}
+                >
+                  <i className="fa-regular fa-image"></i> Select Images
+                </button>
+                
+                <span className={styles.uploadInfo}>
+                  {formData.images.length}/3 images selected
+                </span>
+              </div>
+              
+              {imageError && <p className={styles.errorText}>{imageError}</p>}
+              
+              {formData.images.length > 0 && (
+                <div className={styles.imagePreviewContainer}>
+                  {formData.images.map((image, index) => (
+                    <div key={index} className={styles.imagePreview}>
+                      <Image
+                        src={URL.createObjectURL(image)}
+                        alt={`Room preview ${index + 1}`}
+                        width={100}
+                        height={100}
+                        style={{ objectFit: 'cover' }}
+                        unoptimized
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => removeImage(index)}
+                        className={styles.removeImageButton}
+                      >
+                        <i className="fa-regular fa-xmark"></i>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          
           <div className={styles.filterActions}>
             <button 
               type="submit" 
