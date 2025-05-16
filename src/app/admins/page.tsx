@@ -7,7 +7,7 @@ import { useSidebar } from "@components/base_components/SidebarContext";
 import { useSession } from "@components/hooks/useSession";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import AdminFeature from "@components/base_components/AdminFeature";
+import AdminPage from "@components/base_components/Admins";
 import NavigationProgress from "@components/base_components/NavigationProcess";
 
 export default function Home() {
@@ -38,7 +38,7 @@ export default function Home() {
         >
           <Header title="Admins" />
           <main className={styles.mainContent}>
-            <AdminFeature />
+            <AdminPage />
           </main>
         </div>
       </div>
