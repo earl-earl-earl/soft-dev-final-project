@@ -8,10 +8,11 @@ import { useSidebar } from "@components/base_components/SidebarContext";
 import { useSessionContext } from "@/contexts/SessionContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import NavigationProgress from "@components/base_components/NavigationProcess";
 
 export default function Home() {
   const { isCollapsed: isSidebarCollapsed } = useSidebar();
-  const { user, role, loading } = useSessionContext(); // Global session context
+  const { role, loading } = useSessionContext(); // Global session context
 
   const router = useRouter();
 
@@ -28,27 +29,35 @@ export default function Home() {
   // Loading state
   if (loading) {
     return (
-      <div className={styles.loadingContainer}>
-        <div className={styles.loadingSpinner}></div>
-        <p>Loading...</p>
-      </div>
+      <>
+        <NavigationProgress />
+      </>
     );
   }
 
   // Block rendering while unauthenticated
   if (!role) {
-    return null;
+    return (
+      <>
+        <NavigationProgress />
+      </>
+    );
   }
 
   return (
-    <div className={styles.pageContainer}>
-      <Sidebar role={role} />
-      <div className={`${styles.contentWrapper} ${contentWrapperMarginClass}`}>
-        <Header title="Reservations" />
-        <main className={styles.mainContent}>
-          <Reservations />
-        </main>
+    <>
+      <NavigationProgress />
+      <div className={styles.pageContainer}>
+        <Sidebar role={role} />
+        <div
+          className={`${styles.contentWrapper} ${contentWrapperMarginClass}`}
+        >
+          <Header title="Reservations" />
+          <main className={styles.mainContent}>
+            <Reservations />
+          </main>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

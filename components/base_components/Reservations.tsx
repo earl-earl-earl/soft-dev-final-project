@@ -228,7 +228,7 @@ const Reservations = () => {
   const [isNewReservationOpen, setIsNewReservationOpen] = useState(false);
   const [availableRooms, setAvailableRooms] = useState<string[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false); // New filter state
-  const [filterOptions, setFilterOptions] = useState({
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({ // Explicitly type filterOptions
     checkInStart: '',
     checkInEnd: '',
     checkOutStart: '',
@@ -244,6 +244,11 @@ const Reservations = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // New state for lookups
+  const [customerLookup, setCustomerLookup] = useState<{[key: string]: { phone: string, name: string }}>({});
+  const [staffLookup, setStaffLookup] = useState<{[key: string]: string}>({});
+  const [roomLookup, setRoomLookup] = useState<{[key: string]: { name: string }}>({});
+
   useEffect(() => {
     setAnimateStats(false);
     const timer = setTimeout(() => setAnimateStats(true), 50);
@@ -258,7 +263,7 @@ const Reservations = () => {
 
   const roomOptions = Object.entries(roomLookup).map(([id, details]) => ({
     id,
-    name: details.name
+    name: typeof details === 'object' && details.name ? details.name : id
   }));
 
   const filteredReservations = useMemo(() => {
@@ -285,7 +290,7 @@ const Reservations = () => {
     
     if (filterOptions.checkInEnd) {
       const endDate = new Date(filterOptions.checkInEnd);
-      endDate.setHours(23, 59, 59);
+      endDate.setHours(23, 59, 59, 999); // Ensure end of day
       reservationsList = reservationsList.filter(r => r.checkIn <= endDate);
     }
     
@@ -296,7 +301,7 @@ const Reservations = () => {
     
     if (filterOptions.checkOutEnd) {
       const endDate = new Date(filterOptions.checkOutEnd);
-      endDate.setHours(23, 59, 59);
+      endDate.setHours(23, 59, 59, 999); // Ensure end of day
       reservationsList = reservationsList.filter(r => r.checkOut <= endDate);
     }
     
@@ -307,18 +312,22 @@ const Reservations = () => {
     
     if (filterOptions.minGuests) {
       const min = parseInt(filterOptions.minGuests);
-      reservationsList = reservationsList.filter(r => {
-        const total = r.guests.adults + r.guests.children + r.guests.seniors;
-        return total >= min;
-      });
+      if (!isNaN(min)) {
+        reservationsList = reservationsList.filter(r => {
+          const total = r.guests.adults + r.guests.children + r.guests.seniors;
+          return total >= min;
+        });
+      }
     }
     
     if (filterOptions.maxGuests) {
       const max = parseInt(filterOptions.maxGuests);
-      reservationsList = reservationsList.filter(r => {
-        const total = r.guests.adults + r.guests.children + r.guests.seniors;
-        return total <= max;
-      });
+      if (!isNaN(max)) {
+        reservationsList = reservationsList.filter(r => {
+          const total = r.guests.adults + r.guests.children + r.guests.seniors;
+          return total <= max;
+        });
+      }
     }
     
     if (filterOptions.roomId !== 'all') {
@@ -355,29 +364,48 @@ const Reservations = () => {
   // Calculate statistics based on current filter
   const statistics = useMemo(() => {
     // Define date range
-    const startDate = new Date(2025, 0, 1);
-    const endDate = new Date(2025, 3, 30); 
+    const startDate = new Date(2025, 0, 1); // Jan 1, 2025
+    const endDate = new Date(2025, 3, 30, 23, 59, 59, 999); // April 30, 2025, end of day
     
     // Filter reservations by type and date range
-    let reservationsForStats = reservations; // Use state data instead of mock
+    let reservationsForStats = reservations; // Use state data
     if (reservationType !== "all") {
       reservationsForStats = reservationsForStats.filter(r => r.type === reservationType);
     }
     
-    // Filter for specified date range
+    // Filter for specified date range based on check-in date
     reservationsForStats = reservationsForStats.filter(r => 
       r.checkIn >= startDate && r.checkIn <= endDate
     );
     
-    // Calculate statistics
     const checkIns = reservationsForStats.length;
+    
+    // Filter for check-outs within the date range
     const checkOuts = reservationsForStats.filter(r => r.checkOut <= endDate).length;
+
     const totalGuests = reservationsForStats.reduce((sum, r) => 
       sum + r.guests.adults + r.guests.children + r.guests.seniors, 0);
     
-    // For occupancy rate, assume 10 rooms with ~120 potential bookings in 4 months
-    const maxPossibleBookings = reservationType === "all" ? 120 : 60;
-    const occupancyRate = Math.round((checkIns / maxPossibleBookings) * 100);
+    // For occupancy rate, assume 10 rooms, 4 months period (approx 120 days)
+    // Max bookings = num_rooms * num_days_in_period
+    // This is a simplified example. Real occupancy might consider room nights.
+    const numberOfRooms = Object.keys(roomLookup).length; // Dynamic based on roomLookup
+    const daysInPeriod = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+    const maxPossibleBookings = numberOfRooms * daysInPeriod; // Represents total room-days available
+    
+    // Calculate actual room-days booked within the period
+    let bookedRoomDays = 0;
+    reservationsForStats.forEach(r => {
+        const stayStart = r.checkIn > startDate ? r.checkIn : startDate;
+        const stayEnd = r.checkOut < endDate ? r.checkOut : endDate;
+        if (stayEnd > stayStart) {
+            bookedRoomDays += (stayEnd.getTime() - stayStart.getTime()) / (1000 * 60 * 60 * 24);
+        }
+    });
+
+    const occupancyRate = maxPossibleBookings > 0 
+        ? Math.round((bookedRoomDays / maxPossibleBookings) * 100)
+        : 0;
     
     return { checkIns, checkOuts, totalGuests, occupancyRate };
   }, [reservations, reservationType]); // Update dependency
@@ -390,56 +418,57 @@ const Reservations = () => {
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, reservationType]); // Add reservationType dependency
+  }, [searchTerm, statusFilter, reservationType, filterOptions]); // Added filterOptions
 
   useEffect(() => {
     setAnimateTable(false);
     let newCurrentPage = currentPage;
     
-    // Handle zero pages case first
     if (totalPages === 0) {
       setCurrentReservations([]);
       const timer = setTimeout(() => setAnimateTable(true), 50);
       return () => clearTimeout(timer);
     }
     
-    // Adjust current page if needed
     if (newCurrentPage > totalPages) {
       newCurrentPage = totalPages;
-      setCurrentPage(newCurrentPage);
+      // No need to setCurrentPage here if it's already handled by other effects or user actions.
+      // If we do set it, it might cause an extra render cycle.
     }
-    if (newCurrentPage < 1) {
+    if (newCurrentPage < 1 && totalPages > 0) { // ensure newCurrentPage is not set to 0 if totalPages is 0
       newCurrentPage = 1;
-      setCurrentPage(newCurrentPage);
     }
     
-    // Always update currentReservations regardless of page adjustments
     const startIndex = (newCurrentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
     setCurrentReservations(filteredReservations.slice(startIndex, endIndex));
     
     const timer = setTimeout(() => setAnimateTable(true), 50);
     return () => clearTimeout(timer);
-  }, [currentPage, filteredReservations, totalPages]);
+  }, [currentPage, filteredReservations, totalPages, ITEMS_PER_PAGE]);
+
 
   const handleNextPage = () =>
-    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages || 1)); // ensure totalPages is at least 1
   const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
   const handlePageClick = (pageNumber: number) => setCurrentPage(pageNumber);
+  
   const getPageNumbers = () => {
     const pageNumbers = [];
     const maxPagesToShow = 5;
+    
+    if (totalPages === 0) return []; // No pages to show
+
     let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
     let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
-    if (
-      totalPages > maxPagesToShow &&
-      endPage - startPage + 1 < maxPagesToShow
-    ) {
-      if (currentPage < totalPages / 2)
-        endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
-      else startPage = Math.max(1, endPage - maxPagesToShow + 1);
+
+    if (endPage - startPage + 1 < maxPagesToShow) {
+        if (startPage === 1) {
+            endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+        } else {
+            startPage = Math.max(1, endPage - maxPagesToShow + 1);
+        }
     }
-    if (totalPages > 0 && endPage > totalPages) endPage = totalPages;
     
     for (let i = startPage; i <= endPage; i++) {
       pageNumbers.push(i);
@@ -447,34 +476,46 @@ const Reservations = () => {
     return pageNumbers;
   };
 
-  // Define the status change handler before it's used in dependencies
-  const handleStatusChange = React.useCallback((reservationId: string, newStatus: string) => {
-    // Create a new array to avoid direct state mutation
-    const updatedReservations = [...reservations];
-    const index = updatedReservations.findIndex(res => res.id === reservationId);
-    
-    if (index !== -1) {
-      // Update the status
-      updatedReservations[index].status = newStatus;
-      
-      // Update state
-      setReservations(updatedReservations);
-      
-      // Force update of current reservations
-      setCurrentReservations(currentReservations.map(res => 
-        res.id === reservationId ? {...res, status: newStatus} : res
-      ));
-      
-      // Here you would also update the database
-      // updateReservationStatus(reservationId, newStatus);
-      
-      console.log(`Reservation ${reservationId} status updated to ${newStatus}`);
+  const handleStatusChange = React.useCallback(async (reservationId: string, newStatus: string) => {
+    // Find the reservation to update
+    const reservationToUpdate = reservations.find(res => res.id === reservationId);
+    if (!reservationToUpdate) {
+      console.error(`Reservation ${reservationId} not found.`);
+      alert(`Error: Reservation ${reservationId} not found.`);
+      return;
     }
-  }, [reservations, currentReservations]);
 
-  // Make sure tableBodyContent properly shows the no results message
+    // Optimistic UI update
+    const updatedReservations = reservations.map(res =>
+      res.id === reservationId ? { ...res, status: newStatus } : res
+    );
+    setReservations(updatedReservations);
+
+    // TODO: Implement API call to update status in the backend
+    // Example:
+    // try {
+    //   const response = await fetch(`/api/reservations/${reservationId}/status`, {
+    //     method: 'PUT',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify({ status: newStatus }),
+    //   });
+    //   if (!response.ok) {
+    //     throw new Error('Failed to update status');
+    //   }
+    //   // If successful, the optimistic update is fine.
+    //   // Optionally re-fetch or update based on response from API
+    //   console.log(`Reservation ${reservationId} status updated to ${newStatus} on server.`);
+    // } catch (error) {
+    //   console.error('Error updating reservation status:', error);
+    //   alert(`Failed to update status for reservation ${reservationId}. Reverting.`);
+    //   // Revert optimistic update
+    //   setReservations(reservations); 
+    // }
+    console.log(`Reservation ${reservationId} status (optimistically) updated to ${newStatus}`);
+
+  }, [reservations]); // Removed currentReservations from dependencies as it's derived
+
   const tableBodyContent = useMemo(() => {
-    // Check if any filters are active
     const hasActiveFilters = searchTerm || 
       statusFilter !== "all" || 
       reservationType !== "all" ||
@@ -487,29 +528,36 @@ const Reservations = () => {
       filterOptions.maxGuests ||
       filterOptions.roomId !== 'all';
 
+    if (isLoading) { // Check isLoading before filteredReservations.length
+      return (
+        <tr>
+          <td colSpan={16} className={styles.noReservationsCell}>
+            Loading reservations...
+          </td>
+        </tr>
+      );
+    }
+
     if (filteredReservations.length === 0) {
-      // If there are no filtered results at all
       return (
         <tr>
           <td colSpan={16} className={styles.noReservationsCell}>
             {hasActiveFilters 
               ? "No results matching your search criteria." 
-              : "No reservations."}
+              : "No reservations found."}
           </td>
         </tr>
       );
-    } else if (currentReservations.length === 0) {
-      // If there are filtered results but none on current page
+    } else if (currentReservations.length === 0 && totalPages > 0) { // Ensure totalPages > 0 means there are results, just not on this page
       return (
         <tr>
           <td colSpan={16} className={styles.noReservationsCell}>
-            No results on this page. Please navigate to another page.
+            No results on this page. Please navigate to another page or adjust filters.
           </td>
         </tr>
       );
     }
     
-    // Otherwise show the reservations
     return currentReservations.map((item) => {
       const statusCategory = getStatusCategory(item.status);
       const totalGuests = item.guests.adults + item.guests.children + item.guests.seniors;
@@ -533,38 +581,120 @@ const Reservations = () => {
           <td>
             <select 
               className={`${styles.statusDropdown} ${styles[`status${statusCategory}`]}`}
-              value={item.status}
+              value={item.status} // Use item.status directly as value
               onChange={(e) => handleStatusChange(item.id, e.target.value)}
-              onClick={(e) => e.stopPropagation()} // Add this line to stop propagation
-              title={statusDescriptions[getStatusCategory(item.status)]}
+              onClick={(e) => e.stopPropagation()}
+              title={statusDescriptions[statusCategory] || item.status} // Fallback title
             >
+              {/* Ensure all possible status values are options, or that item.status matches one */}
               <option value="Pending">Pending</option>
               <option value="Confirmed_Pending_Payment">Confirmed Pending Payment</option>
               <option value="Accepted">Accepted</option>
               <option value="Rejected">Rejected</option>
               <option value="Cancelled">Cancelled</option>
               <option value="Expired">Expired</option>
+              {/* Add other statuses if necessary, ensure item.status is always one of these */}
             </select>
           </td>
           <td>{item.confirmationTime ? formatDateForDisplay(item.confirmationTime) : "N/A"}</td>
           <td><span className={`${styles.statusPillGeneral} ${item.paymentReceived ? styles.paymentPaid : styles.paymentNotPaid}`}>{item.paymentReceived ? "Paid" : "Not Paid"}</span></td>
-          <td><span className={`${styles.statusPillGeneral} ${item.type === "online" ? styles.typeOnline : styles.typeDirect}`}>{item.type === "online" ? "Online" : "Direct"}</span></td>
+          <td><span className={`${styles.statusPillGeneral} ${item.type === "online" ? styles.typeOnline : styles.typeDirect}`}>{item.type.charAt(0).toUpperCase() + item.type.slice(1)}</span></td>
           <td>{item.auditedBy ? staffLookup[item.auditedBy] || item.auditedBy : "N/A"}</td>
         </tr>
       );
     });
-  }, [currentReservations, filteredReservations, searchTerm, statusFilter, reservationType, filterOptions, handleStatusChange]);
+  }, [currentReservations, filteredReservations.length, searchTerm, statusFilter, reservationType, filterOptions, handleStatusChange, isLoading, totalPages]);
 
-  // Function to handle new reservation submission
+  const refreshReservations = async () => {
+    setIsLoading(true);
+    try {
+      const result = await fetchReservations();
+      
+      if (result && result.reservations) {
+        const formattedData: ReservationItem[] = result.reservations.map((item: any) => ({
+          id: String(item.id || ''),
+          customerId: String(item.customer_id || ''),
+          roomId: String(item.room_id || ''),
+          checkIn: item.check_in ? new Date(item.check_in) : new Date(),
+          checkOut: item.check_out ? new Date(item.check_out) : new Date(),
+          status: String(item.status || "Pending"),
+          confirmationTime: item.confirmation_time ? new Date(item.confirmation_time) : undefined,
+          paymentReceived: Boolean(item.payment_received || false),
+          guests: {
+            adults: Number(item.num_adults || 0),
+            children: Number(item.num_children || 0),
+            seniors: Number(item.num_seniors || 0),
+          },
+          auditedBy: item.audited_by ? String(item.audited_by) : undefined,
+          type: item.source === "online" ? "online" : "direct",
+          notes: item.message ? String(item.message) : undefined,
+        }));
+        
+        formattedData.sort((a, b) => b.checkIn.getTime() - a.checkIn.getTime());
+        setReservations(formattedData);
+        
+        // Set the lookup tables
+        if (result.customerLookup) {
+          // Transform customerLookup to ensure it has the expected structure
+          const formattedCustomerLookup: {[key: string]: { phone: string, name: string }} = {};
+          Object.entries(result.customerLookup).forEach(([id, data]) => {
+            formattedCustomerLookup[id] = {
+              phone: typeof data === 'object' && 'phone' in data ? data.phone : '',
+              name: typeof data === 'object' && 'name' in data ? String(data.name) : 'Unknown'
+            };
+          });
+          setCustomerLookup(formattedCustomerLookup);
+        }
+        
+        if (result.staffLookup) {
+          setStaffLookup(result.staffLookup);
+        }
+        
+        if (result.roomLookup) {
+          // Transform roomLookup to ensure it has the expected structure
+          const formattedRoomLookup: {[key: string]: { name: string }} = {};
+          Object.entries(result.roomLookup).forEach(([id, data]) => {
+            formattedRoomLookup[id] = {
+              name: typeof data === 'object' && data !== null && 'name' in data 
+                ? String((data as {name: string}).name) 
+                : String(data)
+            };
+          });
+          setRoomLookup(formattedRoomLookup);
+        }
+      } else {
+        setReservations([]);
+      }
+      setError(null);
+    } catch (err) {
+      console.error("Error loading reservations:", err);
+      setError(err instanceof Error ? err.message : "Failed to load reservations");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshReservations();
+  }, []);
+
+
   const handleNewReservation = async (reservationData: ReservationData) => {
-    const result = await submitReservation(reservationData);
-  
-    if (result.success) {
-      alert("Reservation successfully created!");
-      setIsNewReservationOpen(false);
-      // Optional: refresh reservation list here if you're loading from DB
-    } else {
-      alert("Failed to create reservation: " + result.message);
+    // setIsLoading(true); // Optional: show loading state during submission
+    try {
+      const result = await submitReservation(reservationData);
+      if (result.success) {
+        alert("Reservation successfully created!");
+        setIsNewReservationOpen(false);
+        await refreshReservations(); // Refresh the list
+      } else {
+        alert("Failed to create reservation: " + (result.message || "Unknown error"));
+      }
+    } catch (error) {
+        alert("An error occurred while creating the reservation.");
+        console.error("Error submitting reservation:", error);
+    } finally {
+        // setIsLoading(false);
     }
   };
   
@@ -574,57 +704,10 @@ const Reservations = () => {
     setIsFilterOpen(false);
   }
 
-  // Add this function to handle row clicks
   const handleRowClick = (reservation: ReservationItem) => {
     setSelectedReservation(reservation);
   };
 
-  // Add this useEffect to fetch data when component mounts
-  useEffect(() => {
-    const loadReservations = async () => {
-      setIsLoading(true);
-      try {
-        const data = await fetchReservations();
-        if (data && data.length > 0) {
-          // Transform the data to match ReservationItem interface
-          const formattedData: ReservationItem[] = data.map(item => ({
-            id: item.id,
-            customerId: item.customer_id,
-            roomId: item.room_id,
-            checkIn: new Date(item.check_in),
-            checkOut: new Date(item.check_out),
-            status: item.status || "Pending",
-            confirmationTime: item.confirmation_time ? new Date(item.confirmation_time) : undefined,
-            paymentReceived: item.payment_received || false,
-            guests: {
-              adults: item.num_adults || 0,
-              children: item.num_children || 0,
-              seniors: item.num_seniors || 0,
-            },
-            auditedBy: item.audited_by,
-            type: item.source === "online" ? "online" : "direct",
-            notes: item.message,
-          }));
-          
-          // Sort by check-in date
-          formattedData.sort((a, b) => b.checkIn.getTime() - a.checkIn.getTime());
-          
-          setReservations(formattedData);
-        } else {
-          // If no data, use empty array
-          setReservations([]);
-        }
-        setError(null);
-      } catch (err) {
-        console.error("Error loading reservations:", err);
-        setError("Failed to load reservations");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadReservations();
-  }, []);
 
   return (
     <div className={styles.container}>
@@ -663,7 +746,7 @@ const Reservations = () => {
             title="Total Check-ins"
             value={statistics.checkIns.toString()}
             valueIconClass="fa-regular fa-person-to-portal"
-            dateRange="From Jan 01, 2025 - April 30, 2025"
+            dateRange="Jan 01 - Apr 30, 2025"
             dateRangeColor="#007bff"
             dateRangeBg="#e7f3ff"
             animate={animateStats}
@@ -672,7 +755,7 @@ const Reservations = () => {
             title="Total Check-outs"
             value={statistics.checkOuts.toString()}
             valueIconClass="fa-regular fa-person-from-portal"
-            dateRange="From Jan 01, 2025 - April 30, 2025"
+            dateRange="Jan 01 - Apr 30, 2025"
             dateRangeColor="#6c757d"
             dateRangeBg="#f8f9fa"
             animate={animateStats}
@@ -681,7 +764,7 @@ const Reservations = () => {
             title="Total Guests"
             value={statistics.totalGuests.toString()}
             valueIconClass="fa-regular fa-people-simple"
-            dateRange="From Jan 01, 2025 - April 30, 2025"
+            dateRange="Jan 01 - Apr 30, 2025"
             dateRangeColor="#6c757d"
             dateRangeBg="#f8f9fa"
             animate={animateStats}
@@ -690,7 +773,7 @@ const Reservations = () => {
             title="Occupancy Rate"
             value={`${statistics.occupancyRate}%`}
             valueIconClass="fa-regular fa-chart-line"
-            dateRange="From Jan 01, 2025 - April 30, 2025"
+            dateRange="Jan 01 - Apr 30, 2025"
             dateRangeColor="#6c757d"
             dateRangeBg="#f8f9fa"
             animate={animateStats}
@@ -700,7 +783,7 @@ const Reservations = () => {
         <div className={styles.reservationListSection}>
           <div className={styles.listHeader}>
             <h2 className={styles.listTitle}>
-              {isLoading ? "Loading Reservations..." : "Reservation List"}
+              Reservation List
             </h2>
             <div className={styles.actionButtons}>
               <div className={styles.listControls}>
@@ -740,7 +823,7 @@ const Reservations = () => {
                     onClick={() => setIsFilterOpen(true)}
                   >
                     <i className="fa-regular fa-filter"></i>
-                    <span className={styles.tooltipText}>Filter</span>
+                    <span className={styles.tooltipText}>Advanced Filters</span>
                   </button>
                 </div>
               </div>
@@ -750,22 +833,17 @@ const Reservations = () => {
                     className={styles.exportButton}
                     onClick={() => setIsExportOpen(true)}>
                     <i className="fa-regular fa-file-export"></i>
-                    <span className={styles.tooltipText}>Export</span>
+                    <span className={styles.tooltipText}>Export Data</span>
                   </button>
                 </div>
               </div>
             </div>
           </div>
-          {isLoading ? (
-            <div className={styles.loadingContainer}>
-              <p>Fetching reservation data...</p>
-              <div className={styles.spinner}></div>
-            </div>
-          ) : error ? (
+          {error ? (
             <div className={styles.errorContainer}>
               <p>Error: {error}</p>
               <button 
-                onClick={() => window.location.reload()} 
+                onClick={refreshReservations} 
                 className={styles.retryButton}
               >
                 Retry
@@ -800,7 +878,7 @@ const Reservations = () => {
           )}
         </div>
       </div>
-      {filteredReservations.length > 0 && totalPages > 1 && (
+      { !isLoading && !error && filteredReservations.length > 0 && totalPages > 1 && (
         <div className={styles.paginationContainer}>
           <button
             onClick={handlePrevPage}
@@ -840,7 +918,6 @@ const Reservations = () => {
         </div>
       )}
 
-      {/* Add the NewReservationOverlay component */}
       <NewReservationOverlay
         isOpen={isNewReservationOpen}
         onClose={() => setIsNewReservationOpen(false)}
@@ -855,11 +932,14 @@ const Reservations = () => {
         roomOptions={roomOptions}
       />
       
-      {/* Add the Export Overlay */}
       <ExportOverlay
         isOpen={isExportOpen}
         onClose={() => setIsExportOpen(false)}
-        onExport={(data) => console.log('Export data:', data)}
+        onExport={(data) => console.log('Export data:', data)} // Replace with actual export logic
+        // reservationsToExport={filteredReservations} // Pass the currently filtered reservations
+        // customerLookup={customerLookup}
+        // roomLookup={roomLookup}
+        // staffLookup={staffLookup}
       />
       <ReservationDetailsOverlay
         isOpen={selectedReservation !== null}
@@ -868,6 +948,7 @@ const Reservations = () => {
         customerLookup={customerLookup}
         roomLookup={roomLookup}
         staffLookup={staffLookup}
+        // onStatusChange={handleStatusChange} // Pass status change handler
       />
     </div>
   );

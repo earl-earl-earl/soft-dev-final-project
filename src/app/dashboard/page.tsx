@@ -8,6 +8,7 @@ import { useSidebar } from "@components/base_components/SidebarContext";
 import { useSessionContext } from "@/contexts/SessionContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import NavigationProgress from "@components/base_components/NavigationProcess";
 
 export default function DashboardPage() {
   const { isCollapsed: isSidebarCollapsed } = useSidebar();
@@ -37,14 +38,19 @@ export default function DashboardPage() {
   if (!userRole) return null;
 
   return (
-    <div className={styles.pageContainer}>
-      <Sidebar role={userRole} />
-      <div className={`${styles.contentWrapper} ${contentWrapperMarginClass}`}>
-        <Header title="Dashboard" />
-        <main className={styles.mainContent}>
-          <Dashboard />
-        </main>
+    <>
+      <NavigationProgress />
+      <div className={styles.pageContainer}>
+        <Sidebar role={userRole} />
+        <div
+          className={`${styles.contentWrapper} ${contentWrapperMarginClass}`}
+        >
+          <Header title="Dashboard" />
+          <main className={styles.mainContent}>
+            <Dashboard role="" />
+          </main>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

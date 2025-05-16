@@ -8,6 +8,7 @@ import StaffFeature from "@components/base_components/StaffFeature";
 import { useSession } from "@components/hooks/useSession";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import NavigationProgress from "@components/base_components/NavigationProcess";
 
 export default function StaffPage() {
   const { isCollapsed: isSidebarCollapsed } = useSidebar();
@@ -28,10 +29,9 @@ export default function StaffPage() {
   // Show loading state while checking authentication or fetching user role
   if (sessionLoading) {
     return (
-      <div className={styles.loadingContainer}>
-        <div className={styles.loadingSpinner}></div>
-        <p>Loading...</p>
-      </div>
+      <>
+            <NavigationProgress />
+            </>
     );
   }
 
@@ -41,6 +41,8 @@ export default function StaffPage() {
   }
 
   return (
+    <>
+      <NavigationProgress />
     <div className={styles.pageContainer}>
       <Sidebar role={userRole} />
       <div className={`${styles.contentWrapper} ${contentWrapperMarginClass}`}>
@@ -50,5 +52,6 @@ export default function StaffPage() {
         </main>
       </div>
     </div>
+    </>
   );
 }
