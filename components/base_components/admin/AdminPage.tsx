@@ -9,6 +9,7 @@ import AdminFilters from './AdminFilters';
 import AdminForm from './AdminForm';
 import Pagination from '../../common/PaginationStaffAdmin';
 import ConfirmationModal from '../../common/ConfirmationModal';
+import { toast } from 'react-toastify';
 
 const ITEMS_PER_PAGE = 9;
 
@@ -32,7 +33,8 @@ const AdminPage: React.FC = () => {
     error, 
     addAdmin, 
     updateAdmin, 
-    toggleAdminStatus 
+    toggleAdminStatus,
+    refreshAdmins  // Add this line
   } = useAdmins();
   
   // Get filtering functionality
@@ -100,10 +102,37 @@ const AdminPage: React.FC = () => {
   // Handle edit admin submit
   const handleEditAdminSubmit = async (formData: AdminFormData) => {
     if (adminToEdit) {
-      const result = await updateAdmin(adminToEdit.id, formData);
-      if (result.success) {
-        setIsEditAdminOpen(false);
-        setAdminToEdit(undefined);
+      try {
+        console.log("Submitting edit for admin:", adminToEdit.id);
+        console.log("Form data:", formData);
+        
+        const result = await updateAdmin(adminToEdit.id, formData);
+        
+        if (result.success) {
+          // Close the edit form
+          setIsEditAdminOpen(false);
+          setAdminToEdit(undefined);
+          
+          // Explicitly refetch data after successful edit
+          const refreshResult = await refreshAdmins({ 
+            showLoading: false,  // Don't show global loading state during refresh
+            silentError: true    // Don't show error message if refresh fails
+          });
+          
+          if (refreshResult.success) {
+            toast.success("Admin updated successfully");
+          } else {
+            // If refresh fails, show a less critical message
+            toast.info("Admin updated, refreshing data...");
+            // Try one more time with full loading if needed
+            refreshAdmins();
+          }
+        } else {
+          toast.error(result.error || "Failed to update admin");
+        }
+      } catch (err) {
+        console.error("Exception in handleEditAdminSubmit:", err);
+        toast.error("An unexpected error occurred");
       }
     }
   };

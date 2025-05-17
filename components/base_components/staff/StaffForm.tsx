@@ -20,7 +20,7 @@ const StaffForm: React.FC<StaffFormProps> = ({
 }) => {
   const [formData, setFormData] = useState<StaffFormData>({
     name: initialData.name || '',
-    email: initialData.email || '',
+    username: initialData.username || '', // Use username instead of email
     phoneNumber: initialData.phoneNumber || '',
     password: initialData.password || '',
     confirmPassword: initialData.confirmPassword || '',
@@ -73,18 +73,6 @@ const StaffForm: React.FC<StaffFormProps> = ({
                 id="name"
                 name="name"
                 value={formData.name}
-                onChange={handleChange}
-                className={styles.formControl}
-                required
-              />
-            </div>
-            <div className={styles.formGroup}>
-              <label htmlFor="email">Email</label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
                 onChange={handleChange}
                 className={styles.formControl}
                 required
@@ -192,9 +180,9 @@ const StaffForm: React.FC<StaffFormProps> = ({
           </div>
         </form>
       </div>
-    </div>,
+      </div>,
     document.body
   );
-};
+}
 
 export default StaffForm;

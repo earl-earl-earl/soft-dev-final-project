@@ -39,7 +39,6 @@ const AdminTable: React.FC<AdminTableProps> = ({
             <th>Name</th>
             <th>Phone Number</th>
             <th>Role</th>
-            <th>Access Level</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -51,7 +50,6 @@ const AdminTable: React.FC<AdminTableProps> = ({
                 <td>{admin.name}</td>
                 <td>{admin.phoneNumber}</td>
                 <td>{admin.role}</td>
-                <td>{admin.accessLevel}</td>
                 {isSuperAdmin && (
                   <td className={styles.actionsCell}>
                     <button 

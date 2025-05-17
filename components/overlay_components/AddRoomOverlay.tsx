@@ -301,14 +301,14 @@ const AddRoomOverlay: React.FC<AddRoomOverlayProps> = ({
                   onKeyDown={handleKeyDown}
                   onFocus={() => amenityInput && setDropdownOpen(true)}
                   placeholder="Type or select amenity"
-                  disabled={formData.amenities.length >= 10}  {/* Changed from 3 to 10 */}
+                  disabled={formData.amenities.length >= 10/* Changed from 3 to 10 */}
                   className={error ? styles.inputError : ''}
                 />
                 <button 
                   type="button" 
                   className={styles.addButton}
                   onClick={() => addAmenity()}
-                  disabled={formData.amenities.length >= 10 || !amenityInput.trim()}  {/* Changed from 3 to 10 */}
+                  disabled={formData.amenities.length >= 10 || !amenityInput.trim()/* Changed from 3 to 10 */}
                 >
                   Add
                 </button>

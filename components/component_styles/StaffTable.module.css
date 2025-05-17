@@ -54,6 +54,10 @@
   border-bottom: none;
 }
 
+.staffTable td {
+  padding: 16px 20px;
+}
+
 /* This ensures even spacing for "no staff" message */
 .noStaffDataCell {
   padding: 30px !important;

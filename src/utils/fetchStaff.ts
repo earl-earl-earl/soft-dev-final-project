@@ -14,51 +14,81 @@ export interface FetchStaffResult {
 export const fetchStaff = async (): Promise<FetchStaffResult> => {
   console.log("Starting to fetch staff...");
   
-  // Fetch staff data
-  const { data: staffData, error: staffError } = await supabase
-    .from("staff")
-    .select('*');
-
-  console.log("Raw staff response from Supabase:", { data: staffData?.length || 0, error: staffError });
-  
-  if (staffError) {
-    console.error("Error fetching staff:", staffError.message);
-    return { staff: [], staffLookup: {} };
-  }
-  
-  if (!staffData || staffData.length === 0) {
-    console.log("No staff data returned from the database");
-    return { staff: [], staffLookup: {} };
-  }
-
-  // Create lookup table
-  const staffLookup: StaffLookup = {};
-  
-  // Transform staff data to our application format
-  const staff: StaffMember[] = staffData.map(member => {
-    const staffMember: StaffMember = {
-      id: member.user_id || member.id,
-      username: member.username || member.email?.split('@')[0] || `user-${member.id}`,
-      name: member.name || 'Unknown Name',
-      email: member.email || '',
-      phoneNumber: member.phone_number || '',
-      role: member.role || 'Staff',
-      position: member.position || 'Staff',
-      isActive: member.is_active !== undefined ? member.is_active : true
+  try {
+    // First, get users with "staff" role
+    const { data: staffUsers, error: userError } = await supabase
+      .from("users")
+      .select('*')
+      .eq("role", "staff");
+    
+    if (userError) {
+      console.error("Error fetching staff users:", userError.message);
+      return { staff: [], staffLookup: {} };
+    }
+    
+    if (!staffUsers || staffUsers.length === 0) {
+      console.log("No staff users found");
+      return { staff: [], staffLookup: {} };
+    }
+    
+    // Get user IDs to fetch corresponding staff records
+    const userIds = staffUsers.map(user => user.id);
+    
+    // Now fetch corresponding staff details
+    const { data: staffData, error: staffError } = await supabase
+      .from("staff")
+      .select('*')
+      .in('user_id', userIds);
+      
+    if (staffError) {
+      console.error("Error fetching staff details:", staffError.message);
+      return { staff: [], staffLookup: {} };
+    }
+    
+    if (!staffData || staffData.length === 0) {
+      console.log("No staff details found");
+      return { staff: [], staffLookup: {} };
+    }
+    
+    // Create a lookup object for staff records keyed by user_id for quick access
+    const usersLookup: Record<string, any> = {};
+    staffUsers.forEach(user => {
+      usersLookup[user.id] = user;
+    });
+    
+    // Create lookup table
+    const staffLookup: StaffLookup = {};
+    
+    // Transform staff data to our application format
+    const staff: StaffMember[] = staffData.map(member => {
+      const user = usersLookup[member.user_id];
+      
+      const staffMember: StaffMember = {
+        id: member.user_id,
+        username: member.username || user?.email?.split('@')[0] || `user-${member.user_id}`,
+        name: member.name || 'Unknown Name',
+        phoneNumber: member.phone_number || '',
+        role: user?.role || 'staff',
+        position: member.position || 'Staff',
+        isActive: member.is_active !== undefined ? member.is_active : true
+      };
+      
+      // Add to lookup
+      staffLookup[staffMember.id] = staffMember;
+      
+      return staffMember;
+    });
+    
+    console.log("Processed staff:", staff.length);
+    
+    return {
+      staff,
+      staffLookup
     };
-    
-    // Add to lookup
-    staffLookup[staffMember.id] = staffMember;
-    
-    return staffMember;
-  });
-
-  console.log("Processed staff:", staff.length);
-  
-  return {
-    staff,
-    staffLookup
-  };
+  } catch (err) {
+    console.error("Error in fetchStaff:", err);
+    return { staff: [], staffLookup: {} };
+  }
 };
 
 // Helper function to format date in "Month DD, YYYY" format

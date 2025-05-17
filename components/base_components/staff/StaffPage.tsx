@@ -4,6 +4,7 @@ import { StaffMember, StaffFormData } from '../../../src/types/staff';
 import { useStaff } from '../../../src/hooks/useStaff';
 import { useFilteredStaff } from '../../../src/hooks/useFilteredStaff';
 import { useSessionContext } from '@/contexts/SessionContext';
+import { toast } from 'react-toastify';
 
 // Import components
 import StaffList from './StaffList';
@@ -19,7 +20,7 @@ const StaffPage: React.FC = () => {
   const { role } = useSessionContext();
   
   // Get staff data and operations
-  const { staff, isLoading, error, addStaff, updateStaff, toggleStaffStatus } = useStaff();
+  const { staff, isLoading, error, addStaff, updateStaff, toggleStaffStatus, refreshStaff } = useStaff();
   
   // Get filtering and pagination
   const {
@@ -61,10 +62,29 @@ const StaffPage: React.FC = () => {
   const handleEditStaff = async (formData: StaffFormData) => {
     if (!selectedStaff) return;
     
+    // Set loading state if needed
+    // setIsLoading(true);
+    
     const result = await updateStaff(selectedStaff.id, formData);
     if (result.success) {
+      // Close the edit form
       setIsEditStaffOpen(false);
       setSelectedStaff(null);
+      
+      // Explicitly refetch data after successful edit
+      const refreshResult = await refreshStaff({ 
+        showLoading: false, // Don't show global loading state during refresh
+        silentError: true   // Don't show error message if refresh fails
+      });
+      
+      if (refreshResult.success) {
+        toast.success("Staff updated successfully");
+      } else {
+        // If refresh fails, show a less critical message
+        toast.info("Staff updated, refreshing data...");
+        // Try one more time with full loading if needed
+        refreshStaff();
+      }
     } else {
       // Show error
       alert(result.error || 'Failed to update staff');
@@ -102,6 +122,8 @@ const StaffPage: React.FC = () => {
     setIsFilterOpen(false);
   };
   
+  // Handle refresh
+
   if (isLoading) {
     return <div className={styles.loading}>Loading staff...</div>;
   }
@@ -169,7 +191,7 @@ const StaffPage: React.FC = () => {
           isOpen={isEditStaffOpen}
           initialData={{
             name: selectedStaff.name,
-            email: selectedStaff.email,
+            username: selectedStaff.username, // Pass username instead of email
             phoneNumber: selectedStaff.phoneNumber,
             role: selectedStaff.role,
             position: selectedStaff.position,

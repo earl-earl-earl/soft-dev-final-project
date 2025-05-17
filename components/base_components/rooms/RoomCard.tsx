@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Room } from '../../../src/types/room';
 import { formatDate, formatCurrency } from '../../../src/utils/roomUtils';
 import styles from '../../component_styles/Rooms.module.css';
+import Portal from '../Portal';
 
 interface RoomCardProps {
   room: Room;
@@ -10,6 +11,12 @@ interface RoomCardProps {
 }
 
 const RoomCard: React.FC<RoomCardProps> = ({ room, onEdit, onToggleStatus }) => {
+  const [showAllAmenities, setShowAllAmenities] = useState(false);
+  
+  // Only show first 3 amenities initially
+  const displayedAmenities = room.amenities.slice(0, 3);
+  const hasMoreAmenities = room.amenities.length > 3;
+  
   return (
     <div className={`${styles.roomCard} ${!room.isActive ? styles.deactivated : ""}`}>
       <div className={styles.roomContent}>
@@ -26,11 +33,16 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, onEdit, onToggleStatus }) => 
           <div className={styles.amenitiesSection}>
             <h4>Amenities</h4>
             <ul className={styles.amenitiesList}>
-              {room.amenities.map((amenity, index) => (
+              {displayedAmenities.map((amenity, index) => (
                 <li key={index}>
                   <i className="fa-regular fa-check"></i> {amenity}
                 </li>
               ))}
+              {hasMoreAmenities && (
+                <li className={styles.seeMoreLink} onClick={() => setShowAllAmenities(true)}>
+                  <i className="fa-regular fa-ellipsis"></i> See {room.amenities.length - 3} more
+                </li>
+              )}
             </ul>
           </div>
 
@@ -40,7 +52,7 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, onEdit, onToggleStatus }) => 
                 room.status === "Occupied" ? styles.occupied : styles.vacant
               }`}
             >
-              {room.status}
+              {room.status === "Occupied" ? "Unavailable" : room.status}
             </span>
             {room.status === "Occupied" && room.reservation && (
               <span className={styles.dateSpan}>
@@ -84,6 +96,29 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, onEdit, onToggleStatus }) => 
           </div>
         </div>
       </div>
+
+      {/* Amenities Popup using Portal */}
+      {showAllAmenities && (
+        <Portal>
+          <div className={styles.amenitiesPopupOverlay} onClick={() => setShowAllAmenities(false)}>
+            <div className={styles.amenitiesPopup} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.amenitiesPopupHeader}>
+                <h3>All Amenities for {room.name}</h3>
+                <button className={styles.closeButton} onClick={() => setShowAllAmenities(false)}>
+                  <i className="fa-regular fa-xmark"></i>
+                </button>
+              </div>
+              <ul className={styles.amenitiesPopupList}>
+                {room.amenities.map((amenity, index) => (
+                  <li key={index}>
+                    <i className="fa-regular fa-check"></i> {amenity}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </Portal>
+      )}
     </div>
   );
 };

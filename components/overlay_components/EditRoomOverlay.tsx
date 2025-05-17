@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styles from '../component_styles/FilterOverlay.module.css';
+import Image from 'next/image';
 
 export interface RoomFormData {
   name: string;
@@ -445,10 +446,13 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
               {formData.images.length > 0 && (
                 <div className={styles.imagePreviewContainer}>
                   {formData.images.map((image, index) => (
-                    <div key={index} className={styles.imagePreview}>
-                      <img
+                    <div key={index} className={styles.imagePreviewItem}>
+                      <Image
                         src={getImagePreviewUrl(image)}
                         alt={`Room preview ${index + 1}`}
+                        width={100}
+                        height={100}
+                        style={{ objectFit: 'cover' }}
                       />
                       <button 
                         type="button" 

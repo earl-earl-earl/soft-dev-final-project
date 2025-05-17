@@ -12,6 +12,7 @@ export interface ReservationItem {
   checkIn: Date;
   checkOut: Date;
   status: string;
+  source: string;
   confirmationTime?: Date;
   paymentReceived: boolean;
   guests: ReservationGuests;

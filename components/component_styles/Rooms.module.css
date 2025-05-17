@@ -217,6 +217,7 @@
 .roomsGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 1fr;  /* Makes all rows equal height */
   align-content: start;
   gap: 20px;
   overflow-y: auto;
@@ -261,7 +262,10 @@
   padding: 20px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   position: relative;
-  height: 225px;
+  height: auto;
+  min-height: 250px;
+  display: flex;
+  flex-direction: column;
 }
 
 .roomCard.deactivated {
@@ -294,7 +298,8 @@
 
 .roomContent {
   display: flex;
-  height: 100%;
+  flex: 1;
+  height: auto;
 }
 
 .leftColumn {
@@ -661,4 +666,95 @@
   color: white;
   border-color: var(--primary-color);
   font-weight: 500;
+}
+
+.seeMoreLink {
+  color: var(--primary-color);
+  cursor: pointer;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.seeMoreLink:hover {
+  color: var(--primary-550);
+  text-decoration: underline;
+}
+
+.amenitiesPopupOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+}
+
+.amenitiesPopup {
+  background-color: white;
+  border-radius: 12px;
+  padding: 20px;
+  width: 100%;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.amenitiesPopupHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.amenitiesPopupHeader h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6c757d;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.closeButton:hover {
+  color: #dc3545;
+}
+
+.amenitiesPopupList {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.amenitiesPopupList li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.amenitiesPopupList li:last-child {
+  border-bottom: none;
+}
+
+.amenitiesPopupList li i {
+  color: #4CAF50;
 }

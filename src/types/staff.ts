@@ -2,7 +2,6 @@ export interface StaffMember {
   id: string;
   username: string;
   name: string;
-  email: string;
   phoneNumber: string;
   role: string;
   position: string;
@@ -11,7 +10,7 @@ export interface StaffMember {
 
 export interface StaffFormData {
   name: string;
-  email: string;
+  username: string;
   phoneNumber: string;
   password: string;
   confirmPassword: string;

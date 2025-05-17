@@ -25,17 +25,27 @@ export function useStaff() {
     };
   }, []);
   
-  const refreshStaff = useCallback(async () => {
-    setIsLoading(true);
+  const refreshStaff = useCallback(async (options?: { showLoading?: boolean, silentError?: boolean }) => {
+    if (options?.showLoading !== false) {
+      setIsLoading(true);
+    }
+    
     try {
+      console.log("Manually refreshing staff data...");
       const result = await fetchStaff();
       setStaff(result.staff);
       setError(null);
+      return { success: true, data: result.staff };
     } catch (err) {
-      console.error("Error loading staff:", err);
-      setError(err instanceof Error ? err.message : "Failed to load staff");
+      console.error("Error refreshing staff:", err);
+      if (!options?.silentError) {
+        setError(err instanceof Error ? err.message : "Failed to refresh staff");
+      }
+      return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
     } finally {
-      setIsLoading(false);
+      if (options?.showLoading !== false) {
+        setIsLoading(false);
+      }
     }
   }, []);
   
@@ -44,12 +54,11 @@ export function useStaff() {
       setIsLoading(true);
       
       // Make a real API call to create a staff member
-      const { data, error: insertError } = await supabase
+      const { /* data */ error: insertError } = await supabase
         .from('staff')
         .insert([{
-          username: staffData.email.split('@')[0],
+          username: staffData.username,
           name: staffData.name,
-          email: staffData.email,
           phone_number: staffData.phoneNumber,
           role: staffData.role,
           position: staffData.position,
@@ -77,15 +86,15 @@ export function useStaff() {
     try {
       setIsLoading(true);
       
-      // Make a real API call to update a staff member
+      // Only include fields that exist in the staff table
       const { error: updateError } = await supabase
         .from('staff')
         .update({
           name: staffData.name,
-          email: staffData.email,
+          username: staffData.username,
           phone_number: staffData.phoneNumber,
-          role: staffData.role,
           position: staffData.position,
+          // Don't include role as it's not in the staff table
         })
         .eq('user_id', staffId);
       
@@ -93,7 +102,6 @@ export function useStaff() {
         throw new Error(updateError.message);
       }
       
-      // The subscription will automatically update the UI with the new data
       setError(null);
       return { success: true };
     } catch (err) {

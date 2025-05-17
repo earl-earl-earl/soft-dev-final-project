@@ -69,9 +69,34 @@ const ReservationsPage: React.FC = () => {
   }, [reservationType]);
 
   useEffect(() => {
-    const rooms = Object.entries(roomLookup).map(([id, room]) => `${room.name} (${id})`);
-    setAvailableRooms(rooms);
-  }, [roomLookup]);
+    // Fetch ALL rooms directly from the database instead of using roomLookup
+    const fetchAllRooms = async () => {
+      try {
+        const { data: allRooms, error } = await supabase
+          .from('rooms')
+          .select('id, name, is_active')
+          .eq('is_active', true); // Only fetch active rooms
+        
+        if (error) {
+          console.error("Error fetching rooms:", error);
+          return;
+        }
+        
+        if (allRooms && allRooms.length > 0) {
+          const roomOptions = allRooms.map(room => `${room.name} (${room.id})`);
+          console.log("All available rooms for dropdown:", roomOptions);
+          setAvailableRooms(roomOptions);
+        } else {
+          console.log("No rooms found in database");
+          setAvailableRooms([]);
+        }
+      } catch (err) {
+        console.error("Failed to fetch rooms:", err);
+      }
+    };
+    
+    fetchAllRooms();
+  }, []); // Run once when component mounts, not dependent on roomLookup
 
   const totalPages = Math.ceil(filteredReservations.length / ITEMS_PER_PAGE);
 

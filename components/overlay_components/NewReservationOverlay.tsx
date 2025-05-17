@@ -67,6 +67,17 @@ const NewReservationOverlay: React.FC<NewReservationOverlayProps> = ({
     }
   }, [errors.checkOut, formData.checkIn, formData.checkOut]);
 
+  // Update the selected room whenever availableRooms changes
+  useEffect(() => {
+    console.log("Available rooms in overlay:", availableRooms);
+    if (availableRooms.length > 0 && !formData.room) {
+      setFormData(prev => ({
+        ...prev,
+        room: availableRooms[0]
+      }));
+    }
+  }, [availableRooms, formData.room]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     
@@ -139,7 +150,8 @@ const NewReservationOverlay: React.FC<NewReservationOverlayProps> = ({
       newErrors.name = 'Name is required';
     }
     
-    if (!formData.room) {
+    // Only validate room if there are available rooms
+    if (availableRooms.length > 0 && (!formData.room || formData.room === '')) {
       newErrors.room = 'Room selection is required';
     }
     
