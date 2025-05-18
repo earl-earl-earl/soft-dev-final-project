@@ -10,13 +10,15 @@ import AdminForm from './AdminForm';
 import Pagination from '../../common/PaginationStaffAdmin';
 import ConfirmationModal from '../../common/ConfirmationModal';
 import { toast } from 'react-toastify';
+import { useSessionContext } from '@/contexts/SessionContext';
 
 const ITEMS_PER_PAGE = 9;
 
 const AdminPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [currentAdmins, setCurrentAdmins] = useState<AdminMember[]>([]);
-  const [userRole] = useState("super_admin"); // Assuming current user is super_admin
+  const { role } = useSessionContext(); // Get role from session context
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // State for modals
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -34,7 +36,7 @@ const AdminPage: React.FC = () => {
     addAdmin, 
     updateAdmin, 
     toggleAdminStatus,
-    refreshAdmins  // Add this line
+    refreshAdmins
   } = useAdmins();
   
   // Get filtering functionality
@@ -58,14 +60,13 @@ const AdminPage: React.FC = () => {
   
   // Update current admins when page or filtered data changes
   useEffect(() => {
-    // If current page is out of bounds, adjust it
-    let newCurrentPage = currentPage;
-    if (newCurrentPage > totalPages && totalPages > 0) {
-      newCurrentPage = totalPages;
-      setCurrentPage(totalPages);
+    const adjustedPage = Math.min(Math.max(1, currentPage), Math.max(1, totalPages));
+    
+    if (adjustedPage !== currentPage) {
+      setCurrentPage(adjustedPage);
     }
 
-    const startIndex = (newCurrentPage - 1) * ITEMS_PER_PAGE;
+    const startIndex = (adjustedPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
     setCurrentAdmins(filteredAdmins.slice(startIndex, endIndex));
   }, [currentPage, filteredAdmins, totalPages]);
@@ -84,8 +85,21 @@ const AdminPage: React.FC = () => {
   
   // Handle confirm deactivation
   const handleConfirmToggle = async () => {
-    if (adminToToggle) {
-      await toggleAdminStatus(adminToToggle.id);
+    if (!adminToToggle) return;
+    
+    setIsSubmitting(true);
+    try {
+      const result = await toggleAdminStatus(adminToToggle.id);
+      if (result.success) {
+        toast.success(`Admin ${adminToToggle.isActive ? 'deactivated' : 'activated'} successfully`);
+      } else {
+        toast.error(result.error || 'Failed to update admin status');
+      }
+    } catch (err) {
+      toast.error('An unexpected error occurred');
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
       setIsConfirmationOpen(false);
       setAdminToToggle(null);
     }
@@ -93,47 +107,69 @@ const AdminPage: React.FC = () => {
   
   // Handle add admin submit
   const handleAddAdminSubmit = async (formData: AdminFormData) => {
-    const result = await addAdmin(formData);
-    if (result.success) {
-      setIsAddAdminOpen(false);
+    // Basic validation
+    if (!formData.name.trim() || !formData.email.trim() || !formData.phoneNumber.trim()) {
+      toast.error('Please fill all required fields');
+      return;
+    }
+    
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      const result = await addAdmin(formData);
+      if (result.success) {
+        toast.success('Admin added successfully');
+        setIsAddAdminOpen(false);
+        refreshAdmins();
+      } else {
+        toast.error(result.error || 'Failed to add admin');
+      }
+    } catch (err) {
+      toast.error('An unexpected error occurred');
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
   // Handle edit admin submit
   const handleEditAdminSubmit = async (formData: AdminFormData) => {
-    if (adminToEdit) {
-      try {
-        console.log("Submitting edit for admin:", adminToEdit.id);
-        console.log("Form data:", formData);
+    if (!adminToEdit) return;
+    
+    // Basic validation
+    if (!formData.name.trim() || !formData.email.trim() || !formData.phoneNumber.trim()) {
+      toast.error('Please fill all required fields');
+      return;
+    }
+    
+    if (formData.password && formData.password !== formData.confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      const result = await updateAdmin(adminToEdit.id, formData);
+      
+      if (result.success) {
+        // Close the edit form
+        setIsEditAdminOpen(false);
+        setAdminToEdit(undefined);
         
-        const result = await updateAdmin(adminToEdit.id, formData);
-        
-        if (result.success) {
-          // Close the edit form
-          setIsEditAdminOpen(false);
-          setAdminToEdit(undefined);
-          
-          // Explicitly refetch data after successful edit
-          const refreshResult = await refreshAdmins({ 
-            showLoading: false,  // Don't show global loading state during refresh
-            silentError: true    // Don't show error message if refresh fails
-          });
-          
-          if (refreshResult.success) {
-            toast.success("Admin updated successfully");
-          } else {
-            // If refresh fails, show a less critical message
-            toast.info("Admin updated, refreshing data...");
-            // Try one more time with full loading if needed
-            refreshAdmins();
-          }
-        } else {
-          toast.error(result.error || "Failed to update admin");
-        }
-      } catch (err) {
-        console.error("Exception in handleEditAdminSubmit:", err);
-        toast.error("An unexpected error occurred");
+        toast.success("Admin updated successfully");
+        refreshAdmins({ showLoading: false });
+      } else {
+        toast.error(result.error || "Failed to update admin");
       }
+    } catch (err) {
+      console.error("Exception in handleEditAdminSubmit:", err);
+      toast.error("An unexpected error occurred");
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
@@ -151,6 +187,12 @@ const AdminPage: React.FC = () => {
     return <div className={styles.error}>{error}</div>;
   }
   
+  const isSuperAdmin = role === "super_admin";
+  
+  if (!isSuperAdmin) {
+    return <div className={styles.error}>You do not have permission to access this page.</div>;
+  }
+  
   return (
     <div className={styles.staffFeatureContainer}>
       <div className={styles.staffTopContent}>
@@ -165,7 +207,7 @@ const AdminPage: React.FC = () => {
           <AdminTable 
             adminData={currentAdmins} 
             currentPage={currentPage} 
-            role={userRole}
+            role={role || ''}
             onEdit={handleEditClick}
             onDeactivate={handleDeactivateClick}
           />
@@ -191,12 +233,7 @@ const AdminPage: React.FC = () => {
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
         filterOptions={filterOptions}
-        onFilterChange={(name, value) => {
-          // Ensure type safety by only passing valid keys of FilterOptions
-          if (typeof name === 'string' && name in filterOptions) {
-            updateFilter(name as keyof typeof filterOptions, value);
-          }
-        }}
+        onFilterChange={updateFilter}
         onApplyFilters={handleApplyFilters}
         onResetFilters={resetFilters}
         onToggleSortDirection={toggleSortDirection}
@@ -207,7 +244,7 @@ const AdminPage: React.FC = () => {
         onClose={() => setIsAddAdminOpen(false)}
         onSubmit={handleAddAdminSubmit}
         title="Add New Admin"
-        submitLabel="Add Admin"
+        submitLabel={isSubmitting ? "Adding..." : "Add Admin"}
       />
       
       <AdminForm
@@ -219,17 +256,21 @@ const AdminPage: React.FC = () => {
         }}
         onSubmit={handleEditAdminSubmit}
         title="Edit Admin"
-        submitLabel="Save Changes"
+        submitLabel={isSubmitting ? "Saving..." : "Save Changes"}
       />
       
       <ConfirmationModal
         isOpen={isConfirmationOpen}
         title={adminToToggle?.isActive === false ? "Activate Admin" : "Deactivate Admin"}
-        message={`Are you sure you want to ${adminToToggle?.isActive === false ? 'activate' : 'deactivate'} <strong>${adminToToggle?.name}</strong>?`}
+        message={
+          <>
+            Are you sure you want to {adminToToggle?.isActive === false ? 'activate' : 'deactivate'} <strong>{adminToToggle?.name}</strong>?
+          </>
+        }
         subMessage={adminToToggle?.isActive === false 
           ? "This will allow them to access the system again."
           : "This will prevent them from accessing the system until reactivated by a super administrator."}
-        confirmLabel={adminToToggle?.isActive === false ? "Activate" : "Deactivate"}
+        confirmLabel={isSubmitting ? "Processing..." : (adminToToggle?.isActive === false ? "Activate" : "Deactivate")}
         onConfirm={handleConfirmToggle}
         onCancel={() => {
           setIsConfirmationOpen(false);

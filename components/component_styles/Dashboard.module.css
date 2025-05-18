@@ -249,48 +249,20 @@
   font-size: 14px;
 }
 
+/* Status pill styling */
 .statusPill {
+  display: inline-block;
   padding: 5px 12px;
   border-radius: 16px;
   font-size: 12px;
   font-weight: 500;
-  display: inline-block;
   line-height: 1.2;
   text-align: center;
   min-width: 80px;
   border: 1px solid transparent;
 }
 
-.checkedin {
-  background-color: #e7f3ff;
-  color: #007bff;
-}
-
-.arrivingtoday {
-  background-color: #e6f4ea;
-  color: #28a745;
-}
-
-.arrivedlate {
-  background-color: #fff3e0;
-  color: #fd7e14;
-}
-
-.pending {
-  background-color: #fff9c4;
-  color: #ffc107;
-}
-
-.checkedout {
-  background-color: #f3e5f5;
-  color: #8e44ad;
-}
-
-.cancelled {
-  background-color: #fde0dd;
-  color: #dc3545;
-}
-
+/* Status color variations */
 .statusAccepted {
   background-color: #e6f4ea;
   color: #1d7737;
@@ -365,6 +337,117 @@
   grid-template-columns: 1fr;
   gap: 25px;
   margin-bottom: 25px;
+}
+
+/* Complex loading spinner styles */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 500px;
+  padding: 20px;
+}
+
+.loadingAnimation {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.spinnerContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #ffffff, #f0f0f0);
+  box-shadow: 20px 20px 60px #d9d9d9,
+              -20px -20px 60px #ffffff;
+  margin-bottom: 40px;
+}
+
+.spinnerContainer i {
+  color: var(--primary-color);
+  font-size: 40px;
+  filter: drop-shadow(0 0 8px rgba(0, 123, 255, 0.5));
+}
+
+.loadingTitle {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 10px 0;
+  color: #333;
+  text-align: center;
+}
+
+.loadingText {
+  font-size: 16px;
+  color: #6c757d;
+  margin: 0;
+  text-align: center;
+}
+
+.loadingCards {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.loadingCard {
+  width: 60px;
+  height: 40px;
+  border-radius: 8px;
+  background: #f0f0f0;
+  position: relative;
+  overflow: hidden;
+}
+
+.loadingCard::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+.loadingCard1 {
+  animation: pulse 2s infinite;
+}
+
+.loadingCard2 {
+  animation: pulse 2s infinite 0.5s;
+}
+
+.loadingCard3 {
+  animation: pulse 2s infinite 1s;
+}
+
+@keyframes shimmer {
+  100% {
+    left: 100%;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 0.5;
+    transform: scale(0.95);
+  }
 }
 
 @media (max-width: 1200px) {

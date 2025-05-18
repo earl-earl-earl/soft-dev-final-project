@@ -6,6 +6,7 @@ import { User } from "@supabase/supabase-js";
 
 interface SessionContextType {
   user: User | null;
+  userId: string | null;
   role: string | null;
   staffName: string | null;
   position: string | null;
@@ -14,6 +15,7 @@ interface SessionContextType {
 
 const SessionContext = createContext<SessionContextType>({
   user: null,
+  userId: null,
   role: null,
   staffName: null,
   position: null,
@@ -22,6 +24,7 @@ const SessionContext = createContext<SessionContextType>({
 
 export const SessionProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [staffName, setStaffName] = useState<string | null>(null);
   const [position, setPosition] = useState<string | null>(null);
@@ -29,6 +32,7 @@ export const SessionProvider = ({ children }: { children: React.ReactNode }) => 
 
   const resetState = () => {
     setUser(null);
+    setUserId(null);
     setRole(null);
     setStaffName(null);
     setPosition(null);
@@ -48,6 +52,7 @@ export const SessionProvider = ({ children }: { children: React.ReactNode }) => 
     }
 
     setUser(authUser);
+    setUserId(authUser.id);
 
     const { data: userRow, error: userError } = await supabase
       .from("users")
@@ -104,7 +109,7 @@ export const SessionProvider = ({ children }: { children: React.ReactNode }) => 
   }, []);
 
   return (
-    <SessionContext.Provider value={{ user, role, staffName, position, loading }}>
+    <SessionContext.Provider value={{ user, userId, role, staffName, position, loading }}>
       {children}
     </SessionContext.Provider>
   );

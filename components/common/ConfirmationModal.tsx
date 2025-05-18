@@ -5,7 +5,7 @@ import styles from '../component_styles/StaffTable.module.css';
 interface ConfirmationModalProps {
   isOpen: boolean;
   title: string;
-  message: string;
+  message: React.ReactNode;
   subMessage?: string;
   confirmLabel: string;
   onConfirm: () => void;

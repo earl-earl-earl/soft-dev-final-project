@@ -14,14 +14,23 @@ const ReservationsOverview: React.FC<ReservationsOverviewProps> = ({
   recentReservations 
 }) => {
   const getStatusClass = (status: string): string => {
-    switch (status) {
-      case 'Accepted': return styles.statusAccepted;
-      case 'Pending': return styles.statusPending;
-      case 'Cancelled': return styles.statusCancelled;
-      case 'Rejected': return styles.statusRejected;
-      case 'Expired': return styles.statusExpired;
-      case 'Confirmed_Pending_Payment': return styles.statusConfirmedPendingPayment;
-      default: return '';
+    const normalizedStatus = status.toLowerCase().replace(/[\s_]/g, '');
+    
+    switch (normalizedStatus) {
+      case 'accepted':
+        return styles.statusAccepted;
+      case 'pending':
+        return styles.statusPending;
+      case 'cancelled':
+        return styles.statusCancelled;
+      case 'rejected':
+        return styles.statusRejected;
+      case 'expired':
+        return styles.statusExpired;
+      case 'confirmedpendingpayment':
+        return styles.statusConfirmedPendingPayment;
+      default:
+        return styles.statusPending;
     }
   };
 
@@ -79,7 +88,7 @@ const ReservationsOverview: React.FC<ReservationsOverviewProps> = ({
                 <td>{reservation.checkIn}</td>
                 <td>
                   <span className={`${styles.statusPill} ${getStatusClass(reservation.status)}`}>
-                    {reservation.status.replace("_", " ")}
+                    {reservation.status}
                   </span>
                 </td>
               </tr>

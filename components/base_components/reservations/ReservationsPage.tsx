@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import styles from "../../../components/component_styles/Reservations.module.css";
 import { useReservations } from "../../../src/hooks/useReservations";
 import { useFilteredReservations } from "../../../src/hooks/useFilteredReservations";
@@ -47,26 +47,48 @@ const ReservationsPage: React.FC = () => {
     roomLookup
   });
 
+  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [currentReservations, setCurrentReservations] = useState<ReservationItem[]>([]);
-  const [animateTable, setAnimateTable] = useState(false);
-  const [animateStats, setAnimateStats] = useState(false);
+  
+  // Overlay states
   const [isNewReservationOpen, setIsNewReservationOpen] = useState(false);
   const [availableRooms, setAvailableRooms] = useState<string[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState<ReservationItem | null>(null);
 
+  // Animation states - updated to match Dashboard approach
+  const [animate, setAnimate] = useState(false);
+  const loadingFinishedRef = useRef(false);
+
+  // Handle animation after loading finishes
+  useEffect(() => {
+    if (!isLoading && !loadingFinishedRef.current) {
+      loadingFinishedRef.current = true;
+      
+      // Small delay after loading finishes before starting animations
+      setTimeout(() => {
+        setAnimate(true);
+      }, 100);
+    }
+  }, [isLoading]);
+
+  // Reset animation when filter type changes
+  useEffect(() => {
+    setAnimate(false);
+    loadingFinishedRef.current = false;
+    
+    // Small delay before restarting animations
+    setTimeout(() => {
+      setAnimate(true);
+    }, 100);
+  }, [reservationType]);
+
   const roomOptions: RoomOption[] = Object.entries(roomLookup).map(([id, room]) => ({
     id,
     name: room.name
   }));
-
-  useEffect(() => {
-    setAnimateStats(false);
-    const timer = setTimeout(() => setAnimateStats(true), 50);
-    return () => clearTimeout(timer);
-  }, [reservationType]);
 
   useEffect(() => {
     // Fetch ALL rooms directly from the database instead of using roomLookup
@@ -100,29 +122,20 @@ const ReservationsPage: React.FC = () => {
 
   const totalPages = Math.ceil(filteredReservations.length / ITEMS_PER_PAGE);
 
+  // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, statusFilter, reservationType, filterOptions]);
 
+  // Update current reservations when page or filtered data changes
   useEffect(() => {
-    setAnimateTable(false);
-
-    if (filteredReservations.length === 0) {
-      setCurrentReservations([]);
-      const timer = setTimeout(() => setAnimateTable(true), 50);
-      return () => clearTimeout(timer);
-    }
-
     let newCurrentPage = currentPage;
     if (newCurrentPage > totalPages) newCurrentPage = totalPages;
     if (newCurrentPage < 1 && totalPages > 0) newCurrentPage = 1;
-
+    
     const startIndex = (newCurrentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
     setCurrentReservations(filteredReservations.slice(startIndex, endIndex));
-
-    const timer = setTimeout(() => setAnimateTable(true), 50);
-    return () => clearTimeout(timer);
   }, [currentPage, filteredReservations, totalPages]);
 
   const handleNewReservation = async (reservationData: ReservationData) => {
@@ -201,16 +214,18 @@ const ReservationsPage: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.topContent}>
+      {/* STAGGERED ANIMATION: First element */}
+      <div className={`${styles.topContent} ${animate ? styles.animateFirst : ""}`}>
         <ReservationTabs
           reservationType={reservationType}
           onTypeChange={setReservationType}
           onNewReservation={() => setIsNewReservationOpen(true)}
         />
-
+        
+        {/* Stats cards - animated with staggered delay */}
         <ReservationStats
           statistics={statistics}
-          animate={animateStats}
+          animate={animate}
         />
 
         <div className={styles.reservationListSection}>
@@ -223,48 +238,54 @@ const ReservationsPage: React.FC = () => {
             onOpenExport={() => setIsExportOpen(true)}
           />
 
-          <ReservationTable
-            reservations={currentReservations}
-            customerLookup={customerLookup}
-            roomLookup={roomLookup}
-            staffLookup={staffLookup}
-            onRowClick={handleRowClick}
-            onStatusChange={(id, newStatus) => {
-              const reservation = currentReservations.find(r => r.id === id);
-              if (!reservation) return;
-              const source = reservation.source;
-              const currentStatus = reservation.status;
+          {/* STAGGERED ANIMATION: Second element */}
+          <div className={`${animate ? styles.animateSecond : ""}`}>
+            <ReservationTable
+              reservations={currentReservations}
+              customerLookup={customerLookup}
+              roomLookup={roomLookup}
+              staffLookup={staffLookup}
+              onRowClick={handleRowClick}
+              onStatusChange={(id, newStatus) => {
+                const reservation = currentReservations.find(r => r.id === id);
+                if (!reservation) return;
+                const source = reservation.source;
+                const currentStatus = reservation.status;
 
-              const allowedStatuses = [];
-              if (source === "staff_manual") {
-                allowedStatuses.push("Confirmed_Pending_Payment", "Accepted");
-              } else if (source === "mobile" && currentStatus === "Pending") {
-                allowedStatuses.push("Confirmed_Pending_Payment", "Rejected");
-              } else {
-                allowedStatuses.push("Pending", "Confirmed_Pending_Payment", "Accepted", "Rejected");
-              }
+                const allowedStatuses = [];
+                if (source === "staff_manual") {
+                  allowedStatuses.push("Confirmed_Pending_Payment", "Accepted");
+                } else if (source === "mobile" && currentStatus === "Pending") {
+                  allowedStatuses.push("Confirmed_Pending_Payment", "Rejected");
+                } else {
+                  allowedStatuses.push("Pending", "Confirmed_Pending_Payment", "Accepted", "Rejected");
+                }
 
-              if (!allowedStatuses.includes(newStatus)) {
-                alert("Invalid status transition for this reservation source.");
-                return;
-              }
+                if (!allowedStatuses.includes(newStatus)) {
+                  alert("Invalid status transition for this reservation source.");
+                  return;
+                }
 
-              handleStatusChange(id, newStatus);
-            }}
-            isLoading={isLoading}
-            error={error}
-            onRetry={refreshReservations}
-            animate={animateTable}
-          />
+                handleStatusChange(id, newStatus);
+              }}
+              isLoading={isLoading}
+              error={error}
+              onRetry={refreshReservations}
+              animate={animate}
+            />
+          </div>
         </div>
       </div>
 
+      {/* STAGGERED ANIMATION: Third element */}
       {!isLoading && !error && filteredReservations.length > 0 && totalPages > 1 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-        />
+        <div className={`${animate ? styles.animateThird : ""}`}>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </div>
       )}
 
       <NewReservationOverlay
