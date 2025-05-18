@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef } from 'react';
 import styles from '../../../components/component_styles/Dashboard.module.css';
 import { supabase } from '@/lib/supabaseClient';
