@@ -8,6 +8,7 @@ interface StaffTableProps {
   userRole: string;
   onEdit?: (staff: StaffMember) => void;
   onToggleStatus?: (staff: StaffMember) => void;
+  animate: boolean;
 }
 
 const StaffTable: React.FC<StaffTableProps> = ({ 

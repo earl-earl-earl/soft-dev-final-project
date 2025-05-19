@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef } from 'react';
 import styles from '../../../components/component_styles/Dashboard.module.css';
 import { supabase } from '@/lib/supabaseClient';
 import { useSessionContext } from '@/contexts/SessionContext';
+import { fetchRooms, subscribeToRoomsChanges } from '@/utils/fetchRooms';
 
 // Import dashboard sections
 import RoomsOverview from './RoomsOverview';
@@ -28,6 +30,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ role }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dashboardData, setDashboardData] = useState<any>(null);
+  const [recentRooms, setRecentRooms] = useState<RoomData[]>([]);
+  const [roomStats, setRoomStats] = useState<RoomStats | null>(null);
   const { userId, role: userRole } = useSessionContext();
   
   // Animation states
@@ -51,16 +55,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ role }) => {
       try {
         setIsLoading(true);
         
-        // Fetch room statistics
-        const { data: roomsData, error: roomsError } = await supabase
-          .from('rooms')
-          .select('*');
-          
-        if (roomsError) throw new Error(`Error fetching rooms: ${roomsError.message}`);
+        // Use the same rooms data source for consistency
+        const { rooms } = await fetchRooms();
         
-        // Calculate room statistics
-        const totalRooms = roomsData.length || 0;
-        const occupiedRooms = roomsData.filter(room => room.status === 'Occupied').length || 0;
+        // Calculate stats using the same logic as the rooms page
+        const totalRooms = rooms.length;
+        const occupiedRooms = rooms.filter(room => room.status === "Occupied").length;
         const availableRooms = totalRooms - occupiedRooms;
         
         const roomStats: RoomStats = {
@@ -71,16 +71,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ role }) => {
           available: availableRooms,
           availableChange: 0
         };
-        
-        // Get recent rooms with occupants
-        const recentRooms: RoomData[] = roomsData.slice(0, 6).map(room => ({
-          id: room.id,
-          name: room.name || `Room ${room.id}`,
-          capacity: room.capacity || 0,
-          price: room.room_price || 0,
-          status: room.status || 'Vacant',
-          occupant: room.occupant_name ? { name: room.occupant_name } : undefined
-        }));
         
         // Fetch reservation statistics
         const { data: reservationsData, error: reservationsError } = await supabase
@@ -204,10 +194,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ role }) => {
           });
         }
         
-        // Combine all data
+        // Combine all data at once to prevent multiple re-renders
         setDashboardData({
-          roomStats,
-          recentRooms,
+          roomStats: roomStats,
+          recentRooms: rooms.slice(0, 6),
           reservationStats,
           recentReservations,
           recentStaff,
@@ -224,7 +214,52 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ role }) => {
     };
     
     fetchDashboardData();
-  }, [userRole, userId]);
+    
+    // Implement proper real-time update handling
+    const subscription = subscribeToRoomsChanges(({ rooms }) => {
+      if (!rooms || !rooms.length) return;
+      
+      // Calculate updated stats
+      const totalRooms = rooms.length;
+      const occupiedRooms = rooms.filter(room => room.status === "Occupied").length;
+      const availableRooms = totalRooms - occupiedRooms;
+      
+      // Update only if dashboardData exists
+      setDashboardData((prevData: { roomStats: { totalRoomsChange: any; occupiedChange: any; availableChange: any; }; reservationStats: any; }) => {
+        if (!prevData) return prevData;
+        
+        // Calculate occupancy rate
+        const occupancyRate = totalRooms > 0 
+          ? Math.round((occupiedRooms / totalRooms) * 100) 
+          : 0;
+        
+        // Create updated stats
+        const updatedRoomStats = {
+          totalRooms,
+          totalRoomsChange: prevData.roomStats?.totalRoomsChange || 0,
+          occupied: occupiedRooms,
+          occupiedChange: prevData.roomStats?.occupiedChange || 0,
+          available: availableRooms,
+          availableChange: prevData.roomStats?.availableChange || 0
+        };
+        
+        // Update reservation stats if they exist
+        const updatedReservationStats = prevData.reservationStats ? {
+          ...prevData.reservationStats,
+          occupancyRate: `${occupancyRate}%`
+        } : null;
+        
+        return {
+          ...prevData,
+          roomStats: updatedRoomStats,
+          recentRooms: rooms.slice(0, 6),
+          reservationStats: updatedReservationStats
+        };
+      });
+    });
+    
+    return () => subscription.unsubscribe();
+  }, [userRole, userId]); // Remove recentRooms from here
   
   const isAdmin = userRole === 'admin' || userRole === 'super_admin';
   
@@ -268,8 +303,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ role }) => {
   }
   
   const { 
-    roomStats, 
-    recentRooms, 
+    roomStats: dashboardRoomStats, 
+    recentRooms: roomsData, 
     reservationStats, 
     recentReservations,
     recentStaff,
@@ -280,8 +315,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ role }) => {
     <div className={`${styles.dashboardContainer} ${animate ? styles.fadeIn : ""}`}>
       <div className={`${styles.dashboardSection} ${animate ? styles.animateFirst : ""}`}>
         <RoomsOverview 
-          roomStats={roomStats}
-          recentRooms={recentRooms}
+          roomStats={dashboardRoomStats}
+          recentRooms={roomsData}
         />
       </div>
       

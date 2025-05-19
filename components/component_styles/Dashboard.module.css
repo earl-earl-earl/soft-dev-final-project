@@ -48,15 +48,86 @@
   text-decoration: none;
   padding: 8px 12px;
   border-radius: 6px;
-  transition: background-color 0.2s ease;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.seeMoreButton::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--primary-color), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.5s ease;
 }
 
 .seeMoreButton:hover {
-  background-color: #f0f7ff;
+  background-color: rgba(0, 123, 255, 0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.15);
+  color: var(--primary-550);
+}
+
+.seeMoreButton:hover::before {
+  transform: translateX(0);
+  animation: shimmer 2s infinite;
+}
+
+.seeMoreButton:hover i {
+  transform: translateX(3px);
 }
 
 .seeMoreButton i {
   font-size: 12px;
+  transition: transform 0.3s ease;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -100% 0;
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    background-position: 100% 0;
+    opacity: 0.5;
+  }
+}
+
+/* Create a subtle pulse effect on hover */
+.seeMoreButton:hover::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(0, 123, 255, 0.1) 0%, transparent 70%);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  animation: pulse 1.5s ease-out infinite;
+  z-index: -1;
+  border-radius: 6px;
+}
+
+@keyframes pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 0;
+  }
 }
 
 .statsCards {

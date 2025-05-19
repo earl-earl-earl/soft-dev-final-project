@@ -44,7 +44,7 @@ export const fetchRooms = async (): Promise<FetchRoomsResult> => {
       id,
       room_id,
       customer_id,
-      guest_name, // Change from customer_name to guest_name (or your actual column name)
+      customer_name_at_booking,
       check_in,
       check_out,
       status
@@ -69,7 +69,7 @@ export const fetchRooms = async (): Promise<FetchRoomsResult> => {
       reservationLookup[roomId].push({
         checkIn: new Date(reservation.check_in),
         checkOut: new Date(reservation.check_out),
-        guestName: reservation.guest_name || 'Unknown Guest' // Update this to match the column name
+        guestName: reservation.customer_name_at_booking || 'Unknown Guest' // Update this to match the column name
       });
     });
   }

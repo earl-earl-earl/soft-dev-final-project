@@ -176,6 +176,7 @@ a.secondary {
 .logo {
   width: 30px;
   height: auto;
+  transition: transform 0.3s ease;
 }
 
 .logo img {
@@ -203,6 +204,7 @@ a.secondary {
   justify-content: center;
   gap: 15px;
   text-align: center;
+  animation: fadeIn 0.8s ease-out;
 }
 
 .welcome {
@@ -216,12 +218,14 @@ a.secondary {
   gap: 20px;
   width: 500px;
   height: auto;
+  animation: fadeIn 0.6s ease-out;
 }
 
 .inputDiv {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  transition: all 0.3s ease;
 }
 
 .passwordLabelContainer {
@@ -232,11 +236,13 @@ a.secondary {
 
 .forgotPassword {
   color: var(--primary-color);
-  text-decoration: none;  
+  text-decoration: none;
+  transition: all 0.3s ease;
 }
 
 .forgotPassword:hover {
   text-decoration: underline;
+  transform: translateY(-1px);
 }
 
 .forgotPassword:active {
@@ -247,6 +253,8 @@ a.secondary {
 .notice {
   font-size: 12px;
   color: var(--warning-color);
+  transition: all 0.3s ease;
+  animation: fadeIn 0.5s ease-out;
 }
 
 .inputDiv input {
@@ -256,6 +264,7 @@ a.secondary {
   font-size: 16px;
   outline: none;
   font-family: var(--font-inter-sans);
+  transition: all 0.3s ease;
 }
 
 .inputDiv input::placeholder {
@@ -264,6 +273,7 @@ a.secondary {
 
 .inputDiv input:focus {
   border: 1px solid var(--primary-400);
+  box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.1);
 }
 
 .loginButton {
@@ -275,27 +285,39 @@ a.secondary {
   border: none;
   padding: 15px 24px;
   border-radius: 15px;
-  margin-top: 15px;
   font-size: 16px;
   cursor: pointer;
-  transition: 0.2s ease;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 .loginButton:hover {
   background: var(--primary-550);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .loginButton:disabled {
   background: var(--primary-300);
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .loginButton:active {
   background: var(--primary-600);
+  transform: translateY(1px);
+  box-shadow: none;
 }
 
-.loginButton:disabled:active {
-  background: var(--primary-300);
+.loginButton i {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .passwordContainer {
@@ -317,7 +339,7 @@ a.secondary {
   cursor: pointer;
   padding: 10px;
   border-radius: 50%;
-  transition: .2s ease;
+  transition: all 0.3s ease;
   width: 40px;
   height: 40px;
   display: flex;
@@ -327,8 +349,64 @@ a.secondary {
 
 .passwordContainer i:hover {
   background: var(--gray-alpha-100);
+  transform: scale(1.1);
 }
 
 .passwordContainer i:active {
   background: var(--gray-alpha-200);
+  transform: scale(0.95);
+}
+
+.singleError {
+  color: #e53e3e;
+  font-size: 0.75rem;
+  text-align: left;
+  animation: fadeIn 0.3s ease-out;
+  margin-top: 4px;
+}
+
+.inputError {
+  border-color: #e53e3e !important;
+  animation: shake 0.5s ease-in-out;
+}
+
+.fieldError {
+  color: #e53e3e;
+  font-size: 0.875rem;
+  margin-bottom: 0;
+}
+
+.errorContainer {
+  display: flex;
+  align-items: center;
+  background-color: #fff5f5;
+  border: 1px solid #feb2b2;
+  border-radius: 0.375rem;
+}
+
+.errorContainer i {
+  color: #e53e3e;
+  margin-right: 0.5rem;
+}
+
+.error {
+  color: #e53e3e;
+  margin: 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
 }

@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef } from "react";
 import styles from "../../../components/component_styles/Reservations.module.css";
 import { useReservations } from "../../../src/hooks/useReservations";
 import { useFilteredReservations } from "../../../src/hooks/useFilteredReservations";
 import { ReservationItem, FilterOptions, RoomOption } from "../../../src/types/reservation";
 import { submitReservation } from "@/contexts/newReservation";
+import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 
 // Import Components
 import ReservationTable from "./ReservationTable";
@@ -29,6 +31,31 @@ const ReservationsPage: React.FC = () => {
     error,
     refreshReservations
   } = useReservations();
+
+  // Move this function up here, right after your hook declarations
+  // but before any code that uses it
+  const duplicateReservationsForDebugging = (
+    reservations: ReservationItem[],
+    duplicateCount: number = 5
+  ): ReservationItem[] => {
+    if (!reservations.length) return [];
+    
+    const duplicatedData: ReservationItem[] = [];
+    
+    // Create multiple copies of the original data
+    for (let i = 0; i < duplicateCount; i++) {
+      reservations.forEach(reservation => {
+        // Create a shallow copy with a modified ID to ensure uniqueness
+        const duplicatedReservation: ReservationItem = {
+          ...reservation,
+          id: `${reservation.id}-dup-${i}`
+        };
+        duplicatedData.push(duplicatedReservation);
+      });
+    }
+    
+    return duplicatedData;
+  };
 
   const {
     filteredReservations,
@@ -58,32 +85,55 @@ const ReservationsPage: React.FC = () => {
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState<ReservationItem | null>(null);
 
-  // Animation states - updated to match Dashboard approach
+  // Animation states - simplified to fix issues
   const [animate, setAnimate] = useState(false);
-  const loadingFinishedRef = useRef(false);
+  const [showContent, setShowContent] = useState(false);
 
-  // Handle animation after loading finishes
+  // IMPORTANT: Remove the duplicate useEffect hooks and use a single, cleaner approach
   useEffect(() => {
-    if (!isLoading && !loadingFinishedRef.current) {
-      loadingFinishedRef.current = true;
+    if (!isLoading) {
+      console.log("Loading finished, preparing animations");
       
-      // Small delay after loading finishes before starting animations
+      // First transition: show content
       setTimeout(() => {
-        setAnimate(true);
-      }, 100);
+        setShowContent(true);
+        console.log("Content visible");
+        
+        // Second transition: trigger animations with a delay
+        setTimeout(() => {
+          console.log("Triggering animations");
+          setAnimate(true);
+        }, 200); // Increased delay to ensure DOM has updated
+      }, 400); // Increased delay for smoother transition
     }
   }, [isLoading]);
 
-  // Reset animation when filter type changes
+  // Reset animation when filter type changes - simplified
   useEffect(() => {
-    setAnimate(false);
-    loadingFinishedRef.current = false;
-    
-    // Small delay before restarting animations
-    setTimeout(() => {
-      setAnimate(true);
-    }, 100);
-  }, [reservationType]);
+    if (showContent) { // Only reset if content is showing
+      console.log("Filter type changed, resetting animations");
+      setAnimate(false);
+      
+      setTimeout(() => {
+        console.log("Re-triggering animations after filter change");
+        setAnimate(true);
+      }, 200);
+    }
+  }, [reservationType, showContent]);
+
+  // Add this useEffect to reset animations when page changes
+  useEffect(() => {
+    if (showContent) { // Only reset if content is showing
+      console.log("Page changed, resetting animations");
+      setAnimate(false);
+      
+      // Short timeout to ensure the animation reset is visible
+      setTimeout(() => {
+        console.log("Re-triggering animations after page change");
+        setAnimate(true);
+      }, 100); // Shorter delay for page changes to make it feel snappier
+    }
+  }, [currentPage, showContent]); // React to page changes
 
   const roomOptions: RoomOption[] = Object.entries(roomLookup).map(([id, room]) => ({
     id,
@@ -120,7 +170,16 @@ const ReservationsPage: React.FC = () => {
     fetchAllRooms();
   }, []); // Run once when component mounts, not dependent on roomLookup
 
-  const totalPages = Math.ceil(filteredReservations.length / ITEMS_PER_PAGE);
+  const totalPages = React.useMemo(() => {
+    // Debug flag - should match the same flag in the useEffect above
+    const DEBUG_PAGINATION = false;
+    
+    const dataSource = DEBUG_PAGINATION 
+      ? duplicateReservationsForDebugging(filteredReservations)
+      : filteredReservations;
+    
+    return Math.ceil(dataSource.length / ITEMS_PER_PAGE);
+  }, [filteredReservations]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -133,9 +192,23 @@ const ReservationsPage: React.FC = () => {
     if (newCurrentPage > totalPages) newCurrentPage = totalPages;
     if (newCurrentPage < 1 && totalPages > 0) newCurrentPage = 1;
     
+    // Debug flag - set to true to test pagination with duplicated data
+    const DEBUG_PAGINATION = true;
+    
+    // Use duplicated data when debugging, otherwise use filtered data
+    const dataSource = DEBUG_PAGINATION 
+      ? duplicateReservationsForDebugging(filteredReservations)
+      : filteredReservations;
+    
     const startIndex = (newCurrentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
-    setCurrentReservations(filteredReservations.slice(startIndex, endIndex));
+    setCurrentReservations(dataSource.slice(startIndex, endIndex));
+    
+    // Also update totalPages calculation based on duplicated data
+    if (DEBUG_PAGINATION) {
+      const debugTotalPages = Math.ceil(dataSource.length / ITEMS_PER_PAGE);
+      console.log(`Debug pagination: ${dataSource.length} items, ${debugTotalPages} pages`);
+    }
   }, [currentPage, filteredReservations, totalPages]);
 
   const handleNewReservation = async (reservationData: ReservationData) => {
@@ -212,8 +285,48 @@ const ReservationsPage: React.FC = () => {
     await refreshReservations();
   };
 
+  // Add this function in your component before the return statement
+  const getDateRangeText = () => {
+    const now = new Date();
+    const currentMonth = startOfMonth(now);
+    const lastMonth = startOfMonth(subMonths(now, 1));
+    
+    return `${format(currentMonth, 'MMM dd')} - ${format(endOfMonth(now), 'MMM dd, yyyy')}`;
+  };
+
+  // The loading render branch
+  if (!showContent) {
+    console.log("Rendering loading UI");
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.loadingAnimation}>
+          <div className={styles.spinnerContainer}>
+            <i className="fa-solid fa-calendar fa-beat-fade"></i>
+          </div>
+          <div className={styles.loadingCards}>
+            <div className={`${styles.loadingCard} ${styles.loadingCard1}`}></div>
+            <div className={`${styles.loadingCard} ${styles.loadingCard2}`}></div>
+            <div className={`${styles.loadingCard} ${styles.loadingCard3}`}></div>
+            <div className={`${styles.loadingCard} ${styles.loadingCard4}`}></div>
+          </div>
+          <div className={styles.loadingTable}>
+            <div className={styles.loadingTableHeader}></div>
+            <div className={styles.loadingTableRows}>
+              <div className={styles.loadingTableRow}></div>
+              <div className={styles.loadingTableRow}></div>
+              <div className={styles.loadingTableRow}></div>
+            </div>
+          </div>
+        </div>
+        <h3 className={styles.loadingTitle}>Preparing Reservations</h3>
+        <p className={styles.loadingText}>Loading your reservation data...</p>
+      </div>
+    );
+  }
+
+  console.log("Rendering main content with animate state:", animate);
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${animate ? styles.fadeIn : ""}`}>
       {/* STAGGERED ANIMATION: First element */}
       <div className={`${styles.topContent} ${animate ? styles.animateFirst : ""}`}>
         <ReservationTabs
@@ -224,7 +337,13 @@ const ReservationsPage: React.FC = () => {
         
         {/* Stats cards - animated with staggered delay */}
         <ReservationStats
-          statistics={statistics}
+          statistics={{
+            checkIns: statistics.checkIns,
+            checkOuts: statistics.checkOuts,
+            totalGuests: statistics.totalGuests,
+            occupancyRate: statistics.occupancyRate
+          }}
+          dateRange={getDateRangeText()}
           animate={animate}
         />
 
@@ -277,9 +396,9 @@ const ReservationsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* STAGGERED ANIMATION: Third element */}
+      {/* STAGGERED ANIMATION: Third element - Pagination */}
       {!isLoading && !error && filteredReservations.length > 0 && totalPages > 1 && (
-        <div className={`${animate ? styles.animateThird : ""}`}>
+        <div className={`${styles.paginationContainer} ${animate ? styles.animateThird : ""}`}>
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
@@ -298,8 +417,8 @@ const ReservationsPage: React.FC = () => {
       <FilterOverlay
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
-        onApply={handleApplyFilters}
-        initialFilters={filterOptions}
+        onApply={(filters) => handleApplyFilters(filters as any)}
+        initialFilters={filterOptions as any}
         roomOptions={roomOptions}
       />
 

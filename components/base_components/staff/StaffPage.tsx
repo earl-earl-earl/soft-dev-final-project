@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from '../../component_styles/StaffFeature.module.css';
 import { StaffMember, StaffFormData } from '../../../src/types/staff';
 import { useStaff } from '../../../src/hooks/useStaff';
@@ -46,6 +46,30 @@ const StaffPage: React.FC = () => {
   const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [staffToToggle, setStaffToToggle] = useState<StaffMember | null>(null);
+  
+  // Animation states for loading effect
+  const [animate, setAnimate] = useState(false);
+  const [showContent, setShowContent] = useState(false);
+  const loadingFinishedRef = useRef(false);
+  
+  // Handle animation after loading finishes
+  useEffect(() => {
+    if (!isLoading && !loadingFinishedRef.current) {
+      loadingFinishedRef.current = true;
+      
+      // Small delay to ensure smooth transition from loading to content
+      const timer = setTimeout(() => {
+        setShowContent(true);
+        
+        // Then trigger animations with a slight delay
+        setTimeout(() => {
+          setAnimate(true);
+        }, 100);
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
   
   // Handle add staff
   const handleAddStaff = async (formData: StaffFormData) => {
@@ -121,20 +145,56 @@ const StaffPage: React.FC = () => {
   const handleApplyFilters = () => {
     setIsFilterOpen(false);
   };
-  
-  // Handle refresh
 
-  if (isLoading) {
-    return <div className={styles.loading}>Loading staff...</div>;
+  // The loading screen
+  if (!showContent) {
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.loadingAnimation}>
+          <div className={styles.spinnerContainer}>
+            <i className="fa-solid fa-user-tie fa-beat-fade"></i>
+          </div>
+          <div className={styles.loadingCards}>
+            <div className={`${styles.loadingCard} ${styles.loadingCard1}`}></div>
+            <div className={`${styles.loadingCard} ${styles.loadingCard2}`}></div>
+            <div className={`${styles.loadingCard} ${styles.loadingCard3}`}></div>
+          </div>
+          <div className={styles.loadingTable}>
+            <div className={styles.loadingTableHeader}></div>
+            <div className={styles.loadingTableRows}>
+              <div className={styles.loadingTableRow}></div>
+              <div className={styles.loadingTableRow}></div>
+              <div className={styles.loadingTableRow}></div>
+              <div className={styles.loadingTableRow}></div>
+            </div>
+          </div>
+        </div>
+        <h3 className={styles.loadingTitle}>Loading Staff</h3>
+        <p className={styles.loadingText}>Preparing staff information...</p>
+      </div>
+    );
   }
   
+  // Error state
   if (error) {
-    return <div className={styles.error}>{error}</div>;
+    return (
+      <div className={styles.errorContainer}>
+        <i className="fa-regular fa-exclamation-circle"></i>
+        <h3>Error Loading Staff</h3>
+        <p>{error}</p>
+        <button 
+          className={styles.retryButton}
+          onClick={() => refreshStaff()}
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
   return (
-    <div className={styles.staffFeatureContainer}>
-      <div className={styles.staffTopContent}>
+    <div className={`${styles.staffFeatureContainer} ${animate ? styles.fadeIn : ""}`}>
+      <div className={`${styles.staffTopContent} ${animate ? styles.animateFirst : ""}`}>
         <StaffList
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
@@ -142,29 +202,34 @@ const StaffPage: React.FC = () => {
           onAddStaffClick={() => setIsAddStaffOpen(true)}
         />
 
-        {currentStaff.length > 0 ? (
-          <StaffTable 
-            staffData={currentStaff} 
-            currentPage={currentPage} 
-            userRole={role || ''}
-            onEdit={handleEditClick}
-            onToggleStatus={handleToggleStatusClick}
-          />
-        ) : (
-          <p className={styles.noResults}>
-            {searchTerm.trim() || Object.values(filterOptions).some(v => v !== '' && v !== 'name' && v !== 'asc')
-              ? "No staff members found matching your search."
-              : "No staff members to display."}
-          </p>
-        )}
+        <div className={`${animate ? styles.animateSecond : ""}`}>
+          {currentStaff.length > 0 ? (
+            <StaffTable 
+              staffData={currentStaff} 
+              currentPage={currentPage} 
+              userRole={role || ''}
+              onEdit={handleEditClick}
+              onToggleStatus={handleToggleStatusClick}
+              animate={animate}
+            />
+          ) : (
+            <p className={styles.noResults}>
+              {searchTerm.trim() || Object.values(filterOptions).some(v => v !== '' && v !== 'name' && v !== 'asc')
+                ? "No staff members found matching your search."
+                : "No staff members to display."}
+            </p>
+          )}
+        </div>
       </div>
 
       {totalPages > 1 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-        />
+        <div className={`${animate ? styles.animateThird : ""}`}>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </div>
       )}
 
       {/* Modals */}
@@ -191,7 +256,7 @@ const StaffPage: React.FC = () => {
           isOpen={isEditStaffOpen}
           initialData={{
             name: selectedStaff.name,
-            username: selectedStaff.username, // Pass username instead of email
+            username: selectedStaff.username,
             phoneNumber: selectedStaff.phoneNumber,
             role: selectedStaff.role,
             position: selectedStaff.position,

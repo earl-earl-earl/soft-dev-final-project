@@ -1,6 +1,6 @@
 import React from "react";
 import styles from "../../../components/component_styles/Reservations.module.css";
-import { ReservationType } from "../../../types/reservation";
+import { ReservationType } from "../../../src/types/reservation";
 
 interface ReservationTabsProps {
   reservationType: ReservationType;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from '../../component_styles/StaffFeature.module.css';
 import { useAdmins } from '../../../src/hooks/useAdmins';
 import { useFilteredAdmins } from '../../../src/hooks/useFilteredAdmins';
@@ -27,6 +27,11 @@ const AdminPage: React.FC = () => {
   const [adminToEdit, setAdminToEdit] = useState<AdminMember | undefined>(undefined);
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [adminToToggle, setAdminToToggle] = useState<AdminMember | null>(null);
+  
+  // Add these near your other state declarations
+  const [animate, setAnimate] = useState(false);
+  const [showContent, setShowContent] = useState(false);
+  const loadingFinishedRef = useRef(false);
   
   // Get admin data and operations
   const { 
@@ -179,8 +184,50 @@ const AdminPage: React.FC = () => {
     setIsFilterOpen(false);
   };
   
-  if (isLoading) {
-    return <div className={styles.loading}>Loading admins...</div>;
+  // Add this effect to handle loading transition
+  useEffect(() => {
+    if (!isLoading && !loadingFinishedRef.current) {
+      loadingFinishedRef.current = true;
+      
+      // Small delay to ensure smooth transition from loading to content
+      const timer = setTimeout(() => {
+        setShowContent(true);
+        
+        // Then trigger animations with a slight delay
+        setTimeout(() => {
+          setAnimate(true);
+        }, 100);
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
+  
+  if (!showContent) {
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.loadingAnimation}>
+          <div className={styles.spinnerContainer}>
+            <i className="fa-solid fa-user-cog fa-beat-fade"></i>
+          </div>
+          <div className={styles.loadingCards}>
+            <div className={`${styles.loadingCard} ${styles.loadingCard1}`}></div>
+            <div className={`${styles.loadingCard} ${styles.loadingCard2}`}></div>
+            <div className={`${styles.loadingCard} ${styles.loadingCard3}`}></div>
+          </div>
+          <div className={styles.loadingTable}>
+            <div className={styles.loadingTableHeader}></div>
+            <div className={styles.loadingTableRows}>
+              <div className={styles.loadingTableRow}></div>
+              <div className={styles.loadingTableRow}></div>
+              <div className={styles.loadingTableRow}></div>
+            </div>
+          </div>
+        </div>
+        <h3 className={styles.loadingTitle}>Loading Admins</h3>
+        <p className={styles.loadingText}>Preparing administrator data...</p>
+      </div>
+    );
   }
   
   if (error) {
@@ -194,8 +241,8 @@ const AdminPage: React.FC = () => {
   }
   
   return (
-    <div className={styles.staffFeatureContainer}>
-      <div className={styles.staffTopContent}>
+    <div className={`${styles.staffFeatureContainer} ${animate ? styles.fadeIn : ""}`}>
+      <div className={`${styles.staffTopContent} ${animate ? styles.animateFirst : ""}`}>
         <AdminList
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
@@ -203,31 +250,35 @@ const AdminPage: React.FC = () => {
           onAddAdminClick={() => setIsAddAdminOpen(true)}
         />
 
-        {currentAdmins.length > 0 ? (
-          <AdminTable 
-            adminData={currentAdmins} 
-            currentPage={currentPage} 
-            role={role || ''}
-            onEdit={handleEditClick}
-            onDeactivate={handleDeactivateClick}
-          />
-        ) : (
-          <p className={styles.noResults}>
-            {searchTerm.trim() || Object.values(filterOptions).some(v => v !== '' && v !== 'name' && v !== 'asc')
-              ? "No admin members found matching your search."
-              : "No admin members to display."}
-          </p>
-        )}
+        <div className={`${animate ? styles.animateSecond : ""}`}>
+          {currentAdmins.length > 0 ? (
+            <AdminTable 
+              adminData={currentAdmins} 
+              currentPage={currentPage} 
+              role={role || ''}
+              onEdit={handleEditClick}
+              onDeactivate={handleDeactivateClick}
+            />
+          ) : (
+            <p className={styles.noResults}>
+              {searchTerm.trim() || Object.values(filterOptions).some(v => v !== '' && v !== 'name' && v !== 'asc')
+                ? "No admin members found matching your search."
+                : "No admin members to display."}
+            </p>
+          )}
+        </div>
       </div>
 
       {totalPages > 1 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-        />
+        <div className={`${animate ? styles.animateThird : ""}`}>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </div>
       )}
-
+      
       {/* Modals */}
       <AdminFilters
         isOpen={isFilterOpen}

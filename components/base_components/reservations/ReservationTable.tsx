@@ -34,6 +34,11 @@ const ReservationTable: React.FC<ReservationTableProps> = ({
   onRetry,
   animate
 }) => {
+  const safeCapitalize = (text: string | undefined): string => {
+    if (!text) return "Direct";
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  };
+
   const tableBodyContent = useMemo(() => {
     const hasActiveFilters = reservations.length === 0;
 
@@ -61,7 +66,8 @@ const ReservationTable: React.FC<ReservationTableProps> = ({
     
     return reservations.map((item) => {
       const statusCategory = getStatusCategory(item.status);
-      const totalGuests = item.guests.adults + item.guests.children + item.guests.seniors;
+      // Add null check with default values
+      const totalGuests = (item.guests?.adults || 0) + (item.guests?.children || 0) + (item.guests?.seniors || 0);
 
       const getAllowedStatuses = () => {
         const allowed: string[] = [];
@@ -89,9 +95,9 @@ const ReservationTable: React.FC<ReservationTableProps> = ({
           <td>{formatDateForDisplay(item.checkIn)}</td>
           <td>{formatDateForDisplay(item.checkOut)}</td>
           <td>{customerLookup[item.customerId]?.phone || "N/A"}</td>
-          <td>{item.guests.adults}</td>
-          <td>{item.guests.children}</td>
-          <td>{item.guests.seniors}</td>
+          <td>{item.guests?.adults || 0}</td>
+          <td>{item.guests?.children || 0}</td>
+          <td>{item.guests?.seniors || 0}</td>
           <td><strong>{totalGuests}</strong></td>
           <td>
             <select
@@ -114,8 +120,8 @@ const ReservationTable: React.FC<ReservationTableProps> = ({
             </span>
           </td>
           <td>
-            <span className={`${styles.statusPillGeneral} ${item.type === "online" ? styles.typeOnline : styles.typeDirect}`}>
-              {item.type.charAt(0).toUpperCase() + item.type.slice(1)}
+            <span className={`${styles.statusPillGeneral} ${(item.type || "direct") === "online" ? styles.typeOnline : styles.typeDirect}`}>
+              {safeCapitalize(item.type)}
             </span>
           </td>
           <td>{item.auditedBy ? staffLookup[item.auditedBy] || item.auditedBy : "N/A"}</td>

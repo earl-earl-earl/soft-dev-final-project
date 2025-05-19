@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRooms } from '../../../src/hooks/useRooms';
 import { useFilteredRooms } from '../../../src/hooks/useFilteredRooms';
 import { RoomFilterOptions, Room, RoomFormData } from '../../../src/types/room';
@@ -20,6 +20,7 @@ const RoomsPage: React.FC = () => {
   // Get room data and operations
   const { 
     rooms, 
+    isLoading,
     error, 
     formErrors, 
     addRoom, 
@@ -28,6 +29,30 @@ const RoomsPage: React.FC = () => {
     clearError 
   } = useRooms();
 
+  // Animation states
+  const [animate, setAnimate] = useState(false);
+  const [showContent, setShowContent] = useState(false);
+  const loadingFinishedRef = useRef(false);
+
+  // Handle animation after loading finishes
+  useEffect(() => {
+    if (!isLoading && !loadingFinishedRef.current) {
+      loadingFinishedRef.current = true;
+      
+      // Small delay to ensure smooth transition from loading to content
+      const timer = setTimeout(() => {
+        setShowContent(true);
+        
+        // Then trigger animations with a slight delay
+        setTimeout(() => {
+          setAnimate(true);
+        }, 100);
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
+  
   // Get filtered rooms and filtering operations
   const {
     currentRooms,
@@ -98,12 +123,73 @@ const RoomsPage: React.FC = () => {
     setIsFilterOpen(false);
   };
 
-  return (
-    <div className={styles.roomDashboard}>
-      {/* Stats Section */}
-      <RoomStats stats={roomStats} />
+  // Add to your component
+  useEffect(() => {
+    if (showContent) {
+      setAnimate(false);
+      
+      setTimeout(() => {
+        setAnimate(true);
+      }, 100);
+    }
+  }, [searchTerm, statusFilter, filterOptions, showContent]);
 
-      <div className={styles.topContent}>
+  // Show loading screen
+  if (!showContent) {
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.loadingAnimation}>
+          <div className={styles.spinnerContainer}>
+            <i className="fa-solid fa-door-open fa-beat-fade"></i>
+          </div>
+          <div className={styles.loadingCards}>
+            <div className={`${styles.loadingCard} ${styles.loadingCard1}`}></div>
+            <div className={`${styles.loadingCard} ${styles.loadingCard2}`}></div>
+            <div className={`${styles.loadingCard} ${styles.loadingCard3}`}></div>
+          </div>
+          <div className={styles.loadingTable}>
+            <div className={styles.loadingTableHeader}></div>
+            <div className={styles.loadingRooms}>
+              <div className={styles.loadingRoom}></div>
+              <div className={styles.loadingRoom}></div>
+              <div className={styles.loadingRoom}></div>
+              <div className={styles.loadingRoom}></div>
+              <div className={styles.loadingRoom}></div>
+              <div className={styles.loadingRoom}></div>
+            </div>
+          </div>
+        </div>
+        <h3 className={styles.loadingTitle}>Loading Rooms</h3>
+        <p className={styles.loadingText}>Preparing room information...</p>
+      </div>
+    );
+  }
+  
+  // Error state
+  if (error) {
+    return (
+      <div className={styles.errorContainer}>
+        <i className="fa-regular fa-exclamation-circle"></i>
+        <h3>Error Loading Rooms</h3>
+        <p>{error}</p>
+        <button 
+          className={styles.retryButton}
+          onClick={clearError}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`${styles.roomDashboard} ${animate ? styles.fadeIn : ""}`}>
+      {/* Stats Section */}
+      <div className={`${animate ? styles.animateFirst : ""}`}>
+        <RoomStats stats={roomStats} />
+      </div>
+
+      <div className={`${styles.topContent} ${animate ? styles.animateSecond : ""}`}>
         {/* Header with search and filters */}
         <RoomsHeader
           searchTerm={searchTerm}
@@ -125,12 +211,15 @@ const RoomsPage: React.FC = () => {
         />
       </div>
 
-      {/* Pagination */}
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-      />
+      {totalPages > 1 && (
+        <div className={`${animate ? styles.animateThird : ""}`}>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </div>
+      )}
 
       {/* Overlay components */}
       <RoomFilterOverlay
@@ -160,16 +249,6 @@ const RoomsPage: React.FC = () => {
           formErrors={formErrors}
           room={currentRoom}
         />
-      )}
-      
-      {/* Error message */}
-      {error && (
-        <div className={styles.errorMessage}>
-          <i className="fa-regular fa-exclamation-circle"></i> {error}
-          <button onClick={clearError}>
-            <i className="fa-regular fa-times"></i>
-          </button>
-        </div>
       )}
     </div>
   );
