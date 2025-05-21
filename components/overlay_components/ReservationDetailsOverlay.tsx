@@ -1,15 +1,14 @@
 // ReservationDetailsOverlay.tsx
 
 import React, { useEffect } from 'react';
-import styles from '../component_styles/ReservationDetailsOverlay.module.css'; // Ensure this path is correct
+import styles from '../component_styles/ReservationDetailsOverlay.module.css';
 
-// Import ALL necessary types DIRECTLY from your main types/reservation.ts file
 import { 
   ReservationItem, 
-  CustomerLookup, // Use this directly
-  RoomLookup,     // Use this directly
-  StaffLookup     // Use this directly
-} from '../../src/types/reservation'; // <<< ADJUST THIS PATH TO YOUR ACTUAL types/reservation.ts FILE
+  CustomerLookup, 
+  RoomLookup,     
+  StaffLookup     
+} from '../../src/types/reservation'; 
 
 interface ReservationDetailsOverlayProps {
   isOpen: boolean;
@@ -27,8 +26,8 @@ const formatDateForDisplay = (date?: Date): string => {
     month: "short",
     day: "2-digit",
     year: "numeric",
-    // hour: "2-digit", // Uncomment if you want time
-    // minute: "2-digit", // Uncomment if you want time
+    hour: "2-digit", 
+    minute: "2-digit",
   });
 };
 
@@ -101,14 +100,14 @@ const ReservationDetailsOverlay: React.FC<ReservationDetailsOverlayProps> = ({
               <h3>Customer Information</h3>
               <div className={styles.detailItem}>
                 <span className={styles.detailLabel}>Name:</span>
-                {/* 'customer.name' from your CustomerLookup type */}
+                {/* 'customer.name' from CustomerLookup */}
                 <span className={styles.detailValue}>{customer?.name || (reservation.customerId ? `ID: ${reservation.customerId}` : 'N/A')}</span>
               </div>
               <div className={styles.detailItem}>
                 <span className={styles.detailLabel}>Phone:</span>
                 <span className={styles.detailValue}>{customer?.phone || 'N/A'}</span>
               </div>
-              {/* Use customer_name_at_booking from your CustomerLookup type */}
+              {/* Use customer_name_at_booking from CustomerLookup */}
               {customer?.customer_name_at_booking && customer.customer_name_at_booking !== customer.name && (
                  <div className={styles.detailItem}>
                     <span className={styles.detailLabel}>Name at Booking:</span>

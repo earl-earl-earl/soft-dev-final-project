@@ -10,21 +10,21 @@ export interface ReservationItem {
   id: string;
   customerId: string;
   roomId: string;
-  checkIn: Date;                // Should be a valid Date object
-  checkOut: Date;               // Should be a valid Date object
+  checkIn: Date;             
+  checkOut: Date;              
   status: string;
   source: string;
   paymentReceived: boolean;
   guests: ReservationGuests;
   type: "online" | "direct";
-  totalPrice?: number;          // Total bill (fetched from DB)
-  numberOfNights: number;       // CALCULATED client-side in useReservations
+  totalPrice?: number;          
+  numberOfNights: number;     
   
-  timestamp?: Date;             // Optional: When the reservation was created/recorded
-  confirmationTime?: Date;      // Optional: When the reservation was confirmed
-  notes?: string;               // Optional
-  auditedBy?: string;           // Optional: ID of the staff member. If it can be missing.
-                                // If it's always present as an ID string, then `auditedBy: string;`
+  timestamp?: Date;          
+  confirmationTime?: Date;     
+  notes?: string;             
+  auditedBy?: string;      
+                             
 }
 
 export interface CustomerLookup {
@@ -35,7 +35,6 @@ export interface CustomerLookup {
   };
 }
 
-// Likely used for UI selection, not the direct structure within ReservationItem
 export interface RoomOption {
   id: string;
   name: string;
@@ -53,7 +52,6 @@ export interface StaffDetails {
   name: string;
   phone?: string; 
   role?: string; 
-  // any other relevant details fetched for staff members
 }
 
 export interface StaffLookup {
@@ -61,10 +59,9 @@ export interface StaffLookup {
 }
 
 
-export type ReservationType = "all" | "online" | "direct"; // For filtering or display
+export type ReservationType = "all" | "online" | "direct"; 
 
 // These are specific status strings your application uses.
-// StatusCategory might be a broader classification if needed, but often status strings are used directly.
 export type StatusValue = 
   | "Pending" 
   | "Confirmed_Pending_Payment" 
@@ -73,8 +70,8 @@ export type StatusValue =
   | "Checked_Out" 
   | "Cancelled" 
   | "Rejected" 
-  | "No_Show";
-// And ReservationItem.status would be `status: StatusValue;` if you want strict typing.
+| "No_Show"
+| "Expired";
 
 export interface FilterOptions {
   checkInStart: string;

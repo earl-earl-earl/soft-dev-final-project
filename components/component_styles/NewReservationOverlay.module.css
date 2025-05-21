@@ -260,3 +260,33 @@
   background-size: 16px;
   padding-right: 2.5rem; /* Make room for the custom dropdown arrow */
 }
+
+.errorMessage {
+  color: #e53e3e; /* Red for errors */
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.capacityError { 
+  font-weight: bold;
+}
+
+.infoMessage {
+  color: #dd6b20; /* Orange for warnings/info */
+  /* blue color: color: #3182ce; */
+  background-color: #fffaf0;
+  border: 1px solid #fbd38d;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem; 
+}
+
+/* .capacityInfoMessage {
+ 
+} */
+
+.inputError {
+  border-color: #e53e3e !important; 
+}

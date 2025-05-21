@@ -1,7 +1,7 @@
-// ../hooks/useReservations.ts (or your path)
+// ../hooks/useReservations.ts 
 
 import { useState, useEffect, useCallback } from "react";
-import { fetchReservations } from "@/utils/fetchReservations"; // Ensure this utility exists and works
+import { fetchReservations } from "@/utils/fetchReservations"; 
 import {
   ReservationItem,
   CustomerLookup,
@@ -18,7 +18,7 @@ interface UseReservationsReturn {
   isLoading: boolean;
   error: string | null;
   refreshReservations: () => Promise<void>;
-  handleStatusChange: (reservationId: string, newStatus: string) => void; // Status string can be StatusValue
+  handleStatusChange: (reservationId: string, newStatus: string) => void; 
 }
 
 export const useReservations = (): UseReservationsReturn => {
@@ -33,18 +33,16 @@ export const useReservations = (): UseReservationsReturn => {
     setIsLoading(true);
     setError(null);
     try {
-      // Assume fetchReservations returns an object like:
       // { reservations: RawReservation[], customerLookupRaw: ..., roomLookupRaw: ..., staffLookupRaw: ... }
       const result = await fetchReservations();
 
       if (result && result.reservations) {
-        // Define the expected raw structure from fetchReservations more precisely
         interface ReservationRaw {
-          id: string | number; // Assuming ID is always present from DB
+          id: string | number; 
           customer_id?: string | number;
           room_id?: string | number;
           check_in?: string;     // Raw date string (e.g., "YYYY-MM-DD" or ISO)
-          check_out?: string;    // Raw date string
+          check_out?: string;  
           status?: string;
           confirmation_time?: string; // Raw date string
           payment_received?: boolean;
@@ -61,16 +59,11 @@ export const useReservations = (): UseReservationsReturn => {
 
         const formattedData: ReservationItem[] = result.reservations.map((item: ReservationRaw) => {
           // --- Date Handling ---
-          // It's crucial that checkIn and checkOut are valid dates for numberOfNights calculation.
-          // If raw dates can be missing/invalid, this part needs robust error handling or default.
-          // For this example, we'll assume they are provided as valid date strings.
-          // If not, ReservationItem.checkIn/checkOut should be optional, and numberOfNights too.
-          const checkInDate = item.check_in ? new Date(item.check_in) : new Date(); // Fallback, consider implications
-          const checkOutDate = item.check_out ? new Date(item.check_out) : new Date(); // Fallback
+          const checkInDate = item.check_in ? new Date(item.check_in) : new Date(); 
+          const checkOutDate = item.check_out ? new Date(item.check_out) : new Date(); 
 
           if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
             console.warn(`Invalid check-in or check-out date for reservation ID ${item.id}. Raw: ${item.check_in}, ${item.check_out}`);
-            // Handle invalid dates: perhaps skip item, or set default/error state within item
           }
           
           // --- Number of Nights Calculation ---
@@ -83,7 +76,7 @@ export const useReservations = (): UseReservationsReturn => {
           }
 
           return {
-            id: String(item.id), // Assuming ID is always present and valid
+            id: String(item.id), 
             customerId: String(item.customer_id || ''),
             roomId: String(item.room_id || ''),
             checkIn: checkInDate,
@@ -96,7 +89,7 @@ export const useReservations = (): UseReservationsReturn => {
               children: Number(item.num_children || 0),
               seniors: Number(item.num_seniors || 0),
             },
-            type: item.source === "online" || item.source === "mobile_app" ? "online" : "direct", // Adjust "online" sources
+            type: item.source === "online" || item.source === "mobile" ? "online" : "direct", // Adjust "online" sources
             totalPrice: item.total_price !== undefined ? Number(item.total_price) : undefined,
             numberOfNights: calculatedNights,
             
@@ -121,11 +114,11 @@ export const useReservations = (): UseReservationsReturn => {
         setReservations(formattedData);
 
         // --- Customer Lookup Processing ---
-        if (result.customerLookup) { // Assuming raw data is customerLookupRaw
+        if (result.customerLookup) { 
           const formattedCustomerLookup: CustomerLookup = {};
           Object.entries(result.customerLookup).forEach(([id, data]) => {
             type CustomerData = { phone?: string; name?: string; full_name?: string; customer_name_at_booking?: string };
-            const cData = data as CustomerData; // Cast for easier access, ensure safety
+            const cData = data as CustomerData; 
             formattedCustomerLookup[id] = {
               phone: String(cData?.phone || ''),
               name: String(cData?.name || cData?.full_name || 'Unknown'),
@@ -145,7 +138,7 @@ export const useReservations = (): UseReservationsReturn => {
           const formattedStaffLookup: StaffLookup = {};
           const staffData = result.staffLookup;
 
-          if (Array.isArray(staffData)) { // If staffData is an array of staff objects
+          if (Array.isArray(staffData)) { 
             interface StaffRaw {
               id: string | number;
               name: string;
@@ -153,7 +146,7 @@ export const useReservations = (): UseReservationsReturn => {
               role?: string;
             }
             staffData.forEach((staff: StaffRaw) => {
-              if (staff.id && staff.name) { // Ensure essential fields exist
+              if (staff.id && staff.name) { 
                 formattedStaffLookup[String(staff.id)] = {
                   name: String(staff.name),
                   phone: staff.phone ? String(staff.phone) : undefined,
@@ -161,7 +154,7 @@ export const useReservations = (): UseReservationsReturn => {
                 };
               }
             });
-          } else if (typeof staffData === 'object' && staffData !== null) { // If staffData is an object/map
+          } else if (typeof staffData === 'object' && staffData !== null) { 
             type StaffDetailsRaw = { name?: string; phone?: string; role?: string } | string;
             Object.entries(staffData).forEach(([id, staffDetailsRaw]) => {
               const sDetails = staffDetailsRaw as StaffDetailsRaw;
@@ -171,7 +164,7 @@ export const useReservations = (): UseReservationsReturn => {
                   phone: sDetails.phone ? String(sDetails.phone) : undefined,
                   role: sDetails.role ? String(sDetails.role) : undefined,
                 };
-              } else if (typeof sDetails === 'string') { // Fallback if only name string is provided
+              } else if (typeof sDetails === 'string') { 
                 formattedStaffLookup[id] = { name: sDetails };
               }
             });
@@ -182,7 +175,7 @@ export const useReservations = (): UseReservationsReturn => {
         }
         
         // --- Room Lookup Processing ---
-        if (result.roomLookup) { // Assuming raw data is roomLookupRaw
+        if (result.roomLookup) { 
           const formattedRoomLookup: RoomLookup = {};
           interface RoomData {
             name?: string;
@@ -214,7 +207,7 @@ export const useReservations = (): UseReservationsReturn => {
     } finally {
       setIsLoading(false);
     }
-  }, []); // Empty dependency array for useCallback if it doesn't depend on props/state from parent
+  }, []); 
 
   const handleStatusChange = useCallback((reservationId: string, newStatus: string) => {
     setReservations(prevReservations =>
@@ -224,11 +217,11 @@ export const useReservations = (): UseReservationsReturn => {
     );
     // TODO: Persist status change to the backend
     console.log(`Reservation ${reservationId} status (optimistically) updated to ${newStatus}`);
-  }, []); // Removed reservations from dependency array for optimistic update to prevent re-creation
+  }, []); 
 
   useEffect(() => {
     refreshReservations();
-  }, [refreshReservations]); // refreshReservations is now stable due to useCallback
+  }, [refreshReservations]); 
 
   return {
     reservations,

@@ -1,251 +1,238 @@
-import { supabase } from "@/lib/supabaseClient";
+// src/utils/fetchReservations.ts
 
+import { supabase } from "@/lib/supabaseClient"; 
+
+export interface CustomerDetails {
+  name: string;
+  phone: string;
+  customer_name_at_booking?: string; 
+}
 export interface CustomerLookup {
-  [key: string]: { name: string; phone: string };  // Include both phone and name
+  [customerId: string]: CustomerDetails;
 }
 
+export interface StaffDetails {
+  name: string;
+  role?: string;  
+  phone?: string; 
+}
 export interface StaffLookup {
-  [key: string]: string;
+  [staffId: string]: StaffDetails;
 }
 
+export interface RoomDetails {
+  name: string;
+  price?: number; // Price per night for the room type
+}
 export interface RoomLookup {
-  [key: string]: string;  // Room ID -> Room name
+  [roomId: string]: RoomDetails;
 }
 
 export interface FetchReservationsResult {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  reservations: any[];
+  reservations: any[]; // Raw reservation objects, specific typing done in useReservations hook
   customerLookup: CustomerLookup;
   staffLookup: StaffLookup;
   roomLookup: RoomLookup;
 }
 
 export const fetchReservations = async (): Promise<FetchReservationsResult> => {
-  console.log("Starting to fetch reservations...");
+  console.log("FETCH_RESERVATIONS: Starting to fetch all reservation data and related lookups...");
   
-  // Fetch reservation data
-  const { data, error } = await supabase
+  // Step 1: Fetch all reservation data
+  const { data: rawReservations, error: reservationsError } = await supabase
     .from("reservations")
-    .select('*');
+    .select('*') // Select all columns from reservations for now
+    .order('timestamp', { ascending: false }); 
 
-  console.log("Raw response from Supabase:", { data: data?.length || 0, error });
+  // Log the raw response for reservations
+  // console.log("FETCH_RESERVATIONS: Raw 'reservations' table response:", { 
+  //   count: rawReservations?.length || 0, 
+  //   error: reservationsError 
+  // });
   
-  if (error) {
-    console.error("Error fetching reservations:", error.message);
+  if (reservationsError) {
+    console.error("FETCH_RESERVATIONS: Critical error fetching reservations:", reservationsError.message, reservationsError.details);
     return { reservations: [], customerLookup: {}, staffLookup: {}, roomLookup: {} };
   }
   
-  if (!data || data.length === 0) {
-    console.log("No reservation data returned from the database");
+  const reservationsToProcess = rawReservations || []; 
+  if (reservationsToProcess.length === 0) {
+    console.log("FETCH_RESERVATIONS: No reservation data found in the database.");
     return { reservations: [], customerLookup: {}, staffLookup: {}, roomLookup: {} };
   }
 
-  // Extract unique IDs
-  const customerIds = [...new Set(data.map(r => r.customer_id).filter(Boolean))];
-  const staffIds = [...new Set(data.map(r => r.audited_by).filter(Boolean))];
-  const roomIds = [...new Set(data.map(r => r.room_id).filter(Boolean))];
+  // Step 2: Extract unique IDs for fetching related data
+  const customerIds = [...new Set(reservationsToProcess.map(r => r.customer_id).filter(Boolean))];
+  const staffIds = [...new Set(reservationsToProcess.map(r => r.audited_by).filter(Boolean))];
+  const roomIds = [...new Set(reservationsToProcess.map(r => r.room_id).filter(Boolean))];
   
-  console.log("Unique customer IDs:", customerIds.length);
-  console.log("Unique staff IDs:", staffIds.length);
-  console.log("Unique room IDs:", roomIds.length);
+  // console.log("FETCH_RESERVATIONS: Unique IDs found - Customers:", customerIds.length, "Staff:", staffIds.length, "Rooms:", roomIds.length);
 
-  // Create lookup tables
+  // Step 3: Initialize lookup tables
   const customerLookup: CustomerLookup = {};
   const staffLookup: StaffLookup = {};
-  const roomLookup: RoomLookup = {};
+  const roomLookup: RoomLookup = {}; // This will store RoomDetails objects
 
-  // Fetch user data for customers (phone numbers only)
+  // Step 4: Fetch related data for lookup tables
+
+  // --- Fetch Customer Data ---
   if (customerIds.length > 0) {
     const { data: customerData, error: customerError } = await supabase
       .from("customers")
-      .select("id, full_name, phone_number")
+      .select("id, full_name, phone_number") 
       .in("id", customerIds);
 
     if (customerError) {
-      console.error("Error fetching customers:", customerError.message);
-    } else {
-      customerData?.forEach(customer => {
-        customerLookup[customer.id] = {
-          phone: customer.phone_number || "No phone data",
-          name: customer.full_name || "Unknown"
-        };
+      console.error("FETCH_RESERVATIONS: Error fetching customers data:", customerError.message);
+    } else if (customerData) {
+      // console.log("FETCH_RESERVATIONS: Fetched", customerData.length, "customer details.");
+      customerData.forEach(customer => {
+        if (customer.id) { 
+            customerLookup[String(customer.id)] = {
+            phone: String(customer.phone_number || "N/A"),
+            name: String(customer.full_name || "Unknown Name"),
+            // customer_name_at_booking will be potentially overridden later
+          };
+        }
       });
     }
   }
 
-  // Fetch user data for staff with more details
+  // --- Fetch Staff Data ---
   if (staffIds.length > 0) {
     const { data: staffData, error: staffError } = await supabase
-      .from('staff')  // Changed from 'users' to 'staff'
-      .select(`
-        user_id,
-        name,
-        position,
-        phone_number
-      `)
-      .in('user_id', staffIds);  // Using user_id as the identifier
+      .from('staff')  
+      .select('user_id, name, position, phone_number') 
+      .in('user_id', staffIds);  
     
     if (staffError) {
-      console.error("Error fetching staff:", staffError.message);
+      console.error("FETCH_RESERVATIONS: Error fetching staff data:", staffError.message);
     } else if (staffData) {
-      console.log("Staff data found:", staffData.length);
-      
+      // console.log("FETCH_RESERVATIONS: Fetched", staffData.length, "staff details.");
       staffData.forEach(staff => {
-        const staffId = staff.user_id;
-        // Use name from staff table or fallback
-        staffLookup[staffId] = staff.name || `Staff #${staffId} (${staff.position || 'Unknown position'})`;
+        if (staff.user_id) { 
+            staffLookup[String(staff.user_id)] = {
+                name: String(staff.name || `Staff ID: ${staff.user_id}`),
+                role: staff.position ? String(staff.position) : undefined,
+                phone: staff.phone_number ? String(staff.phone_number) : undefined,
+            };
+        }
       });
     }
   }
   
-  // Fetch room data
+  // --- Fetch Room Data (including room_price) ---
   if (roomIds.length > 0) {
-    const { data: roomData, error: roomError } = await supabase
+    const { data: roomDataFromDB, error: roomError } = await supabase
       .from('rooms')
-      .select('id, name, room_price')
+      .select('id, name, room_price') 
       .in('id', roomIds);
       
     if (roomError) {
-      console.error("Error fetching rooms:", roomError.message);
-    } else if (roomData) {
-      console.log("Room data found:", roomData.length);
-      
-      roomData.forEach(room => {
-        roomLookup[room.id] = room.name || `Room #${room.id}`;
+      console.error("FETCH_RESERVATIONS: Error fetching rooms data:", roomError.message);
+    } else if (roomDataFromDB) {
+      // console.log("FETCH_RESERVATIONS: Fetched", roomDataFromDB.length, "room details. First room raw:", roomDataFromDB[0]);
+      roomDataFromDB.forEach(room => {
+        if (room.id) { 
+            roomLookup[String(room.id)] = { 
+                name: String(room.name || `Room ID: ${room.id}`),
+                price: (room.room_price !== null && room.room_price !== undefined) 
+                       ? Number(room.room_price) 
+                       : undefined // Store price as number or undefined
+            };
+        }
       });
     }
   }
 
-  // Process reservations to fill in the missing customer names
-  // This should happen before the "Fallback for missing data" section
-  data.forEach(reservation => {
-    const customerId = reservation.customer_id;
-    if (customerId && reservation.customer_name) {
-      // If customer exists in lookup, update the name
-      if (customerLookup[customerId]) {
-        customerLookup[customerId].name = reservation.customer_name;
-      } 
-      // Otherwise create a new entry with the name
-      else {
-        customerLookup[customerId] = {
-          name: reservation.customer_name,
-          phone: customerLookup[customerId]?.phone || 'No phone data'
+  // Step 5: Post-process reservations to refine customer_name_at_booking and apply fallbacks
+  reservationsToProcess.forEach(reservation => {
+    const customerIdStr = String(reservation.customer_id); // Ensure string key
+    if (customerIdStr) {
+      // If customer wasn't found in the 'customers' table fetch, create a basic entry from reservation data
+      if (!customerLookup[customerIdStr]) {
+        customerLookup[customerIdStr] = {
+          name: String(reservation.customer_name_at_booking || 'Unknown Guest'),
+          phone: String(reservation.customer_phone_at_booking || 'N/A'),
+          customer_name_at_booking: String(reservation.customer_name_at_booking || undefined)
         };
-      }
-    }
-  });
-
-  // Fallback for missing data
-  data.forEach(reservation => {
-    const customerId = reservation.customer_id;
-    if (customerId) {
-      // If customer doesn't exist in lookup yet
-      if (!customerLookup[customerId]) {
-        customerLookup[customerId] = {
-          name: reservation.customer_name || 'Unknown Name',
-          phone: 'No phone data'
-        };
-      } 
-      // If entry exists but has no name, update it
-      else if (!customerLookup[customerId].name) {
-        customerLookup[customerId].name = reservation.customer_name || 'Unknown Name';
+      } else {
+        // If customer was found, ensure customer_name_at_booking from reservation record is stored if present
+        if (reservation.customer_name_at_booking && !customerLookup[customerIdStr].customer_name_at_booking) {
+          customerLookup[customerIdStr].customer_name_at_booking = String(reservation.customer_name_at_booking);
+        }
       }
     }
     
-    const staffId = reservation.audited_by;
-    if (staffId && !staffLookup[staffId]) {
-      staffLookup[staffId] = `Staff #${staffId}`;
+    // Fallback for staff if not found in 'staff' table lookup
+    const staffIdStr = String(reservation.audited_by);
+    if (staffIdStr && !staffLookup[staffIdStr]) {
+      staffLookup[staffIdStr] = { name: `Staff ID: ${staffIdStr} (Details N/A)` };
     }
     
-    const roomId = reservation.room_id;
-    if (roomId && !roomLookup[roomId]) {
-      roomLookup[roomId] = `Room #${roomId}`;
+    // Fallback for rooms if not found in 'rooms' table lookup
+    const roomIdStr = String(reservation.room_id);
+    if (roomIdStr && !roomLookup[roomIdStr]) {
+      roomLookup[roomIdStr] = { name: `Room ID: ${roomIdStr} (Details N/A)`, price: undefined };
     }
   });
 
-  console.log("First reservation:", data?.[0]);
-  console.log("Customer lookup entries:", Object.keys(customerLookup).length);
-  console.log("Staff lookup entries:", Object.keys(staffLookup).length);
-  console.log("Room lookup entries:", Object.keys(roomLookup).length);
+  // Final logs before returning
+  // console.log("FETCH_RESERVATIONS: First processed reservation (raw):", reservationsToProcess?.[0]);
+  // console.log("FETCH_RESERVATIONS: Final Customer Lookup entries:", Object.keys(customerLookup).length);
+  // console.log("FETCH_RESERVATIONS: Final Staff Lookup entries:", Object.keys(staffLookup).length);
+  // console.log("FETCH_RESERVATIONS: Final Room Lookup (should have prices):", roomLookup);
   
-  // Return the complete result object
   return {
-    reservations: data || [],
+    reservations: reservationsToProcess, 
     customerLookup,
     staffLookup,
     roomLookup
   };
 };
 
-// Real-time subscription functionality
+// --- Real-time subscription functionality ---
 let reservationsSubscription: { unsubscribe: () => void } | null = null;
 
 export const subscribeToReservationChanges = (
   onReservationsChange: (result: FetchReservationsResult) => void
 ): { unsubscribe: () => void } => {
-  // Unsubscribe from existing subscription if there is one
   if (reservationsSubscription) {
     reservationsSubscription.unsubscribe();
   }
+  console.log("SUBSCRIBE_RESERVATIONS: Setting up real-time subscription...");
+  
+  fetchReservations().then(onReservationsChange); 
+  
+  const channel = supabase.channel('reservation-realtime-changes');
 
-  console.log("Setting up real-time subscription to reservations...");
-  
-  // Initial fetch to get current state
-  fetchReservations().then(onReservationsChange);
-  
-  // Subscribe to changes in the reservations table
-  reservationsSubscription = supabase
-    .channel('reservation-changes')
-    .on('postgres_changes', 
-      { 
-        event: '*', 
-        schema: 'public', 
-        table: 'reservations' 
-      }, 
-      () => {
-        console.log("Reservation change detected, fetching updated data...");
-        fetchReservations().then(onReservationsChange);
+  const commonPayloadHandler = (payload: Record<string, unknown>, tableName: string) => {
+    console.log(`SUBSCRIBE_RESERVATIONS: Change detected in '${tableName}' table. Payload:`, payload);
+    fetchReservations().then(onReservationsChange);
+  };
+
+  channel
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'reservations' }, (p) => commonPayloadHandler(p, 'reservations'))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, (p) => commonPayloadHandler(p, 'customers'))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'staff' }, (p) => commonPayloadHandler(p, 'staff'))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, (p) => commonPayloadHandler(p, 'rooms'))
+    .subscribe((status, err) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('SUBSCRIBE_RESERVATIONS: Successfully subscribed to real-time changes!');
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        console.error('SUBSCRIBE_RESERVATIONS: Subscription error.', { status, err });
+      } else {
+        console.log('SUBSCRIBE_RESERVATIONS: Subscription status changed:', status);
       }
-    )
-    .on('postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'customers'
-      },
-      () => {
-        console.log("Customer change detected, fetching updated reservation data...");
-        fetchReservations().then(onReservationsChange);
-      }
-    )
-    .on('postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'staff'
-      },
-      () => {
-        console.log("Staff change detected, fetching updated reservation data...");
-        fetchReservations().then(onReservationsChange);
-      }
-    )
-    .on('postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'rooms'
-      },
-      () => {
-        console.log("Room change detected, fetching updated reservation data...");
-        fetchReservations().then(onReservationsChange);
-      }
-    )
-    .subscribe();
+    });
+
+  reservationsSubscription = { unsubscribe: () => channel.unsubscribe() };
 
   return {
     unsubscribe: () => {
       if (reservationsSubscription) {
-        console.log("Unsubscribing from reservation changes...");
+        console.log("SUBSCRIBE_RESERVATIONS: Unsubscribing from real-time changes...");
         reservationsSubscription.unsubscribe();
         reservationsSubscription = null;
       }

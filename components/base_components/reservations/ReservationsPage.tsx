@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useMemo } from "react"; // Removed useRef as it's not used
+import React, { useState, useEffect, useMemo, useCallback } from "react"; // Added useCallback
 import styles from "../../../components/component_styles/Reservations.module.css";
 import { useReservations } from "../../../src/hooks/useReservations";
 import { useFilteredReservations } from "../../../src/hooks/useFilteredReservations";
 import { 
   ReservationItem, 
   FilterOptions, 
-  RoomOption as FilterRoomOption // Alias for RoomOption used in FilterOverlay
-} from "../../../src/types/reservation"; // Assuming RoomOption here is for FilterOverlay
-import { submitReservation } from "@/contexts/newReservation";
+  RoomOption as FilterRoomOption 
+} from "../../../src/types/reservation";
+import { submitReservation } from "@/contexts/newReservation"; 
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 
 // Import Components
@@ -20,8 +20,8 @@ import Pagination from "../../common/Pagination";
 // Import NewReservationOverlay and ITS RoomOption type specifically
 import NewReservationOverlay, { 
   ReservationData, 
-  RoomOption as NewReservationOverlayRoomOption // Specific type for NewReservationOverlay's prop
-} from "../../overlay_components/NewReservationOverlay";
+  RoomOption as NewReservationOverlayRoomOption 
+} from "../../overlay_components/NewReservationOverlay"; 
 import FilterOverlay from "../../overlay_components/FilterOverlay";
 import ExportOverlay from "../../overlay_components/ExportOverlay";
 import ReservationDetailsOverlay from "../../overlay_components/ReservationDetailsOverlay";
@@ -34,17 +34,18 @@ const ReservationsPage: React.FC = () => {
     reservations,
     customerLookup,
     staffLookup,
-    roomLookup, // This roomLookup is { [id: string]: { name: string, price?: number } }
+    roomLookup,
     isLoading,
     error,
     refreshReservations
   } = useReservations();
 
-  const duplicateReservationsForDebugging = (
-    inputReservations: ReservationItem[], // Renamed to avoid conflict
-    duplicateCount: number = 5
+  // Debugging function (can be removed for production)
+  const duplicateReservationsForDebugging = useCallback((
+    inputReservations: ReservationItem[], 
+    duplicateCount: number = 1
   ): ReservationItem[] => {
-    if (!inputReservations.length) return [];
+    if (!inputReservations || !inputReservations.length) return [];
     const duplicatedData: ReservationItem[] = [];
     for (let i = 0; i < duplicateCount; i++) {
       inputReservations.forEach(reservation => {
@@ -55,7 +56,8 @@ const ReservationsPage: React.FC = () => {
       });
     }
     return duplicatedData;
-  };
+  }, []);
+
 
   const {
     filteredReservations,
@@ -69,7 +71,7 @@ const ReservationsPage: React.FC = () => {
     setFilterOptions,
     statistics
   } = useFilteredReservations({
-    reservations, // Pass the original reservations from useReservations
+    reservations, 
     customerLookup,
     roomLookup 
   });
@@ -80,7 +82,8 @@ const ReservationsPage: React.FC = () => {
   const [isNewReservationOpen, setIsNewReservationOpen] = useState(false);
   // State for rooms passed to NewReservationOverlay, correctly typed
   const [availableRoomsForNewOverlay, setAvailableRoomsForNewOverlay] = useState<NewReservationOverlayRoomOption[]>([]);
-  
+  const [formSubmissionError, setFormSubmissionError] = useState<string | null>(null); // For NewReservationOverlay errors
+
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState<ReservationItem | null>(null);
@@ -88,44 +91,48 @@ const ReservationsPage: React.FC = () => {
   const [animate, setAnimate] = useState(false);
   const [showContent, setShowContent] = useState(false);
 
+  // Initial content visibility and animation trigger
   useEffect(() => {
     if (!isLoading) {
-      setTimeout(() => {
+      const showTimer = setTimeout(() => {
         setShowContent(true);
-        setTimeout(() => setAnimate(true), 200);
-      }, 400);
+        const animateTimer = setTimeout(() => setAnimate(true), 50); 
+        return () => clearTimeout(animateTimer);
+      }, 100);
+      return () => clearTimeout(showTimer);
+    } else {
+      setShowContent(false);
+      setAnimate(false);
     }
   }, [isLoading]);
 
+  // Re-trigger animation on filter/page changes
   useEffect(() => {
-    if (showContent) {
+    if (showContent) { // Only if content is already visible
       setAnimate(false);
-      const timer = setTimeout(() => setAnimate(true), 50); // Quick reset for re-animation
+      const timer = setTimeout(() => setAnimate(true), 50); 
       return () => clearTimeout(timer);
     }
-  }, [reservationType, currentPage, searchTerm, statusFilter, filterOptions, showContent]); // Re-animate on filter/page changes
+  }, [reservationType, currentPage, searchTerm, statusFilter, filterOptions, showContent]);
 
 
-  // Fetch and prepare rooms specifically for the NewReservationOverlay
+  // Fetch rooms for NewReservationOverlay
   useEffect(() => {
     const fetchRoomsForNewOverlay = async () => {
       try {
         const { data: allRawRooms, error: fetchError } = await supabase
           .from('rooms')
-          .select('id, name, room_price, is_active') // Ensure room_price is selected
+          .select('id, name, room_price, capacity, is_active')
           .eq('is_active', true); 
         
         if (fetchError) {
-          console.error("ReservationsPage: Error fetching rooms for NewReservationOverlay:", fetchError);
-          setAvailableRoomsForNewOverlay([]);
-          return;
+          console.error("ReservationsPage: Error fetching rooms for NewResOverlay:", fetchError.message);
+          setAvailableRoomsForNewOverlay([]); return;
         }
-        
-        if (allRawRooms && allRawRooms.length > 0) {
+        if (allRawRooms) {
           const formattedRoomOptions: NewReservationOverlayRoomOption[] = allRawRooms.map(room => ({
-            id: String(room.id),
-            name: String(room.name),
-            price: Number(room.room_price || 0) // Default price to 0 if null/undefined
+            id: String(room.id), name: String(room.name),
+            price: Number(room.room_price || 0), capacity: Number(room.capacity || 0) 
           }));
           console.log("ReservationsPage: Rooms for NewReservationOverlay dropdown:", formattedRoomOptions);
           setAvailableRoomsForNewOverlay(formattedRoomOptions);
@@ -138,79 +145,74 @@ const ReservationsPage: React.FC = () => {
         setAvailableRoomsForNewOverlay([]);
       }
     };
-    
     fetchRoomsForNewOverlay();
-  }, []); // Run once when component mounts
+  }, []);
 
-  // Prepare roomOptions for FilterOverlay (uses FilterRoomOption type)
-  // This uses the roomLookup from useReservations
+  // Prepare roomOptions for FilterOverlay
   const roomOptionsForFilter: FilterRoomOption[] = useMemo(() => 
     Object.entries(roomLookup).map(([id, roomData]) => ({
-      id,
-      name: roomData.name,
-      // price: roomData.price // FilterRoomOption doesn't have price in your types/reservation.ts
+      id, name: roomData.name,
     })), [roomLookup]);
 
+  // Pagination
+  const dataForPagination = useMemo(() => {
+    // const DEBUG_PAGINATION = false; // Toggle for debugging
+    // return DEBUG_PAGINATION ? duplicateReservationsForDebugging(filteredReservations) : filteredReservations;
+    return filteredReservations; // Usually use the direct filtered list
+  }, [filteredReservations/*, duplicateReservationsForDebugging*/]);
 
-  const totalPages = useMemo(() => { // Corrected use of useMemo
-    // const DEBUG_PAGINATION = false; // Set to true for debugging
-    // const dataSource = DEBUG_PAGINATION 
-    //   ? duplicateReservationsForDebugging(filteredReservations) 
-    //   : filteredReservations;
-    // Using filteredReservations directly is usually what you want
-    return Math.ceil(filteredReservations.length / ITEMS_PER_PAGE);
-  }, [filteredReservations/*, duplicateReservationsForDebugging*/]); // Remove duplicateReservationsForDebugging if not used in final logic
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter, reservationType, filterOptions]);
+  const totalPages = useMemo(() => Math.ceil(dataForPagination.length / ITEMS_PER_PAGE), [dataForPagination]);
+
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, statusFilter, reservationType, filterOptions]);
 
   useEffect(() => {
-    let newCurrentPage = currentPage;
-    // Ensure currentPage is within valid bounds
+    let targetPage = currentPage;
     if (totalPages > 0) {
-        if (newCurrentPage > totalPages) newCurrentPage = totalPages;
-        if (newCurrentPage < 1) newCurrentPage = 1;
-    } else { // No pages if no items
-        newCurrentPage = 1; 
+      if (targetPage > totalPages) targetPage = totalPages;
+      if (targetPage < 1) targetPage = 1;
+    } else {
+      targetPage = 1; 
     }
-    // If currentPage was adjusted, update the state, otherwise proceed
-    if (newCurrentPage !== currentPage && totalPages > 0) { // only update if it changed and there are pages
-        setCurrentPage(newCurrentPage); 
-        // The update to currentReservations will happen in the next render cycle due to currentPage change
-        return; 
+    if (targetPage !== currentPage && totalPages > 0) {
+      setCurrentPage(targetPage); 
+      return; 
     }
-    
-    // const DEBUG_PAGINATION = false; // Set to true for debugging
-    // const dataSource = DEBUG_PAGINATION 
-    //   ? duplicateReservationsForDebugging(filteredReservations) 
-    //   : filteredReservations;
-    // Using filteredReservations directly
-    const dataSource = filteredReservations;
+    const startIndex = (targetPage - 1) * ITEMS_PER_PAGE;
+    setCurrentReservations(dataForPagination.slice(startIndex, startIndex + ITEMS_PER_PAGE));
+  }, [currentPage, dataForPagination, totalPages]);
 
-    const startIndex = (newCurrentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-    setCurrentReservations(dataSource.slice(startIndex, endIndex));
-    
-  }, [currentPage, filteredReservations, totalPages]);
+
+  const openNewReservationModal = () => {
+    setFormSubmissionError(null); 
+    setIsNewReservationOpen(true);
+  };
+
+  const handleCloseNewReservationModal = () => {
+    setIsNewReservationOpen(false);
+    setFormSubmissionError(null); 
+  };
 
   const handleNewReservation = async (reservationData: ReservationData) => {
+    setFormSubmissionError(null); 
     try {
       const result = await submitReservation(reservationData);
       if (result.success) {
-        alert("Reservation successfully created!");
-        setIsNewReservationOpen(false);
-        await refreshReservations(); // Refresh the main reservations list
+        alert(`Reservation successfully created! ID: ${result.reservationId}`); // Keep alert for success confirmation
+        setIsNewReservationOpen(false); 
+        setFormSubmissionError(null);  
+        await refreshReservations(); 
       } else {
-        alert("Failed to create reservation: " + (result.message || "Unknown error"));
+        // Set the error message to be displayed in the NewReservationOverlay
+        setFormSubmissionError(result.message || "Failed to create reservation. Please check the details and try again.");
       }
-    } catch (submissionError) { // Changed variable name
-      alert("An error occurred while creating the reservation.");
-      console.error("Error submitting reservation:", submissionError);
+    } catch (submissionError: any) { 
+      console.error("ReservationsPage: Error submitting reservation:", submissionError);
+      setFormSubmissionError(submissionError.message || "An unexpected application error occurred while creating the reservation.");
     }
   };
 
-  const handleApplyFilters = (newFilters: FilterOptions): void => { // Renamed variable
+  const handleApplyFilters = (newFilters: FilterOptions): void => {
     setFilterOptions(newFilters);
     setIsFilterOpen(false);
   };
@@ -220,34 +222,14 @@ const ReservationsPage: React.FC = () => {
   };
 
   const handleStatusChange = async (reservationId: string, newStatus: string) => {
-    // ... (your existing handleStatusChange logic - seems okay)
-    const { data: reservationDetails, error: fetchError } = await supabase // Renamed
-      .from("reservations")
-      .select("source, customer_id, room_id, check_in, check_out, confirmation_time")
-      .eq("id", reservationId)
-      .single();
-
-    if (fetchError || !reservationDetails) {
-      console.error("Failed to fetch reservation details for status change:", fetchError?.message);
-      alert("Unable to update reservation status. Could not fetch details.");
-      return;
-    }
-
-    const updatePayload: any = {
-      status: newStatus,
-      payment_received: newStatus === "Accepted", // Assuming "Accepted" means paid
-      last_updated: new Date().toISOString(),
-      status_updated_at: new Date().toISOString()
-    };
-
-    if (newStatus === "Confirmed_Pending_Payment" && !reservationDetails.confirmation_time) {
-      updatePayload.confirmation_time = new Date().toISOString();
-    } else if (newStatus === "Accepted" && !reservationDetails.confirmation_time) {
+    // calls refreshReservations() on success.
+    const { data: reservationDetails, error: fetchError } = await supabase
+      .from("reservations").select("source, customer_id, confirmation_time").eq("id", reservationId).single();
+    if (fetchError || !reservationDetails) { /* ... */ return; }
+    const updatePayload: any = { status: newStatus, payment_received: newStatus === "Accepted", last_updated: new Date().toISOString(), status_updated_at: new Date().toISOString() };
+    if ((newStatus === "Confirmed_Pending_Payment" || newStatus === "Accepted") && !reservationDetails.confirmation_time) {
       updatePayload.confirmation_time = new Date().toISOString();
     } else if (newStatus !== "Confirmed_Pending_Payment" && newStatus !== "Accepted") {
-      // Reset confirmation_time if status moves away from confirmed/accepted states
-      // This depends on your business logic for what other statuses mean for confirmation_time
-      // updatePayload.confirmation_time = null; 
     }
 
 
@@ -262,26 +244,25 @@ const ReservationsPage: React.FC = () => {
       return;
     }
 
-    // Assuming 'mobile_app' is the source string for mobile app bookings
-    if (reservationDetails.source === "mobile_app") { 
+    // 'mobile' is the source string for mobile app bookings
+    if (reservationDetails.source === "mobile") { 
       console.log("🔔 Would send notification to customer:", reservationDetails.customer_id);
       // TODO: Integrate Firebase push notification logic here.
     } else {
       console.log(`📵 No notification sent (source is ${reservationDetails.source})`);
     }
 
-    await refreshReservations(); // Refresh data after successful update
+    await refreshReservations(); 
   };
 
   const getDateRangeText = () => {
     const now = new Date();
-    const currentMonthStart = startOfMonth(now); // Renamed
+    const currentMonthStart = startOfMonth(now); 
     // const lastMonthStart = startOfMonth(subMonths(now, 1)); // Not used in return
     return `${format(currentMonthStart, 'MMM dd')} - ${format(endOfMonth(now), 'MMM dd, yyyy')}`;
   };
 
   if (!showContent) {
-    // ... (your loading UI - seems okay) ...
     return (
         <div className={styles.loadingContainer}>
           {/* ... loading elements ... */}
@@ -301,12 +282,8 @@ const ReservationsPage: React.FC = () => {
         />
         
         <ReservationStats
-          statistics={{
-            checkIns: statistics.checkIns,
-            checkOuts: statistics.checkOuts,
-            totalGuests: statistics.totalGuests,
-            occupancyRate: statistics.occupancyRate
-          }}
+          statistics={statistics} 
+          // dateRange={getDateRangeText()} // Pass if ReservationStats uses it
           animate={animate}
         />
 
@@ -327,50 +304,47 @@ const ReservationsPage: React.FC = () => {
               roomLookup={roomLookup}
               staffLookup={staffLookup}
               onRowClick={handleRowClick}
-              onStatusChange={handleStatusChange} // Pass the corrected handleStatusChange
-              isLoading={isLoading} // Pass isLoading for table's own loading state if needed
+              onStatusChange={handleStatusChange} 
+              isLoading={isLoading} 
               error={error}
               onRetry={refreshReservations}
-              animate={animate} // Pass animate for table row animations
+              animate={animate} 
             />
           </div>
         </div>
       </div>
 
-      {!isLoading && !error && filteredReservations.length > 0 && totalPages > 1 && (
+      {!isLoading && !error && dataForPagination.length > 0 && totalPages > 1 && (
         <div className={`${styles.paginationContainer} ${animate ? styles.animateThird : ""}`}>
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
+          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
         </div>
       )}
 
       <NewReservationOverlay
         isOpen={isNewReservationOpen}
-        onClose={() => setIsNewReservationOpen(false)}
+        onClose={handleCloseNewReservationModal} 
         onSubmit={handleNewReservation}
-        availableRooms={availableRoomsForNewOverlay} // Use the correctly typed and populated state
+        availableRooms={availableRoomsForNewOverlay} 
+        submissionError={formSubmissionError} 
       />
 
       <FilterOverlay
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
-        onApply={handleApplyFilters} // Removed 'as any'
-        initialFilters={filterOptions} // Removed 'as any'
-        roomOptions={roomOptionsForFilter} // Pass the correctly prepared roomOptions
+        onApply={handleApplyFilters} 
+        initialFilters={filterOptions} 
+        roomOptions={roomOptionsForFilter} 
       />
 
       <ExportOverlay
         isOpen={isExportOpen}
         onClose={() => setIsExportOpen(false)}
-        onExport={(data) => console.log("Export data:", data)} // data type can be more specific
+        onExport={(exportData) => console.log("Export data:", exportData)} 
       />
 
-      {selectedReservation && ( // Conditionally render to ensure selectedReservation is not null
+      {selectedReservation && (
         <ReservationDetailsOverlay
-          isOpen={selectedReservation !== null}
+          isOpen={true} // selectedReservation being non-null implies isOpen=true
           onClose={() => setSelectedReservation(null)}
           reservation={selectedReservation}
           customerLookup={customerLookup}
