@@ -1,15 +1,16 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useMemo, useCallback } from "react"; // Added useCallback
-import styles from "../../../components/component_styles/Reservations.module.css";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import styles from "../../../components/component_styles/Reservations.module.css"; // Adjust path
 import { useReservations } from "../../../src/hooks/useReservations";
 import { useFilteredReservations } from "../../../src/hooks/useFilteredReservations";
 import { 
   ReservationItem, 
   FilterOptions, 
-  RoomOption as FilterRoomOption,
-  StatusValue,
-} from "../../../src/types/reservation";
-import { submitReservation } from "@/contexts/newReservation"; 
+  RoomOption as FilterRoomOption, 
+  StatusValue 
+} from "../../../src/types/reservation"; 
+import { submitReservation } from "@/contexts/newReservation"
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 
 // Import Components
@@ -22,11 +23,11 @@ import Pagination from "../../common/Pagination";
 import NewReservationOverlay, { 
   ReservationData, 
   RoomOption as NewReservationOverlayRoomOption 
-} from "../../overlay_components/NewReservationOverlay"; 
-import FilterOverlay from "../../overlay_components/FilterOverlay";
+} from "../../overlay_components/NewReservationOverlay";
+import FilterOverlay, { FilterOptions as OverlayFilterOptions } from "../../overlay_components/FilterOverlay";
 import ExportOverlay from "../../overlay_components/ExportOverlay";
 import ReservationDetailsOverlay from "../../overlay_components/ReservationDetailsOverlay";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient"; 
 
 const ITEMS_PER_PAGE = 6;
 
@@ -68,7 +69,7 @@ const ReservationsPage: React.FC = () => {
     setStatusFilter,
     reservationType,
     setReservationType,
-    filterOptions,
+    filterOptions, 
     setFilterOptions,
     statistics
   } = useFilteredReservations({
@@ -83,7 +84,7 @@ const ReservationsPage: React.FC = () => {
   const [isNewReservationOpen, setIsNewReservationOpen] = useState(false);
   // State for rooms passed to NewReservationOverlay, correctly typed
   const [availableRoomsForNewOverlay, setAvailableRoomsForNewOverlay] = useState<NewReservationOverlayRoomOption[]>([]);
-  const [formSubmissionError, setFormSubmissionError] = useState<string | null>(null); // For NewReservationOverlay errors
+  const [formSubmissionError, setFormSubmissionError] = useState<string | null>(null);
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
@@ -109,7 +110,7 @@ const ReservationsPage: React.FC = () => {
 
   // Re-trigger animation on filter/page changes
   useEffect(() => {
-    if (showContent) { // Only if content is already visible
+    if (showContent) {
       setAnimate(false);
       const timer = setTimeout(() => setAnimate(true), 50); 
       return () => clearTimeout(timer);
@@ -151,18 +152,10 @@ const ReservationsPage: React.FC = () => {
 
   // Prepare roomOptions for FilterOverlay
   const roomOptionsForFilter: FilterRoomOption[] = useMemo(() => 
-    Object.entries(roomLookup).map(([id, roomData]) => ({
-      id, name: roomData.name,
-    })), [roomLookup]);
+    Object.entries(roomLookup).map(([id, roomData]) => ({ id, name: roomData.name })), 
+  [roomLookup]);
 
-  // Pagination
-  const dataForPagination = useMemo(() => {
-    // const DEBUG_PAGINATION = false; // Toggle for debugging
-    // return DEBUG_PAGINATION ? duplicateReservationsForDebugging(filteredReservations) : filteredReservations;
-    return filteredReservations; // Usually use the direct filtered list
-  }, [filteredReservations/*, duplicateReservationsForDebugging*/]);
-
-
+  const dataForPagination = useMemo(() => filteredReservations, [filteredReservations]);
   const totalPages = useMemo(() => Math.ceil(dataForPagination.length / ITEMS_PER_PAGE), [dataForPagination]);
 
   useEffect(() => { setCurrentPage(1); }, [searchTerm, statusFilter, reservationType, filterOptions]);
@@ -172,13 +165,8 @@ const ReservationsPage: React.FC = () => {
     if (totalPages > 0) {
       if (targetPage > totalPages) targetPage = totalPages;
       if (targetPage < 1) targetPage = 1;
-    } else {
-      targetPage = 1; 
-    }
-    if (targetPage !== currentPage && totalPages > 0) {
-      setCurrentPage(targetPage); 
-      return; 
-    }
+    } else { targetPage = 1; }
+    if (targetPage !== currentPage && totalPages > 0) { setCurrentPage(targetPage); return; }
     const startIndex = (targetPage - 1) * ITEMS_PER_PAGE;
     setCurrentReservations(dataForPagination.slice(startIndex, startIndex + ITEMS_PER_PAGE));
   }, [currentPage, dataForPagination, totalPages]);
@@ -197,24 +185,27 @@ const ReservationsPage: React.FC = () => {
   const handleNewReservation = async (reservationData: ReservationData) => {
     setFormSubmissionError(null); 
     try {
-      const result = await submitReservation(reservationData);
-      if (result.success) {
-        alert(`Reservation successfully created! ID: ${result.reservationId}`); // Keep alert for success confirmation
-        setIsNewReservationOpen(false); // Close overlay on success
+      const result = await submitReservation(reservationData); 
+      if (result.success && result.reservationId) { 
+        alert(`Reservation successfully created! ID: ${result.reservationId}`);
+        setIsNewReservationOpen(false); 
         setFormSubmissionError(null);  
         await refreshReservations(); 
       } else {
-        // Set the error message to be displayed in the NewReservationOverlay
-        setFormSubmissionError(result.message || "Failed to create reservation. Please check the details and try again.");
+        setFormSubmissionError(result.message || "Failed to create reservation. Please verify details.");
       }
     } catch (submissionError: any) { 
-      console.error("ReservationsPage: Error submitting reservation:", submissionError);
-      setFormSubmissionError(submissionError.message || "An unexpected application error occurred while creating the reservation.");
+      console.error("ReservationsPage: Unexpected error during submitReservation call:", submissionError);
+      setFormSubmissionError(submissionError.message || "An unexpected application error occurred.");
     }
   };
 
-  const handleApplyFilters = (newFilters: FilterOptions): void => {
-    setFilterOptions(newFilters);
+  const handleApplyFilters = (newFilters: OverlayFilterOptions): void => { 
+    // Ensure paymentStatus is cast to the correct PaymentFilterStatus type
+    setFilterOptions({
+      ...newFilters,
+      paymentStatus: newFilters.paymentStatus as any 
+    });
     setIsFilterOpen(false);
   };
 
@@ -222,116 +213,116 @@ const ReservationsPage: React.FC = () => {
     setSelectedReservation(reservation);
   };
 
-  // Replace your existing handleStatusChange function with this:
-const handleStatusChange = async (reservationId: string, newStatus: StatusValue) => {
-  console.log(`ReservationsPage: Attempting to change reservation ${reservationId} to status ${newStatus}`);
+  // --- FULLY UPDATED handleStatusChange with AVAILABILITY CHECK ---
+  const handleStatusChange = async (reservationId: string, newStatus: StatusValue) => {
+    console.log(`ReservationsPage: Attempting to change reservation ${reservationId} to status ${newStatus}`);
 
-  // 1. Fetch current details of the target reservation
-  // We need room_id, check_in, check_out for availability check, and current_status to avoid redundant checks
-  const { data: targetReservation, error: fetchError } = await supabase
-    .from("reservations")
-    .select("source, customer_id, room_id, check_in, check_out, confirmation_time, status")
-    .eq("id", reservationId)
-    .single();
+    // 1. Fetch current details of the target reservation
+    const { data: targetReservation, error: fetchError } = await supabase
+      .from("reservations")
+      .select("source, customer_id, room_id, check_in, check_out, confirmation_time, status, payment_received") 
+      .eq("id", reservationId)
+      .single();
 
-  if (fetchError || !targetReservation) {
-    console.error("ReservationsPage: Failed to fetch target reservation details for status change:", fetchError?.message);
-    alert("Error: Could not retrieve reservation details to update status. Please try again or check console.");
-    return;
-  }
-
-  const currentStatus = targetReservation.status as StatusValue;
-
-  // 2. AVAILABILITY CHECK (REQ-WEB-06 from your docs)
-  // Perform this check ONLY IF the newStatus is one that blocks the room ('Confirmed_Pending_Payment' or 'Accepted')
-  // AND the reservation is not ALREADY in one of these blocking statuses (or 'Checked_In').
-  const statusesThatBlockRoom: StatusValue[] = ["Confirmed_Pending_Payment", "Accepted", "Checked_In"];
-  
-  if (
-      (newStatus === "Confirmed_Pending_Payment" || newStatus === "Accepted") && // Moving TO a blocking status
-      !statusesThatBlockRoom.includes(currentStatus) // AND not already in a blocking status
-  ) {
-    console.log(`ReservationsPage: Performing availability check for room ${targetReservation.room_id} (dates: ${targetReservation.check_in} to ${targetReservation.check_out}) before setting status to ${newStatus}`);
-    
-    const { data: conflictingReservations, error: availabilityError } = await supabase
-      .from('reservations')
-      .select('id, status') // Select status for more informative error message if needed
-      .eq('room_id', targetReservation.room_id)
-      .in('status', statusesThatBlockRoom) // Check against other Confirmed, Accepted, Checked_In
-      .neq('id', reservationId) // IMPORTANT: Exclude the current reservation itself!
-      .lt('check_in', targetReservation.check_out)  // existing.check_in < target.check_out
-      .gt('check_out', targetReservation.check_in); // existing.check_out > target.check_in
-
-    if (availabilityError) {
-      console.error("ReservationsPage: Database error during room availability check:", availabilityError.message, availabilityError.details);
-      alert("Error: Could not verify room availability due to a system error. Please try again or contact support.");
+    if (fetchError || !targetReservation) {
+      console.error("ReservationsPage: Failed to fetch target reservation details for status change:", fetchError?.message);
+      alert("Error: Could not retrieve reservation details to update status. Please try again or check console.");
       return;
     }
 
-    if (conflictingReservations && conflictingReservations.length > 0) {
-      const conflictDetails = conflictingReservations.map(r => `ID: ${r.id} (Status: ${r.status})`).join(', ');
-      console.warn(`ReservationsPage: Availability conflict found. Cannot change status to "${newStatus}". Conflicts with: ${conflictDetails}`, conflictingReservations);
-      alert(`Error: Cannot change status to "${newStatus}". The room is already booked or held by another reservation for the selected dates (Conflicting reservation(s): ${conflictDetails}).`);
-      return; // Stop the update
+    const currentStatus = targetReservation.status as StatusValue;
+    const currentPaymentReceived = targetReservation.payment_received;
+
+    // 2. AVAILABILITY CHECK (REQ-WEB-06)
+    const statusesThatBlockRoomForNewBooking: StatusValue[] = ["Confirmed_Pending_Payment", "Accepted", "Checked_In"];
+    
+    if (
+        (newStatus === "Confirmed_Pending_Payment" || newStatus === "Accepted") &&
+        !statusesThatBlockRoomForNewBooking.includes(currentStatus) 
+    ) {
+      console.log(`ReservationsPage: Performing availability check for room ${targetReservation.room_id} (dates: ${targetReservation.check_in} to ${targetReservation.check_out}) before setting to ${newStatus}`);
+      
+      const { data: conflictingReservations, error: availabilityError } = await supabase
+        .from('reservations')
+        .select('id, status')
+        .eq('room_id', targetReservation.room_id)
+        .in('status', statusesThatBlockRoomForNewBooking) 
+        .neq('id', reservationId) 
+        .lt('check_in', targetReservation.check_out)  
+        .gt('check_out', targetReservation.check_in); 
+
+      if (availabilityError) {
+        console.error("ReservationsPage: DB error during room availability check:", availabilityError.message, availabilityError.details);
+        alert("Error: Could not verify room availability due to a system error. Please try again or contact support.");
+        return;
+      }
+
+      if (conflictingReservations && conflictingReservations.length > 0) {
+        const conflictDetails = conflictingReservations.map(r => `ID: ${r.id}(Status: ${r.status})`).join(', ');
+        console.warn(`ReservationsPage: Availability conflict. Cannot change to "${newStatus}". Conflicts with: ${conflictDetails}`);
+        alert(`Error: Cannot change status to "${newStatus}". The room is already booked or held by another reservation for these dates (Conflicts: ${conflictDetails}).`);
+        return; 
+      }
+      console.log("ReservationsPage: Availability check passed for status change.");
     }
-    console.log("ReservationsPage: Availability check passed for status change to a blocking status.");
-  }
 
-  // 3. Prepare Update Payload
-  // Define the type more strictly for updatePayload
-  type ReservationUpdatePayload = {
-    status: StatusValue;
-    payment_received: boolean;
-    last_updated: string;
-    status_updated_at: string;
-    confirmation_time?: string | null; // Optional, can be string or null
+    // 3. Prepare Update Payload
+    type ReservationUpdatePayload = {
+      status: StatusValue;
+      payment_received: boolean;
+      last_updated: string;
+      status_updated_at: string;
+      confirmation_time?: string | null;
+    };
+
+    let newPaymentReceivedStatus = currentPaymentReceived;
+    if (newStatus === "Accepted" || newStatus === "Checked_In") {
+      newPaymentReceivedStatus = true;
+    } else if ((newStatus === "Rejected" || newStatus === "Cancelled" || newStatus === "Expired") && 
+               (currentStatus === "Pending" || currentStatus === "Confirmed_Pending_Payment")) {
+      newPaymentReceivedStatus = false;
+    }
+    // Note: payment_received stays true if Cancelled/Rejected/NoShow from an Accepted state.
+
+    const updatePayload: ReservationUpdatePayload = {
+      status: newStatus,
+      payment_received: newPaymentReceivedStatus,
+      last_updated: new Date().toISOString(),
+      status_updated_at: new Date().toISOString()
+    };
+
+    if ((newStatus === "Confirmed_Pending_Payment" || newStatus === "Accepted") && !targetReservation.confirmation_time) {
+      updatePayload.confirmation_time = new Date().toISOString();
+    } 
+    // Optional: else if (!["Confirmed_Pending_Payment", "Accepted", "Checked_In"].includes(newStatus) && targetReservation.confirmation_time) {
+    //   updatePayload.confirmation_time = null; 
+    // }
+
+    // 4. Perform the Update
+    console.log(`ReservationsPage: Updating reservation ${reservationId} with payload:`, updatePayload);
+    const { error: updateError } = await supabase
+      .from("reservations")
+      .update(updatePayload)
+      .eq("id", reservationId);
+
+    if (updateError) {
+      console.error("ReservationsPage: Failed to update status in DB:", updateError.message, updateError.details);
+      alert(`Error: Failed to update reservation status to "${newStatus}". ${updateError.message}`);
+      return;
+    }
+    console.log(`ReservationsPage: Reservation ${reservationId} status successfully updated to ${newStatus}.`);
+
+    // 5. Notification (Placeholder)
+    const notifyCustomerStatuses: StatusValue[] = ["Confirmed_Pending_Payment", "Accepted", "Rejected", "Expired", "Cancelled"];
+    if (notifyCustomerStatuses.includes(newStatus) && (targetReservation.source === "mobile" || targetReservation.source === "staff_manual")) {
+      console.log(`🔔 NOTIFICATION: Customer ${targetReservation.customer_id}, status: ${newStatus}.`);
+    } else {
+      console.log(`📵 No notification (Source: ${targetReservation.source}, New Status: ${newStatus})`);
+    }
+
+    await refreshReservations();
   };
-
-  const updatePayload: ReservationUpdatePayload = {
-    status: newStatus,
-    payment_received: newStatus === "Accepted", // "Accepted" implies payment is received
-    last_updated: new Date().toISOString(),
-    status_updated_at: new Date().toISOString()
-  };
-
-  // Conditional logic for confirmation_time
-  // Set confirmation_time if moving to a confirmed state and it's not already set
-  if ((newStatus === "Confirmed_Pending_Payment" || newStatus === "Accepted") && !targetReservation.confirmation_time) {
-    updatePayload.confirmation_time = new Date().toISOString();
-  } 
-  // Example: If moving away from a confirmed state, you might want to nullify confirmation_time.
-  // This depends on your business logic if a "Rejected" or "Cancelled" status should clear a previous confirmation.
-  // else if (!["Confirmed_Pending_Payment", "Accepted"].includes(newStatus) && targetReservation.confirmation_time) {
-  //   updatePayload.confirmation_time = null; 
-  // }
-
-  // 4. Perform the Update
-  console.log(`ReservationsPage: Updating reservation ${reservationId} with payload:`, updatePayload);
-  const { error: updateError } = await supabase
-    .from("reservations")
-    .update(updatePayload)
-    .eq("id", reservationId);
-
-  if (updateError) {
-    console.error("ReservationsPage: Failed to update status in DB:", updateError.message, updateError.details);
-    alert(`Error: Failed to update reservation status to "${newStatus}". ${updateError.message}`);
-    return;
-  }
-
-  console.log(`ReservationsPage: Reservation ${reservationId} status successfully updated to ${newStatus}.`);
-
-  // 5. Notification (Placeholder)
-  const notifyCustomerStatuses: StatusValue[] = ["Confirmed_Pending_Payment", "Accepted", "Rejected", "Expired", "Cancelled"]; // Add "Cancelled" if users can cancel and should be notified
-  // Check the source of the reservation for targeted notifications
-  if (notifyCustomerStatuses.includes(newStatus) && (targetReservation.source === "mobile_app" || targetReservation.source === "online_booking")) { // Adjust these source strings
-    console.log(`🔔 NOTIFICATION: Would send push notification to customer ${targetReservation.customer_id} for status change to: ${newStatus}.`);
-    // TODO: Implement actual push notification call here (e.g., via Firebase Cloud Messaging)
-  } else {
-    console.log(`📵 No customer notification deemed necessary (Source: ${targetReservation.source}, New Status: ${newStatus})`);
-  }
-
-  await refreshReservations(); // Refresh the list to show the updated status
-};
+  // --- END UPDATED handleStatusChange ---
 
   const getDateRangeText = () => {
     const now = new Date();
@@ -343,7 +334,6 @@ const handleStatusChange = async (reservationId: string, newStatus: StatusValue)
   if (!showContent) {
     return (
         <div className={styles.loadingContainer}>
-          {/* ... loading elements ... */}
           <h3 className={styles.loadingTitle}>Preparing Reservations</h3>
           <p className={styles.loadingText}>Loading your reservation data...</p>
         </div>
@@ -356,21 +346,13 @@ const handleStatusChange = async (reservationId: string, newStatus: StatusValue)
         <ReservationTabs
           reservationType={reservationType}
           onTypeChange={setReservationType}
-          onNewReservation={() => setIsNewReservationOpen(true)}
+          onNewReservation={openNewReservationModal} 
         />
-        
-        <ReservationStats
-          statistics={statistics} 
-          // dateRange={getDateRangeText()} // Pass if ReservationStats uses it
-          animate={animate}
-        />
-
+        <ReservationStats statistics={statistics} animate={animate} />
         <div className={styles.reservationListSection}>
           <ReservationFilters
-            statusFilter={statusFilter}
-            onStatusFilterChange={setStatusFilter}
-            searchTerm={searchTerm}
-            onSearchTermChange={setSearchTerm}
+            statusFilter={statusFilter} onStatusFilterChange={setStatusFilter}
+            searchTerm={searchTerm} onSearchTermChange={setSearchTerm}
             onOpenAdvancedFilters={() => setIsFilterOpen(true)}
             onOpenExport={() => setIsExportOpen(true)}
           />

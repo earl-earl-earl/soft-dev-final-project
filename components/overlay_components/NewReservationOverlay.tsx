@@ -177,7 +177,9 @@ const NewReservationOverlay: React.FC<NewReservationOverlayProps> = ({
     }
     
     const today = new Date(); today.setHours(0, 0, 0, 0);
+    // eslint-disable-next-line prefer-const
     let currentValidCheckIn = formData.checkIn instanceof Date && !isNaN(formData.checkIn.getTime()) ? new Date(formData.checkIn) : new Date(today);
+    // eslint-disable-next-line prefer-const
     let currentValidCheckOut = formData.checkOut instanceof Date && !isNaN(formData.checkOut.getTime()) ? new Date(formData.checkOut) : new Date(new Date(currentValidCheckIn).setDate(currentValidCheckIn.getDate() + 1));
     currentValidCheckOut.setHours(0,0,0,0);
     let newCheckIn = currentValidCheckIn;
@@ -238,6 +240,7 @@ const NewReservationOverlay: React.FC<NewReservationOverlayProps> = ({
                 newErrors.capacity = `Number of guests (${totalGuests}) exceeds maximum allowed (${maxAllowedWithAllowance}) for room "${selectedRoomDetails.name}".`;
                 formIsValid = false; 
             } else if (totalGuests > baseCapacity) {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 inAllowanceZone = true;
                 newErrors.capacityInfo = `Guest count (${totalGuests}) is over standard capacity of ${baseCapacity}. ` +
                                          `Please use Notes for special requests (e.g., extra bedding for ${totalGuests - baseCapacity} extra guest(s)). Charges may apply.`;
