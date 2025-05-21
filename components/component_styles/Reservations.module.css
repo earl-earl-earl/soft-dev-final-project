@@ -953,3 +953,43 @@
   opacity: 1 !important;
   transform: translateY(0);
 }
+
+.statusPillGeneral { 
+  padding: 0.25em 0.6em;
+  border-radius: 0.5em;
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: inline-block;
+  text-transform: capitalize;
+  white-space: nowrap; 
+}
+
+.paymentPending {
+  background-color: #fefcbf; 
+  color: #b7791f;
+}
+.paymentAwaitingDownpayment {
+  background-color: #ffe5b4; 
+  color: #c05621;
+}
+.paymentDownpaymentPaid {
+  background-color: #bee3f8; 
+  color: #2b6cb0;
+}
+.paymentFullyPaid {
+  background-color: #c6f6d5; 
+  color: #2f855a;
+}
+.paymentNotApplicable {
+  background-color: #e2e8f0;
+  color: #4a5568;
+}
+.paymentRejectedNoPayment {
+  background-color: #fed7d7;
+  color: #c53030;
+}
+.paymentNotPaid { 
+  background-color: #f7fafc; 
+  color: #718096;
+  border: 1px solid #e2e8f0;
+}

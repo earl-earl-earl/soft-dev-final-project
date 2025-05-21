@@ -1,7 +1,7 @@
 // ReservationTable.tsx
 
-import React, { useMemo } from "react";
-import styles from "../../../components/component_styles/Reservations.module.css";
+import React, { useMemo, useCallback } from "react";
+import styles from "../../../components/component_styles/Reservations.module.css"; 
 import { 
   ReservationItem, 
   CustomerLookup, 
@@ -9,8 +9,8 @@ import {
   StaffLookup,
   StatusValue 
 } from "../../../src/types/reservation";
-import { formatDateForDisplay } from "../../../src/utils/dateUtils";
-import { getStatusCategory, statusDescriptions } from "../../../src/utils/reservationUtils";
+import { formatDateForDisplay as formatDateUtil } from "../../../src/utils/dateUtils"; 
+import { getStatusCategory, statusDescriptions } from "../../../src/utils/reservationUtils"; 
 
 interface ReservationTableProps {
   reservations: ReservationItem[];
@@ -37,176 +37,178 @@ const ReservationTable: React.FC<ReservationTableProps> = ({
   onRetry,
   animate
 }) => {
-  const safeCapitalize = (text: string | undefined): string => {
-    if (!text) return "N/A";
+  const safeCapitalize = useCallback((text: string | undefined): string => {
+    if (!text) return "N/A"; 
     return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
-  };
-  const numberOfTableColumns = 18;
+  }, []);
+
+  const formatDateForDisplay = useCallback((date?: Date | string): string => {
+    return formatDateUtil(date); 
+  }, []);
+
+  const getCurrentStatusDisplay = useCallback((status: StatusValue | string): string => {
+    return String(status).replace(/_/g, " ");
+  }, []);
+  
+  const numberOfTableColumns = 18; 
+
+  // --- HELPER FUNCTION FOR PAYMENT STATUS DISPLAY BASED ON RESERVATION STATUS ---
+  const getPaymentStatusDisplayAndClass = useCallback((reservationStatus: StatusValue): { text: string; className: string } => {
+    switch (reservationStatus) {
+      case "Pending":
+        return { text: "Payment Pending", className: styles.paymentPending };
+      case "Confirmed_Pending_Payment":
+        return { text: "Awaiting Downpayment", className: styles.paymentAwaitingDownpayment };
+      case "Accepted":
+        return { text: "Downpayment Paid", className: styles.paymentDownpaymentPaid };
+      case "Checked_In":
+      case "Checked_Out":
+        return { text: "Fully Paid", className: styles.paymentFullyPaid };
+      case "No_Show":
+        // Based on rule: "if the reservation reached Accepted, it implies the downpayment was already confirmed."
+        // This assumes a No_Show can only happen after an Accepted state where DP was made.
+        return { text: "Downpayment Paid", className: styles.paymentDownpaymentPaid }; 
+      case "Expired":
+        return { text: "Not Applicable", className: styles.paymentNotApplicable };
+      case "Cancelled":
+        // Based on rule: "customer voluntarily cancelled ... while it was still in Pending status."
+        return { text: "Not Applicable", className: styles.paymentNotApplicable };
+      case "Rejected":
+        return { text: "Rejected – No Payment Recorded", className: styles.paymentRejectedNoPayment };
+      default:
+        // Fallback for any unknown status or if item.status is somehow not a StatusValue
+        // This shouldn't happen if types are correct.
+        const exhaustiveCheck: never = reservationStatus;
+        console.warn("getPaymentStatusDisplay: Unknown reservation status:", exhaustiveCheck);
+        return { text: "N/A", className: styles.paymentNotPaid };
+    }
+  }, []);
+  // --- END HELPER FUNCTION ---
 
   const tableBodyContent = useMemo(() => {
-    // ... (isLoading, error, no reservations checks) ...
+    if (isLoading) {
+      return (
+        <tr><td colSpan={numberOfTableColumns} className={styles.noReservationsCell}>Loading reservations...</td></tr>
+      );
+    }
+    if (error && (!reservations || reservations.length === 0)) { 
+      return (
+        <tr><td colSpan={numberOfTableColumns} className={styles.noReservationsCell}>Error loading data: {error}. Please try retrying.</td></tr>
+      );
+    }
+    if (!reservations || reservations.length === 0) {
+      return (
+        <tr><td colSpan={numberOfTableColumns} className={styles.noReservationsCell}>No reservations found.</td></tr>
+      );
+    }
     
     return reservations.map((item) => {
-      const statusCategory = getStatusCategory(item.status as StatusValue);
+      if (!item || typeof item.id === 'undefined' || item.id === null) {
+        console.warn("ReservationTable: Skipping rendering of an invalid or incomplete reservation item.", item);
+        return null;
+      }
+
+      const currentItemStatus = item.status as StatusValue;
+      const statusCategory = getStatusCategory(currentItemStatus);
       const totalGuests = (item.guests?.adults || 0) + (item.guests?.children || 0) + (item.guests?.seniors || 0);
-      const room = item.roomId ? roomLookup[item.roomId] : null;
       const nights = item.numberOfNights || 0; 
 
-      const getCurrentStatusDisplay = (status: StatusValue) => status.replace(/_/g, " ");
+      let roomNameDisplay = "N/A";
+      let roomPriceDisplay = "N/A";
+      if (item.roomId) {
+        const roomIdKey = String(item.roomId);
+        const roomDetailsFromLookup = roomLookup[roomIdKey];
+        if (roomDetailsFromLookup) {
+          roomNameDisplay = roomDetailsFromLookup.name || `Room ID: ${roomIdKey}`;
+          if (roomDetailsFromLookup.price != null && !isNaN(Number(roomDetailsFromLookup.price))) {
+            roomPriceDisplay = `\u20B1${Number(roomDetailsFromLookup.price).toFixed(2)}`;
+          }
+        } else {
+          roomNameDisplay = `Room ID: ${roomIdKey} (Info N/A)`;
+        }
+      } else {
+        roomNameDisplay = "No Room Assigned";
+      }
 
-      // Define allowed staff-selectable transitions based on current status.
-      // "Cancelled" and "Expired" are NOT selectable by staff via this dropdown.
-      const getAllowedStaffTransitions = (currentStatus: StatusValue, source: string): StatusValue[] => {
+      const getAllowedStaffTransitions = (status: StatusValue, source: string): StatusValue[] => {
         const allowed: StatusValue[] = [];
-
-        // If current status is one that staff do not change via this UI,
-        // or is a "final" state for this workflow.
-        if (
-          currentStatus === "Cancelled" || 
-          currentStatus === "Expired" || 
-          currentStatus === "Checked_Out" ||
-          currentStatus === "Rejected" || 
-          currentStatus === "No_Show"     
-        ) {
-          return [currentStatus]; // Only the current status is "allowed" (dropdown effectively read-only)
+        if (["Cancelled", "Expired", "Checked_Out", "Rejected", "No_Show"].includes(status)) {
+          return [status];
         }
-
-        // Logic based on resort rules for staff actions:
-        switch (currentStatus) {
-          case "Pending": 
-            // For online/mobile bookings. Staff can:
-            // 1. Confirm it (pending payment)
-            // 2. Accept it directly (if payment is somehow already handled or not required first)
-            // 3. Reject it
-            allowed.push("Confirmed_Pending_Payment", "Accepted", "Rejected");
-            break;
-
-          case "Confirmed_Pending_Payment": 
-            // For direct bookings or online bookings that staff confirmed.
-            // Staff can:
-            // 1. Mark as "Accepted" (once payment is confirmed).
-            // 2. "Reject" if payment fails / guest unresponsive.
-            // "Checked_In" is NOT from here. It's from "Accepted".
-            // "Cancelled" is NOT a staff option here.
-            // "Expired" is system-driven.
-            // "No_Show" is not from here; typically from "Accepted".
-            allowed.push("Accepted", "Rejected");
-            break;
-
-          case "Accepted": 
-            // Fully confirmed, payment received. Staff can:
-            // 1. Check the guest In.
-            // 2. Mark as "No_Show" if the guest doesn't arrive.
-            // "Cancelled" is NOT a staff option here.
-            allowed.push("Checked_In", "No_Show");
-            break;
-
-          case "Checked_In":
-            // Guest is currently at the property. Staff can:
-            // 1. Check the guest Out.
-            // 2. Mark as "No_Show" (e.g. guest leaves mid-stay without notice - less common, but possible).
-            allowed.push("Checked_Out", "No_Show");
-            break;
-          
-          default:
-            console.warn(`getAllowedStaffTransitions: Unhandled current status for transitions: ${currentStatus}`);
-            break;
+        switch (status) {
+          case "Pending": allowed.push("Confirmed_Pending_Payment", "Accepted", "Rejected"); break;
+          case "Confirmed_Pending_Payment": allowed.push("Accepted", "Rejected"); break;
+          case "Accepted": allowed.push("Checked_In", "No_Show"); break;
+          case "Checked_In": allowed.push("Checked_Out", "No_Show"); break;
+          default: console.warn(`getAllowedStaffTransitions: Unhandled status for generating transitions: ${status}`); break;
         }
-        
-        // Ensure the current status is always an option, even if no other transitions are valid from it.
-        if (!allowed.includes(currentStatus)) {
-             allowed.unshift(currentStatus);
-        }
-        return [...new Set(allowed)]; // Remove duplicates
+        if (!allowed.includes(status)) allowed.unshift(status);
+        return [...new Set(allowed)];
       };
+      const staffSelectableNextStatuses = getAllowedStaffTransitions(currentItemStatus, item.source);
 
-      const staffSelectableNextStatuses = getAllowedStaffTransitions(item.status as StatusValue, item.source);
+      // Get the derived payment status display information using the new helper
+      const paymentDisplay = getPaymentStatusDisplayAndClass(currentItemStatus);
 
       return (
-        <tr 
-          key={item.id} 
-          onClick={() => onRowClick(item)}
-          className={styles.clickableRow}
-        >
+        <tr key={item.id} onClick={() => onRowClick(item)} className={styles.clickableRow}>
           <td>{formatDateForDisplay(item.timestamp)}</td>
-          <td>{customerLookup[item.customerId]?.name || "N/A"}</td>
-          <td>{room?.name || item.roomId}</td>
+          <td>{item.customerId && customerLookup[String(item.customerId)]?.name || "N/A"}</td>
+          <td>{roomNameDisplay}</td>
           <td>{formatDateForDisplay(item.checkIn)}</td>
           <td>{formatDateForDisplay(item.checkOut)}</td>
           <td>{nights}</td>
-          <td>{customerLookup[item.customerId]?.phone || "N/A"}</td>
+          <td>{item.customerId && customerLookup[String(item.customerId)]?.phone || "N/A"}</td>
           <td>{item.guests?.adults || 0}</td>
           <td>{item.guests?.children || 0}</td>
           <td>{item.guests?.seniors || 0}</td>
           <td><strong>{totalGuests}</strong></td>
-          <td>{room?.price != null ? `\u20B1${room.price.toFixed(2)}` : "N/A"}</td>
+          <td>{roomPriceDisplay}</td>
           <td>{item.totalPrice != null ? `\u20B1${item.totalPrice.toFixed(2)}` : "N/A"}</td>
           <td>
             <select
               className={`${styles.statusDropdown} ${styles[`status${statusCategory}`]}`}
-              value={item.status}
+              value={item.status} // This is StatusValue
               onChange={(e) => onStatusChange(item.id, e.target.value as StatusValue)}
               onClick={(e) => e.stopPropagation()}
-              title={statusDescriptions[item.status as keyof typeof statusDescriptions] || getCurrentStatusDisplay(item.status as StatusValue)}
-              disabled={staffSelectableNextStatuses.length <= 1 && 
-                         (item.status === "Cancelled" || 
-                          item.status === "Expired" || 
-                          item.status === "Checked_Out" ||
-                          item.status === "Rejected" ||
-                          item.status === "No_Show")}
+              title={statusDescriptions[item.status as keyof typeof statusDescriptions] || getCurrentStatusDisplay(item.status)}
+              disabled={staffSelectableNextStatuses.length <= 1 && (["Cancelled", "Expired", "Checked_Out", "Rejected", "No_Show"].includes(item.status as StatusValue))}
             >
-              <option value={item.status}>
-                {getCurrentStatusDisplay(item.status as StatusValue)}
-              </option>
+              <option value={item.status}>{getCurrentStatusDisplay(item.status)}</option>
               {staffSelectableNextStatuses
                 .filter(status => status !== item.status)
                 .map(statusValue => (
-                  <option key={statusValue} value={statusValue}>
-                    {getCurrentStatusDisplay(statusValue)}
-                  </option>
+                  <option key={statusValue} value={statusValue}>{getCurrentStatusDisplay(statusValue)}</option>
               ))}
             </select>
           </td>
-          <td>{item.confirmationTime ? formatDateForDisplay(item.confirmationTime) : "N/A"}</td>
-          <td><span className={`${styles.statusPillGeneral} ${item.paymentReceived ? styles.paymentPaid : styles.paymentNotPaid}`}>{item.paymentReceived ? "Paid" : "Not Paid"}</span></td>
+          <td>{formatDateForDisplay(item.confirmationTime)}</td>
+          {/* UPDATED PAYMENT DISPLAY CELL - Uses the new getPaymentStatusDisplayAndClass helper */}
+          <td>
+            <span className={`${styles.statusPillGeneral} ${paymentDisplay.className}`}>
+              {paymentDisplay.text}
+            </span>
+          </td>
           <td><span className={`${styles.statusPillGeneral} ${(item.type || "direct") === "online" ? styles.typeOnline : styles.typeDirect}`}>{safeCapitalize(item.type)}</span></td>
-          <td>{item.auditedBy && staffLookup[item.auditedBy] ? staffLookup[item.auditedBy]?.name : (item.auditedBy || "N/A")}</td>
+          <td>{item.auditedBy && staffLookup[String(item.auditedBy)] ? staffLookup[String(item.auditedBy)]?.name : (item.auditedBy || "N/A")}</td>
         </tr>
       );
     });
-  }, [reservations, customerLookup, roomLookup, staffLookup, onRowClick, onStatusChange, isLoading, error]);
+  }, [reservations, customerLookup, roomLookup, staffLookup, onRowClick, onStatusChange, isLoading, error, 
+      safeCapitalize, formatDateForDisplay, getCurrentStatusDisplay, getStatusCategory, statusDescriptions, getPaymentStatusDisplayAndClass]); // Added getPaymentStatusDisplayAndClass
 
-  // ... (return statement for the table structure)
   return (
     <>
       {error && !isLoading ? (
-        <div className={styles.errorContainer}>
-          <p>Error: {error}</p>
-          <button onClick={onRetry} className={styles.retryButton}>Retry</button>
-        </div>
+        <div className={styles.errorContainer}><p>Error: {error}</p><button onClick={onRetry} className={styles.retryButton}>Retry</button></div>
       ) : (
         <div className={`${styles.tableContainer} ${animate ? styles.tableFadeIn : ""}`}>
           <table className={styles.reservationTable}>
             <thead>
               <tr>
-                <th>Reserved On</th>
-                <th>Name</th>
-                <th>Room</th>
-                <th>Check-in</th>
-                <th>Check-out</th>
-                <th>Nights</th>
-                <th>Phone</th>
-                <th>Adults</th>
-                <th>Children</th>
-                <th>Seniors</th>
-                <th>Total Guests</th>
-                <th>Room Rate/Night</th>
-                <th>Total Bill</th>
-                <th>Status</th>
-                <th>Confirmation</th>
-                <th>Payment</th>
-                <th>Type</th>
-                <th>Audited By</th>
+                <th>Reserved On</th><th>Name</th><th>Room</th><th>Check-in</th><th>Check-out</th><th>Nights</th><th>Phone</th>
+                <th>Adults</th><th>Children</th><th>Seniors</th><th>Total Guests</th><th>Room Rate/Night</th><th>Total Bill</th>
+                <th>Status</th><th>Confirmation</th><th>Payment</th><th>Type</th><th>Audited By</th>
               </tr>
             </thead>
             <tbody>{tableBodyContent}</tbody>

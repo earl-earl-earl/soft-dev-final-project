@@ -6,7 +6,8 @@ import { useFilteredReservations } from "../../../src/hooks/useFilteredReservati
 import { 
   ReservationItem, 
   FilterOptions, 
-  RoomOption as FilterRoomOption 
+  RoomOption as FilterRoomOption,
+  StatusValue,
 } from "../../../src/types/reservation";
 import { submitReservation } from "@/contexts/newReservation"; 
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
@@ -199,7 +200,7 @@ const ReservationsPage: React.FC = () => {
       const result = await submitReservation(reservationData);
       if (result.success) {
         alert(`Reservation successfully created! ID: ${result.reservationId}`); // Keep alert for success confirmation
-        setIsNewReservationOpen(false); 
+        setIsNewReservationOpen(false); // Close overlay on success
         setFormSubmissionError(null);  
         await refreshReservations(); 
       } else {
@@ -221,39 +222,116 @@ const ReservationsPage: React.FC = () => {
     setSelectedReservation(reservation);
   };
 
-  const handleStatusChange = async (reservationId: string, newStatus: string) => {
-    // calls refreshReservations() on success.
-    const { data: reservationDetails, error: fetchError } = await supabase
-      .from("reservations").select("source, customer_id, confirmation_time").eq("id", reservationId).single();
-    if (fetchError || !reservationDetails) { /* ... */ return; }
-    const updatePayload: any = { status: newStatus, payment_received: newStatus === "Accepted", last_updated: new Date().toISOString(), status_updated_at: new Date().toISOString() };
-    if ((newStatus === "Confirmed_Pending_Payment" || newStatus === "Accepted") && !reservationDetails.confirmation_time) {
-      updatePayload.confirmation_time = new Date().toISOString();
-    } else if (newStatus !== "Confirmed_Pending_Payment" && newStatus !== "Accepted") {
-    }
+  // Replace your existing handleStatusChange function with this:
+const handleStatusChange = async (reservationId: string, newStatus: StatusValue) => {
+  console.log(`ReservationsPage: Attempting to change reservation ${reservationId} to status ${newStatus}`);
 
+  // 1. Fetch current details of the target reservation
+  // We need room_id, check_in, check_out for availability check, and current_status to avoid redundant checks
+  const { data: targetReservation, error: fetchError } = await supabase
+    .from("reservations")
+    .select("source, customer_id, room_id, check_in, check_out, confirmation_time, status")
+    .eq("id", reservationId)
+    .single();
 
-    const { error: updateError } = await supabase
-      .from("reservations")
-      .update(updatePayload)
-      .eq("id", reservationId);
+  if (fetchError || !targetReservation) {
+    console.error("ReservationsPage: Failed to fetch target reservation details for status change:", fetchError?.message);
+    alert("Error: Could not retrieve reservation details to update status. Please try again or check console.");
+    return;
+  }
 
-    if (updateError) {
-      console.error("Failed to update status in DB:", updateError.message);
-      alert("Failed to update reservation status.");
+  const currentStatus = targetReservation.status as StatusValue;
+
+  // 2. AVAILABILITY CHECK (REQ-WEB-06 from your docs)
+  // Perform this check ONLY IF the newStatus is one that blocks the room ('Confirmed_Pending_Payment' or 'Accepted')
+  // AND the reservation is not ALREADY in one of these blocking statuses (or 'Checked_In').
+  const statusesThatBlockRoom: StatusValue[] = ["Confirmed_Pending_Payment", "Accepted", "Checked_In"];
+  
+  if (
+      (newStatus === "Confirmed_Pending_Payment" || newStatus === "Accepted") && // Moving TO a blocking status
+      !statusesThatBlockRoom.includes(currentStatus) // AND not already in a blocking status
+  ) {
+    console.log(`ReservationsPage: Performing availability check for room ${targetReservation.room_id} (dates: ${targetReservation.check_in} to ${targetReservation.check_out}) before setting status to ${newStatus}`);
+    
+    const { data: conflictingReservations, error: availabilityError } = await supabase
+      .from('reservations')
+      .select('id, status') // Select status for more informative error message if needed
+      .eq('room_id', targetReservation.room_id)
+      .in('status', statusesThatBlockRoom) // Check against other Confirmed, Accepted, Checked_In
+      .neq('id', reservationId) // IMPORTANT: Exclude the current reservation itself!
+      .lt('check_in', targetReservation.check_out)  // existing.check_in < target.check_out
+      .gt('check_out', targetReservation.check_in); // existing.check_out > target.check_in
+
+    if (availabilityError) {
+      console.error("ReservationsPage: Database error during room availability check:", availabilityError.message, availabilityError.details);
+      alert("Error: Could not verify room availability due to a system error. Please try again or contact support.");
       return;
     }
 
-    // 'mobile' is the source string for mobile app bookings
-    if (reservationDetails.source === "mobile") { 
-      console.log("🔔 Would send notification to customer:", reservationDetails.customer_id);
-      // TODO: Integrate Firebase push notification logic here.
-    } else {
-      console.log(`📵 No notification sent (source is ${reservationDetails.source})`);
+    if (conflictingReservations && conflictingReservations.length > 0) {
+      const conflictDetails = conflictingReservations.map(r => `ID: ${r.id} (Status: ${r.status})`).join(', ');
+      console.warn(`ReservationsPage: Availability conflict found. Cannot change status to "${newStatus}". Conflicts with: ${conflictDetails}`, conflictingReservations);
+      alert(`Error: Cannot change status to "${newStatus}". The room is already booked or held by another reservation for the selected dates (Conflicting reservation(s): ${conflictDetails}).`);
+      return; // Stop the update
     }
+    console.log("ReservationsPage: Availability check passed for status change to a blocking status.");
+  }
 
-    await refreshReservations(); 
+  // 3. Prepare Update Payload
+  // Define the type more strictly for updatePayload
+  type ReservationUpdatePayload = {
+    status: StatusValue;
+    payment_received: boolean;
+    last_updated: string;
+    status_updated_at: string;
+    confirmation_time?: string | null; // Optional, can be string or null
   };
+
+  const updatePayload: ReservationUpdatePayload = {
+    status: newStatus,
+    payment_received: newStatus === "Accepted", // "Accepted" implies payment is received
+    last_updated: new Date().toISOString(),
+    status_updated_at: new Date().toISOString()
+  };
+
+  // Conditional logic for confirmation_time
+  // Set confirmation_time if moving to a confirmed state and it's not already set
+  if ((newStatus === "Confirmed_Pending_Payment" || newStatus === "Accepted") && !targetReservation.confirmation_time) {
+    updatePayload.confirmation_time = new Date().toISOString();
+  } 
+  // Example: If moving away from a confirmed state, you might want to nullify confirmation_time.
+  // This depends on your business logic if a "Rejected" or "Cancelled" status should clear a previous confirmation.
+  // else if (!["Confirmed_Pending_Payment", "Accepted"].includes(newStatus) && targetReservation.confirmation_time) {
+  //   updatePayload.confirmation_time = null; 
+  // }
+
+  // 4. Perform the Update
+  console.log(`ReservationsPage: Updating reservation ${reservationId} with payload:`, updatePayload);
+  const { error: updateError } = await supabase
+    .from("reservations")
+    .update(updatePayload)
+    .eq("id", reservationId);
+
+  if (updateError) {
+    console.error("ReservationsPage: Failed to update status in DB:", updateError.message, updateError.details);
+    alert(`Error: Failed to update reservation status to "${newStatus}". ${updateError.message}`);
+    return;
+  }
+
+  console.log(`ReservationsPage: Reservation ${reservationId} status successfully updated to ${newStatus}.`);
+
+  // 5. Notification (Placeholder)
+  const notifyCustomerStatuses: StatusValue[] = ["Confirmed_Pending_Payment", "Accepted", "Rejected", "Expired", "Cancelled"]; // Add "Cancelled" if users can cancel and should be notified
+  // Check the source of the reservation for targeted notifications
+  if (notifyCustomerStatuses.includes(newStatus) && (targetReservation.source === "mobile_app" || targetReservation.source === "online_booking")) { // Adjust these source strings
+    console.log(`🔔 NOTIFICATION: Would send push notification to customer ${targetReservation.customer_id} for status change to: ${newStatus}.`);
+    // TODO: Implement actual push notification call here (e.g., via Firebase Cloud Messaging)
+  } else {
+    console.log(`📵 No customer notification deemed necessary (Source: ${targetReservation.source}, New Status: ${newStatus})`);
+  }
+
+  await refreshReservations(); // Refresh the list to show the updated status
+};
 
   const getDateRangeText = () => {
     const now = new Date();
