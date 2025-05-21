@@ -44,22 +44,24 @@ const ReservationFilters: React.FC<ReservationFiltersProps> = ({
       </h2>
       <div className={styles.actionsContainer}>
         <div className={styles.listControls}>
-          <div className={styles.statusFilterWrapper}>
+          <div className={styles.filterGroup}>
             <div className={styles.iconTooltipWrapper}>
-              <select 
+              <select
                 className={styles.statusFilter}
-                value={statusFilter} 
-                onChange={(e) => onStatusFilterChange(e.target.value)}
+                value={statusFilter}
+                onChange={(e) => onStatusFilterChange(e.target.value as any)}
               >
-                {STATUS_FILTER_OPTIONS.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
+                <option value="all">All Statuses</option>
+                {STATUS_FILTER_OPTIONS.map(statusOption => (
+                  <option key={statusOption.value} value={statusOption.value}>
+                    {statusOption.label}
                   </option>
                 ))}
               </select>
               <span className={styles.tooltipText}>Filter by status</span>
             </div>
           </div>
+          
           <div className={styles.searchBar}>
             <i
               className={`fa-regular fa-magnifying-glass ${styles.searchIcon}`}
@@ -72,24 +74,21 @@ const ReservationFilters: React.FC<ReservationFiltersProps> = ({
               onChange={(e) => onSearchTermChange(e.target.value)}
             />
           </div>
-          <div className={styles.iconTooltipWrapper}>
-            <button 
-              className={styles.filterButton}
-              onClick={onOpenAdvancedFilters}
-            >
-              <i className="fa-regular fa-filter"></i>
-              <span className={styles.tooltipText}>Advanced Filters</span>
-            </button>
-          </div>
-        </div>
-        <div className={styles.exportAction}>
-          <div className={styles.iconTooltipWrapper}>
-            <button 
-              className={styles.exportButton}
-              onClick={onOpenExport}>
-              <i className="fa-regular fa-file-export"></i>
-              <span className={styles.tooltipText}>Export Data</span>
-            </button>
+          
+          {/* Moved outside of searchBar */}
+          <div className={styles.filterButtons}>
+            <div className={styles.iconTooltipWrapper}>
+              <button className={styles.filterButton} onClick={onOpenAdvancedFilters}>
+                <i className="fa-regular fa-filter"></i>
+                <span className={styles.tooltipText}>Advanced Filters</span>
+              </button>
+            </div>
+            <div className={styles.iconTooltipWrapper}>
+              <button className={styles.exportButton} onClick={onOpenExport}>
+                <i className="fa-regular fa-file-export"></i>
+                <span className={styles.tooltipText}>Export Data</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

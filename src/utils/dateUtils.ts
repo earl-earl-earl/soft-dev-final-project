@@ -1,4 +1,5 @@
 // src/utils/dateUtils.ts
+import { format, parseISO, addHours } from 'date-fns';
 
 export const createMockDate = (
   year: number,
@@ -13,54 +14,35 @@ export const createMockDate = (
 };
 
 /**
- * 
- * 
- * @param dateInput 
- * @param options
- * @returns 
+ * Formats a Date object or a date string into a human-readable format,
+ * considering timezone differences for accurate display.
+ * @param date The Date object or a string that can be parsed into a Date.
+ * @param fromDatabase Optional. Indicates if the date is coming from the database.
+ *                      If true, 8 hours will be added to the date assuming it's in UTC.
+ * @returns A formatted date string or "N/A" if the input is invalid.
  */
 export const formatDateForDisplay = (
-  dateInput?: Date | string,
-  options?: Intl.DateTimeFormatOptions 
+  date?: Date | string,
+  fromDatabase = true // Add parameter to indicate if date is from DB
 ): string => {
-  if (!dateInput) return "N/A";
-
-  let date: Date;
-  if (typeof dateInput === 'string') {
-    date = new Date(dateInput); 
-  } else {
-    date = dateInput;
-  }
-
-  if (isNaN(date.getTime())) {
-    console.warn("formatDateForDisplay received an invalid date:", dateInput);
-    return "Invalid Date";
-  }
-
-  // Default options for displaying date and time in 'Asia/Manila'
-  const defaultDisplayOptions: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: 'short',    // e.g., "May"
-    day: '2-digit',    // e.g., "20"
-    hour: '2-digit',   // e.g., "04"
-    minute: '2-digit', // e.g., "28"
-    // second: '2-digit', // Uncomment if you want seconds
-    hour12: true,      // Use AM/PM
-    timeZone: 'Asia/Manila', // <<< CRITICAL: Displays the time in this timezone
-  };
-
-  const mergedOptions = { ...defaultDisplayOptions, ...options };
-
+  if (!date) return "N/A";
+  
   try {
-    // toLocaleString will convert the Date object (which is UTC-based)
-    // to the specified timeZone and format it.
-    return date.toLocaleString('en-US', mergedOptions); 
-                                                      
+    // If it's a string, parse it as ISO
+    let dateObj = typeof date === 'string' ? parseISO(date) : date;
+    
+    // Add 8 hours to dates coming from the database (UTC to UTC+8)
+    if (fromDatabase) {
+      dateObj = addHours(dateObj, 8);
+    }
+    
+    // Format with the time to show both date and time
+    return format(dateObj, 'MMM d, yyyy h:mm a');
   } catch (e) {
-    console.error("Error formatting date with toLocaleString:", e, dateInput, mergedOptions);
-    return "Formatting Error";
+    console.error("Date formatting error:", e);
+    return typeof date === 'string' ? date : 'Invalid Date';
   }
-};
+}
 
 /**
  * Formats a Date object or a date string into "YYYY-MM-DD" format,
@@ -69,34 +51,8 @@ export const formatDateForDisplay = (
  * @param dateInput The Date object or a string that can be parsed into a Date.
  * @returns A "YYYY-MM-DD" string or null if the input is invalid.
  */
-export const formatDateForDB = (dateInput?: Date | string): string | null => {
-  if (!dateInput) return null;
-
-  let date: Date;
-  if (typeof dateInput === 'string') {
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
-        const [year, month, day] = dateInput.split('-').map(Number);
-        const testDate = new Date(year, month - 1, day);
-        if (testDate.getFullYear() === year && testDate.getMonth() === month - 1 && testDate.getDate() === day) {
-            date = new Date(year, month - 1, day); 
-        } else {
-            date = new Date(dateInput); 
-        }
-    } else {
-        date = new Date(dateInput);
-    }
-  } else {
-    date = dateInput;
-  }
-
-  if (isNaN(date.getTime())) {
-    console.warn("formatDateForDB received an invalid date after parsing:", dateInput);
-    return null;
-  }
-
-  const year = date.getFullYear();
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const day = date.getDate().toString().padStart(2, '0');
-  
-  return `${year}-${month}-${day}`;
-};
+export const formatDateForDB = (date: Date): string => {
+  if (!date || isNaN(date.getTime())) return "";
+  // Format as YYYY-MM-DD which is timezone-independent
+  return format(date, 'yyyy-MM-dd');
+}

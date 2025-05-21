@@ -333,11 +333,31 @@ const ReservationsPage: React.FC = () => {
 
   if (!showContent) {
     return (
-        <div className={styles.loadingContainer}>
-          <h3 className={styles.loadingTitle}>Preparing Reservations</h3>
-          <p className={styles.loadingText}>Loading your reservation data...</p>
+      <div className={styles.loadingContainer}>
+        <div className={styles.loadingAnimation}>
+          <div className={styles.spinnerContainer}>
+            <i className="fa-solid fa-calendar fa-beat-fade"></i>
+          </div>
+          <div className={styles.loadingCards}>
+            <div className={`${styles.loadingCard} ${styles.loadingCard1}`}></div>
+            <div className={`${styles.loadingCard} ${styles.loadingCard2}`}></div>
+            <div className={`${styles.loadingCard} ${styles.loadingCard3}`}></div>
+            <div className={`${styles.loadingCard} ${styles.loadingCard4}`}></div>
+          </div>
+          <div className={styles.loadingTable}>
+            <div className={styles.loadingTableHeader}></div>
+            <div className={styles.loadingTableRows}>
+              <div className={styles.loadingTableRow}></div>
+              <div className={styles.loadingTableRow}></div>
+              <div className={styles.loadingTableRow}></div>
+            </div>
+          </div>
         </div>
-      );
+        
+        <h3 className={styles.loadingTitle}>Loading Reservations</h3>
+        <p className={styles.loadingText}>Preparing reservation information...</p>
+      </div>
+    );
   }
 
   return (
