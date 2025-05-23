@@ -17,43 +17,35 @@ import EditRoomOverlay from '../../overlay_components/EditRoomOverlay';
 import styles from '../../component_styles/Rooms.module.css';
 
 const RoomsPage: React.FC = () => {
-  // Get room data and operations
-  const { 
-    rooms, 
+  const {
+    rooms,
     isLoading,
-    error, 
-    formErrors, 
-    addRoom, 
-    updateRoom, 
-    toggleRoomStatus, 
-    clearError 
+    error,
+    formErrors,
+    addRoom,
+    updateRoom,
+    toggleRoomStatus,
+    clearError,
+    refreshRooms
   } = useRooms();
 
-  // Animation states
   const [animate, setAnimate] = useState(false);
   const [showContent, setShowContent] = useState(false);
   const loadingFinishedRef = useRef(false);
 
-  // Handle animation after loading finishes
   useEffect(() => {
     if (!isLoading && !loadingFinishedRef.current) {
       loadingFinishedRef.current = true;
-      
-      // Small delay to ensure smooth transition from loading to content
       const timer = setTimeout(() => {
         setShowContent(true);
-        
-        // Then trigger animations with a slight delay
         setTimeout(() => {
           setAnimate(true);
         }, 100);
       }, 300);
-      
       return () => clearTimeout(timer);
     }
   }, [isLoading]);
   
-  // Get filtered rooms and filtering operations
   const {
     currentRooms,
     currentPage,
@@ -69,13 +61,11 @@ const RoomsPage: React.FC = () => {
     roomStats
   } = useFilteredRooms({ rooms });
 
-  // UI state
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isAddRoomOpen, setIsAddRoomOpen] = useState(false);
   const [isEditRoomOpen, setIsEditRoomOpen] = useState(false);
   const [currentRoom, setCurrentRoom] = useState<Room | null>(null);
 
-  // Event handlers
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   };
@@ -89,33 +79,64 @@ const RoomsPage: React.FC = () => {
   };
 
   const handleAddRoom = () => {
+    // Clear previous form errors when opening the Add Room overlay
+    if (Object.keys(formErrors).length > 0) {
+        clearError(); // clearError in useRooms also clears formErrors
+    }
     setIsAddRoomOpen(true);
   };
 
-  const handleEditRoom = (roomId: string) => {
-    const roomToEdit = rooms.find(room => room.id === roomId);
-    if (roomToEdit) {
-      setCurrentRoom(roomToEdit);
-      setIsEditRoomOpen(true);
+// In RoomsPage.tsx
+const handleEditRoom = (roomId: string) => {
+  console.log("--- handleEditRoom ---");
+  console.log("1. roomId received from RoomCard/RoomGrid:", roomId, "(type:", typeof roomId + ")");
+  console.log("2. Current 'rooms' state (first few items shown):", rooms.slice(0, 3));
+
+  const roomToEdit = rooms.find(room => {
+    console.log(`Comparing (received) "${roomId}" with (room state) "${room.id}" (type: ${typeof room.id})`);
+    return String(room.id) === String(roomId);
+  });
+  
+  console.log("3. roomToEdit found:", roomToEdit);
+
+  if (roomToEdit) {
+    if (Object.keys(formErrors).length > 0) {
+        console.log("Clearing existing form errors.");
+        clearError();
     }
-  };
+    setCurrentRoom(roomToEdit);
+    setIsEditRoomOpen(true);
+    console.log("4. setCurrentRoom done, setIsEditRoomOpen(true) done. currentRoom is now:", roomToEdit, "isEditRoomOpen is now true.");
+  } else {
+    console.warn("4. Room NOT found for ID:", roomId, "- Check if this ID exists in the 'rooms' array above with matching type.");
+  }
+  console.log("--- end handleEditRoom ---");
+};
 
   const handleToggleStatus = (roomId: string) => {
-    if (window.confirm(`Are you sure you want to ${rooms.find(r => r.id === roomId)?.isActive ? 'deactivate' : 'activate'} this room?`)) {
+    const room = rooms.find(r => String(r.id) === roomId);
+    if (window.confirm(`Are you sure you want to ${room?.is_active ? 'deactivate' : 'activate'} this room?`)) {
       toggleRoomStatus(roomId);
     }
   };
 
   const handleAddRoomSubmit = async (roomData: RoomFormData) => {
-    await addRoom(roomData);
-    setIsAddRoomOpen(false);
+    // addRoom now returns a boolean indicating success
+    const success = await addRoom(roomData);
+    if (success) {
+        setIsAddRoomOpen(false); // Close overlay only on success
+    }
+    // If not successful, formErrors should be populated by useRooms, and overlay remains open
   };
 
-  const handleEditRoomSubmit = async (roomData: RoomFormData) => {
+  const handleEditRoomSubmit = async (updatedFormData: RoomFormData) => {
     if (!currentRoom) return;
-    await updateRoom(currentRoom.id, roomData);
-    setIsEditRoomOpen(false);
-    setCurrentRoom(null);
+    // updateRoom now takes currentRoom (initial data) and returns a boolean
+    const success = await updateRoom(String(currentRoom.id), updatedFormData, currentRoom);
+    if (success) {
+        setIsEditRoomOpen(false);
+        setCurrentRoom(null); // Clear current room on success
+    }
   };
 
   const handleApplyFilters = (newFilters: RoomFilterOptions) => {
@@ -123,25 +144,23 @@ const RoomsPage: React.FC = () => {
     setIsFilterOpen(false);
   };
 
-  // Add to your component
   useEffect(() => {
     if (showContent) {
       setAnimate(false);
-      
       setTimeout(() => {
         setAnimate(true);
       }, 100);
     }
   }, [searchTerm, statusFilter, filterOptions, showContent]);
 
-  // Show loading screen
-  if (!showContent) {
+  if (!showContent && isLoading) {
     return (
       <div className={styles.loadingContainer}>
         <div className={styles.loadingAnimation}>
           <div className={styles.spinnerContainer}>
             <i className="fa-solid fa-door-open fa-beat-fade"></i>
           </div>
+          {/* ... rest of loading animation ... */}
           <div className={styles.loadingCards}>
             <div className={`${styles.loadingCard} ${styles.loadingCard1}`}></div>
             <div className={`${styles.loadingCard} ${styles.loadingCard2}`}></div>
@@ -165,16 +184,18 @@ const RoomsPage: React.FC = () => {
     );
   }
   
-  // Error state
   if (error) {
     return (
       <div className={styles.errorContainer}>
         <i className="fa-regular fa-exclamation-circle"></i>
         <h3>Error Loading Rooms</h3>
         <p>{error}</p>
-        <button 
+        <button
           className={styles.retryButton}
-          onClick={clearError}
+          onClick={() => {
+            clearError();
+            refreshRooms();
+          }}
         >
           Retry
         </button>
@@ -184,13 +205,11 @@ const RoomsPage: React.FC = () => {
 
   return (
     <div className={`${styles.roomDashboard} ${animate ? styles.fadeIn : ""}`}>
-      {/* Stats Section */}
       <div className={`${animate ? styles.animateFirst : ""}`}>
         <RoomStats stats={roomStats} />
       </div>
 
       <div className={`${styles.topContent} ${animate ? styles.animateSecond : ""}`}>
-        {/* Header with search and filters */}
         <RoomsHeader
           searchTerm={searchTerm}
           onSearchChange={handleSearchChange}
@@ -199,8 +218,6 @@ const RoomsPage: React.FC = () => {
           onOpenFilters={handleOpenFilters}
           onAddRoom={handleAddRoom}
         />
-
-        {/* Room Grid */}
         <RoomGrid
           rooms={currentRooms}
           isSingleRow={isSingleRow}
@@ -221,7 +238,6 @@ const RoomsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Overlay components */}
       <RoomFilterOverlay
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
@@ -233,8 +249,8 @@ const RoomsPage: React.FC = () => {
         isOpen={isAddRoomOpen}
         onClose={() => setIsAddRoomOpen(false)}
         onSubmit={handleAddRoomSubmit}
-        existingRooms={rooms}
-        formErrors={formErrors}
+        existingRooms={rooms.map(r => ({ id: String(r.id), name: r.name, amenities: r.amenities }))}
+        formErrors={formErrors} // Passed from useRooms
       />
       
       {currentRoom && (
@@ -245,9 +261,9 @@ const RoomsPage: React.FC = () => {
             setCurrentRoom(null);
           }}
           onSubmit={handleEditRoomSubmit}
-          existingRooms={rooms}
-          formErrors={formErrors}
+          formErrors={formErrors} // Passed from useRooms
           room={currentRoom}
+existingRooms={rooms.map(r => ({ id: String(r.id), name: r.name, amenities: r.amenities || [] }))} 
         />
       )}
     </div>

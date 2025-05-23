@@ -2,21 +2,23 @@ import React, { useState, useEffect, useRef } from 'react';
 import styles from '../component_styles/FilterOverlay.module.css';
 import Image from 'next/image';
 
+// 1. Update RoomFormData interface
 export interface RoomFormData {
   name: string;
-  roomNumber: string;
+  // roomNumber: string; // Removed
   capacity: number;
   price: number;
   amenities: string[];
   isActive: boolean;
-  images: File[]; // Add this new field
+  images: File[];
+  panoramicImage?: File;
 }
 
 interface AddRoomOverlayProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: RoomFormData) => void;
-  existingRooms: { id: string; name: string; roomNumber: string; amenities?: string[] }[];
+  existingRooms: { id: string; name: string; amenities?: string[] }[];
   formErrors?: Record<string, string>;
 }
 
@@ -25,102 +27,87 @@ const AddRoomOverlay: React.FC<AddRoomOverlayProps> = ({
   onClose,
   onSubmit,
   existingRooms,
-  formErrors = {} // Set default to empty object if not provided
+  formErrors = {}
 }) => {
+  // 2. Update initial formData state
   const [formData, setFormData] = useState<RoomFormData>({
     name: '',
-    roomNumber: '',
+    // roomNumber: '', // Removed
     capacity: 1,
     price: 0,
     amenities: [],
     isActive: true,
-    images: [] // Initialize empty images array
+    images: [],
+    panoramicImage: undefined
   });
   
-  // Create local state for form errors initialized with props
   const [formErrorsState, setFormErrors] = useState<Record<string, string>>(formErrors);
   const [amenityInput, setAmenityInput] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [panoramicImageError, setPanoramicImageError] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const panoramicFileInputRef = useRef<HTMLInputElement>(null); // Ref for panoramic image input
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Extract unique amenities from existing rooms
   const allExistingAmenities = [...new Set(existingRooms.flatMap(room => room.amenities || []))];
   
-  // Filter amenities based on input
   const filteredAmenities = allExistingAmenities
-    .filter(amenity => 
-      amenity && amenity.toLowerCase().includes(amenityInput.toLowerCase()) && 
+    .filter(amenity =>
+      amenity && amenity.toLowerCase().includes(amenityInput.toLowerCase()) &&
       !formData.amenities.includes(amenity)
     );
 
-  // Handle clicks outside the dropdown to close it
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   if (!isOpen) return null;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
-    // Clear field-specific errors when the user makes changes
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : type === 'number' ? parseFloat(value) || 0 : value 
+    }));
     if (formErrorsState[name]) {
       setFormErrors(prev => ({ ...prev, [name]: '' }));
     }
+    setError(null);
   };
 
   const handleAmenityInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setAmenityInput(e.target.value);
-    if (e.target.value) {
-      setDropdownOpen(true);
-    } else {
-      setDropdownOpen(false);
-    }
+    setDropdownOpen(!!e.target.value);
     setError(null);
   };
 
   const addAmenity = (amenity: string = amenityInput.trim()) => {
     const trimmedAmenity = amenity.trim();
-    
     if (!trimmedAmenity) return;
-    
-    if (formData.amenities.length >= 10) {  // Changed from 3 to 10
-      setError('Maximum 10 amenities allowed');  // Changed from 3 to 10
+    if (formData.amenities.length >= 10) {
+      setError('Maximum 10 amenities allowed');
       return;
     }
-    
     if (formData.amenities.includes(trimmedAmenity)) {
       setError('This amenity is already added');
       return;
     }
-    
-    setFormData(prev => ({
-      ...prev,
-      amenities: [...prev.amenities, trimmedAmenity]
-    }));
-    
+    setFormData(prev => ({ ...prev, amenities: [...prev.amenities, trimmedAmenity] }));
     setAmenityInput('');
     setDropdownOpen(false);
   };
 
   const removeAmenity = (amenity: string) => {
-    setFormData(prev => ({
-      ...prev,
-      amenities: prev.amenities.filter(a => a !== amenity)
-    }));
+    setFormData(prev => ({ ...prev, amenities: prev.amenities.filter(a => a !== amenity) }));
     setError(null);
   };
 
@@ -133,89 +120,112 @@ const AddRoomOverlay: React.FC<AddRoomOverlayProps> = ({
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    
-    // Validate file types
     const invalidFiles = files.filter(file => !file.type.startsWith('image/'));
     if (invalidFiles.length > 0) {
       setImageError('Only image files are allowed');
       return;
     }
-    
-    // Check total number of images (existing + new)
     const totalImages = formData.images.length + files.length;
     if (totalImages > 3) {
       setImageError('Maximum 3 images allowed');
+      // Only add up to the limit
+      const remainingSlots = 3 - formData.images.length;
+      if (remainingSlots > 0) {
+        setFormData(prev => ({
+          ...prev,
+          images: [...prev.images, ...files.slice(0, remainingSlots)]
+        }));
+      }
       return;
     }
-    
-    // Add new images
-    setFormData(prev => ({
-      ...prev,
-      images: [...prev.images, ...files].slice(0, 3)
-    }));
-    
+    setFormData(prev => ({ ...prev, images: [...prev.images, ...files] }));
     setImageError(null);
-    
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const removeImage = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index)
-    }));
+    setFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
     setImageError(null);
   };
 
-  // Modify validateForm to include image validation
+  // 4. Handler for panoramic image upload
+  const handlePanoramicImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        setPanoramicImageError('Only image files are allowed for panoramic view.');
+        setFormData(prev => ({ ...prev, panoramicImage: undefined }));
+        if (panoramicFileInputRef.current) panoramicFileInputRef.current.value = '';
+        return;
+      }
+      setFormData(prev => ({ ...prev, panoramicImage: file }));
+      setPanoramicImageError(null);
+    } else {
+        // If no file is selected (e.g., user cancels dialog), clear existing
+        setFormData(prev => ({ ...prev, panoramicImage: undefined }));
+    }
+    // Don't reset panoramicFileInputRef.current.value here if you want to show the selected file name
+    // Resetting it makes it seem like nothing was selected if the user re-opens the dialog.
+  };
+
+  // Handler to remove selected panoramic image
+  const removePanoramicImage = () => {
+    setFormData(prev => ({ ...prev, panoramicImage: undefined }));
+    setPanoramicImageError(null);
+    if (panoramicFileInputRef.current) {
+      panoramicFileInputRef.current.value = ''; // Clear the file input
+    }
+  };
+
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
-    
-    // Validate room name
+    let hasErrors = false;
+
     if (!formData.name.trim()) {
       errors.name = 'Room name is required';
+      hasErrors = true;
     }
-    
-    // Validate room number
-    if (!formData.roomNumber.trim()) {
-      errors.roomNumber = 'Room number is required';
-    }
-    
-    // Validate capacity
+    // Room number validation removed
     if (formData.capacity < 1) {
       errors.capacity = 'Capacity must be at least 1';
+      hasErrors = true;
     }
-    
-    // Validate price
     if (formData.price <= 0) {
       errors.price = 'Price must be greater than 0';
+      hasErrors = true;
     }
-    
-    // Validate images
     if (formData.images.length !== 3) {
-      setImageError('Exactly 3 images are required');
-      errors.images = 'Exactly 3 images are required';
+      setImageError('Exactly 3 regular images are required');
+      errors.images = 'Exactly 3 regular images are required';
+      hasErrors = true;
     } else {
       setImageError(null);
     }
+
+    // Validate panoramic image (e.g., make it required)
+    if (!formData.panoramicImage) {
+      setPanoramicImageError('A panoramic image is required.');
+      errors.panoramicImage = 'A panoramic image is required.';
+      hasErrors = true;
+    } else {
+      setPanoramicImageError(null);
+    }
     
     setFormErrors(errors);
-    return Object.keys(errors).length === 0;
+    return !hasErrors;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // First, validate client-side
     if (!validateForm()) {
-      setError('Please fix the errors in the form');
+      setError('Please fix the errors in the form.');
+      const firstErrorField = document.querySelector(`.${styles.inputError}, .${styles.errorText}`);
+      if (firstErrorField instanceof HTMLElement) {
+          firstErrorField.focus();
+      }
       return;
     }
-    
-    // If validation passes, submit the form data
+    setError(null);
     onSubmit(formData);
   };
 
@@ -230,6 +240,7 @@ const AddRoomOverlay: React.FC<AddRoomOverlayProps> = ({
         </div>
         
         <form onSubmit={handleSubmit} className={styles.filterForm} noValidate>
+          {error && <p className={`${styles.errorText} ${styles.generalFormError}`}>{error}</p>}
           <div className={styles.filterSection}>
             <h3>Room Details</h3>
             
@@ -247,19 +258,7 @@ const AddRoomOverlay: React.FC<AddRoomOverlayProps> = ({
               {formErrorsState.name && <p className={styles.errorText}>{formErrorsState.name}</p>}
             </div>
             
-            <div className={styles.filterField}>
-              <label className={styles.requiredField}>Room Number</label>
-              <input 
-                type="text" 
-                name="roomNumber" 
-                value={formData.roomNumber}
-                onChange={handleChange}
-                placeholder="e.g., #001"
-                className={formErrorsState.roomNumber ? styles.inputError : ''}
-                required
-              />
-              {formErrorsState.roomNumber && <p className={styles.errorText}>{formErrorsState.roomNumber}</p>}
-            </div>
+            {/* Room Number field removed */}
             
             <div className={styles.filterField}>
               <label className={styles.requiredField}>Capacity (persons)</label>
@@ -292,7 +291,7 @@ const AddRoomOverlay: React.FC<AddRoomOverlayProps> = ({
             </div>
             
             <div className={styles.filterField}>
-              <label>Amenities (max 10)</label>  {/* Changed from 3 to 10 */}
+              <label>Amenities (max 10)</label>
               <div className={styles.amenityInputContainer} ref={dropdownRef}>
                 <input 
                   type="text"
@@ -301,47 +300,34 @@ const AddRoomOverlay: React.FC<AddRoomOverlayProps> = ({
                   onKeyDown={handleKeyDown}
                   onFocus={() => amenityInput && setDropdownOpen(true)}
                   placeholder="Type or select amenity"
-                  disabled={formData.amenities.length >= 10/* Changed from 3 to 10 */}
-                  className={error ? styles.inputError : ''}
+                  disabled={formData.amenities.length >= 10}
+                  className={formErrorsState.amenities ? styles.inputError : ''}
                 />
                 <button 
                   type="button" 
                   className={styles.addButton}
                   onClick={() => addAmenity()}
-                  disabled={formData.amenities.length >= 10 || !amenityInput.trim()/* Changed from 3 to 10 */}
+                  disabled={formData.amenities.length >= 10 || !amenityInput.trim()}
                 >
                   Add
                 </button>
-                
                 {dropdownOpen && filteredAmenities.length > 0 && (
                   <div className={styles.amenityDropdown}>
                     {filteredAmenities.map(amenity => (
-                      <div 
-                        key={amenity} 
-                        className={styles.amenityOption}
-                        onClick={() => {
-                          addAmenity(amenity);
-                        }}
-                      >
+                      <div key={amenity} className={styles.amenityOption} onClick={() => addAmenity(amenity)}>
                         {amenity}
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-              
-              {error && <p className={styles.errorText}>{error}</p>}
-              
+              {formErrorsState.amenities && <p className={styles.errorText}>{formErrorsState.amenities}</p>}
               {formData.amenities.length > 0 && (
                 <div className={styles.amenityTags}>
                   {formData.amenities.map(amenity => (
                     <div key={amenity} className={styles.amenityTag}>
                       <span>{amenity}</span>
-                      <button 
-                        type="button" 
-                        onClick={() => removeAmenity(amenity)}
-                        className={styles.removeTag}
-                      >
+                      <button type="button" onClick={() => removeAmenity(amenity)} className={styles.removeTag}>
                         <i className="fa-regular fa-xmark"></i>
                       </button>
                     </div>
@@ -354,8 +340,7 @@ const AddRoomOverlay: React.FC<AddRoomOverlayProps> = ({
           <div className={styles.filterSection}>
             <h3>Room Images</h3>
             <div className={styles.filterField}>
-              <label className={styles.requiredField}>Upload Images (exactly 3)</label>
-              
+              <label className={styles.requiredField}>Upload Regular Images (exactly 3)</label>
               <div className={styles.imageUploadContainer}>
                 <input
                   type="file"
@@ -365,7 +350,6 @@ const AddRoomOverlay: React.FC<AddRoomOverlayProps> = ({
                   style={{ display: 'none' }}
                   multiple
                 />
-                
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -374,14 +358,12 @@ const AddRoomOverlay: React.FC<AddRoomOverlayProps> = ({
                 >
                   <i className="fa-regular fa-image"></i> Select Images
                 </button>
-                
                 <span className={styles.uploadInfo}>
                   {formData.images.length}/3 images selected
                 </span>
               </div>
-              
               {imageError && <p className={styles.errorText}>{imageError}</p>}
-              
+              {formErrorsState.images && !imageError && <p className={styles.errorText}>{formErrorsState.images}</p>}
               {formData.images.length > 0 && (
                 <div className={styles.imagePreviewContainer}>
                   {formData.images.map((image, index) => (
@@ -393,12 +375,9 @@ const AddRoomOverlay: React.FC<AddRoomOverlayProps> = ({
                         height={100}
                         style={{ objectFit: 'cover' }}
                         unoptimized
+                        onLoad={() => URL.revokeObjectURL(image as any)}
                       />
-                      <button 
-                        type="button" 
-                        onClick={() => removeImage(index)}
-                        className={styles.removeImageButton}
-                      >
+                      <button type="button" onClick={() => removeImage(index)} className={styles.removeImageButton}>
                         <i className="fa-regular fa-xmark"></i>
                       </button>
                     </div>
@@ -407,14 +386,66 @@ const AddRoomOverlay: React.FC<AddRoomOverlayProps> = ({
               )}
             </div>
           </div>
+
+          {/* 3. UI for Panoramic Image Upload */}
+          <div className={styles.filterSection}>
+            <h3>Panoramic Image</h3>
+            <div className={styles.filterField}>
+              <label className={styles.requiredField}>Upload Panoramic Image (1 required)</label>
+              <div className={styles.imageUploadContainer}>
+                <input
+                  type="file"
+                  accept="image/*" // Consider more specific types if needed, e.g., image/jpeg, image/png
+                  onChange={handlePanoramicImageUpload}
+                  ref={panoramicFileInputRef}
+                  style={{ display: 'none' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => panoramicFileInputRef.current?.click()}
+                  className={styles.uploadButton}
+                  disabled={!!formData.panoramicImage} // Disable if one is already selected
+                >
+                  <i className="fa-regular fa-panorama"></i> Select Panoramic Image
+                </button>
+                {formData.panoramicImage && (
+                  <span className={styles.uploadInfo} style={{ marginLeft: '10px' }}>
+                    1 panoramic image selected.
+                  </span>
+                )}
+              </div>
+              {panoramicImageError && <p className={styles.errorText}>{panoramicImageError}</p>}
+              {formErrorsState.panoramicImage && !panoramicImageError && <p className={styles.errorText}>{formErrorsState.panoramicImage}</p>}
+
+              {formData.panoramicImage && (
+                <div className={styles.imagePreviewContainer} style={{ marginTop: '10px' }}>
+                  <div className={styles.imagePreview} style={{ width: '200px', height: '100px' /* Adjust for panoramic aspect */}}>
+                    <Image
+                      src={URL.createObjectURL(formData.panoramicImage)}
+                      alt="Panoramic preview"
+                      width={200} // Adjust as needed
+                      height={100}
+                      style={{ objectFit: 'contain' }} // 'contain' might be better for panoramic
+                      unoptimized
+                      onLoad={() => URL.revokeObjectURL(formData.panoramicImage as any)}
+                    />
+                    <button 
+                      type="button" 
+                      onClick={removePanoramicImage}
+                      className={styles.removeImageButton}
+                      title="Remove panoramic image"
+                    >
+                      <i className="fa-regular fa-xmark"></i>
+                    </button>
+                  </div>
+                  <p className={styles.fileNamePreview}>{formData.panoramicImage.name}</p>
+                </div>
+              )}
+            </div>
+          </div>
           
           <div className={styles.filterActions}>
-            <button 
-              type="submit" 
-              className={styles.applyButton}
-            >
-              Add Room
-            </button>
+            <button type="submit" className={styles.applyButton}>Add Room</button>
           </div>
         </form>
       </div>
