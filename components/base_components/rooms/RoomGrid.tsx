@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Room } from '../../../src/types/room';
+import { Room, Reservation } from '../../../src/types/room';
+import { ReservationLookup } from '../../../src/utils/fetchRooms';
 import RoomCard from './RoomCard';
 import styles from '../../component_styles/Rooms.module.css';
 
@@ -10,6 +11,7 @@ interface RoomGridProps {
   searchTerm: string;
   onEdit: (roomId: string) => void;
   onToggleStatus: (roomId: string) => void;
+  reservationLookup: ReservationLookup;
 }
 
 const RoomGrid: React.FC<RoomGridProps> = ({
@@ -18,7 +20,8 @@ const RoomGrid: React.FC<RoomGridProps> = ({
   page,
   searchTerm,
   onEdit,
-  onToggleStatus
+  onToggleStatus,
+  reservationLookup
 }) => {
   const [animate, setAnimate] = useState(false);
 
@@ -26,12 +29,12 @@ const RoomGrid: React.FC<RoomGridProps> = ({
     setAnimate(false);
     const timer = setTimeout(() => setAnimate(true), 50);
     return () => clearTimeout(timer);
-  }, [page, searchTerm]);
+  }, [page, searchTerm, rooms]);
 
-  if (rooms.length === 0) {
+  if (!rooms || rooms.length === 0) {
     return (
       <div className={styles.noRoomsMessage}>
-        <p>{searchTerm ? 'No rooms matching your search' : 'No rooms available'}</p>
+        <p>{searchTerm ? 'No rooms matching your search' : 'No rooms available at the moment'}</p>
       </div>
     );
   }
@@ -41,16 +44,25 @@ const RoomGrid: React.FC<RoomGridProps> = ({
       className={`${styles.roomsGrid} ${
         isSingleRow ? styles.singleRowGrid : ""
       } ${animate ? styles.fadeIn : ""}`}
-      key={`${page}-${searchTerm}`}
+      key={`room-grid-${page}-${searchTerm}`}
     >
-      {rooms.map((room) => (
-        <RoomCard
-          key={room.id}
-          room={room}
-          onEdit={() => onEdit(room.id)}
-          onToggleStatus={() => onToggleStatus(room.id)}
-        />
-      ))}
+      {rooms.map((room) => {
+        // Get reservations for the current room
+        // fetchRooms.ts uses String(reservation.room_id) for lookup keys
+        const roomSpecificReservations = reservationLookup[String(room.id)] || [];
+        
+        console.log(`RoomGrid: Room ID ${room.id}, Reservations found:`, roomSpecificReservations.length); // For debugging
+
+        return (
+          <RoomCard
+            key={String(room.id)}
+            room={room}
+            reservations={roomSpecificReservations}
+            onEdit={() => onEdit(String(room.id))}
+            onToggleStatus={() => onToggleStatus(String(room.id))}
+          />
+        );
+      })}
     </div>
   );
 };

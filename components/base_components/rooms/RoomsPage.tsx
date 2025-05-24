@@ -26,8 +26,16 @@ const RoomsPage: React.FC = () => {
     updateRoom,
     toggleRoomStatus,
     clearError,
-    refreshRooms
+    refreshRooms,
+    reservationLookup
   } = useRooms();
+
+  useEffect(() => {
+    console.log(
+      "RoomsPage - Props from useRooms updated:",
+      { isLoading, error, roomsCount: rooms?.length, reservationLookupKeys: Object.keys(reservationLookup || {}).length }
+    );
+  }, [isLoading, error, rooms, reservationLookup]);
 
   const [animate, setAnimate] = useState(false);
   const [showContent, setShowContent] = useState(false);
@@ -35,14 +43,21 @@ const RoomsPage: React.FC = () => {
 
   useEffect(() => {
     if (!isLoading && !loadingFinishedRef.current) {
+      // console.log("RoomsPage: isLoading is false, first time. Setting showContent.");
       loadingFinishedRef.current = true;
-      const timer = setTimeout(() => {
+      const contentTimer = setTimeout(() => {
         setShowContent(true);
-        setTimeout(() => {
+        const animationTimer = setTimeout(() => {
           setAnimate(true);
-        }, 100);
-      }, 300);
-      return () => clearTimeout(timer);
+        }, 100); // Short delay for animation
+        return () => clearTimeout(animationTimer);
+      }, 100);
+      return () => clearTimeout(contentTimer);
+    } else if (isLoading) {
+      // console.log("RoomsPage: isLoading is true. Resetting showContent and loadingFinishedRef.");
+      setShowContent(false);
+      setAnimate(false);
+      loadingFinishedRef.current = false;
     }
   }, [isLoading]);
   
@@ -59,7 +74,7 @@ const RoomsPage: React.FC = () => {
     setFilterOptions,
     isSingleRow,
     roomStats
-  } = useFilteredRooms({ rooms });
+  } = useFilteredRooms({ rooms: rooms || [], reservationLookup: reservationLookup || {} });
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isAddRoomOpen, setIsAddRoomOpen] = useState(false);
@@ -79,63 +94,45 @@ const RoomsPage: React.FC = () => {
   };
 
   const handleAddRoom = () => {
-    // Clear previous form errors when opening the Add Room overlay
     if (Object.keys(formErrors).length > 0) {
-        clearError(); // clearError in useRooms also clears formErrors
+        clearError();
     }
     setIsAddRoomOpen(true);
   };
 
-// In RoomsPage.tsx
-const handleEditRoom = (roomId: string) => {
-  console.log("--- handleEditRoom ---");
-  console.log("1. roomId received from RoomCard/RoomGrid:", roomId, "(type:", typeof roomId + ")");
-  console.log("2. Current 'rooms' state (first few items shown):", rooms.slice(0, 3));
-
-  const roomToEdit = rooms.find(room => {
-    console.log(`Comparing (received) "${roomId}" with (room state) "${room.id}" (type: ${typeof room.id})`);
-    return String(room.id) === String(roomId);
-  });
-  
-  console.log("3. roomToEdit found:", roomToEdit);
-
-  if (roomToEdit) {
-    if (Object.keys(formErrors).length > 0) {
-        console.log("Clearing existing form errors.");
-        clearError();
+  const handleEditRoom = (roomId: string) => {
+    const roomToEdit = rooms?.find(room => String(room.id) === String(roomId));
+    if (roomToEdit) {
+      if (Object.keys(formErrors).length > 0) {
+          clearError();
+      }
+      setCurrentRoom(roomToEdit);
+      setIsEditRoomOpen(true);
+    } else {
+      console.warn(`RoomsPage: Room NOT found for ID: ${roomId}`);
     }
-    setCurrentRoom(roomToEdit);
-    setIsEditRoomOpen(true);
-    console.log("4. setCurrentRoom done, setIsEditRoomOpen(true) done. currentRoom is now:", roomToEdit, "isEditRoomOpen is now true.");
-  } else {
-    console.warn("4. Room NOT found for ID:", roomId, "- Check if this ID exists in the 'rooms' array above with matching type.");
-  }
-  console.log("--- end handleEditRoom ---");
-};
+  };
 
   const handleToggleStatus = (roomId: string) => {
-    const room = rooms.find(r => String(r.id) === roomId);
-    if (window.confirm(`Are you sure you want to ${room?.is_active ? 'deactivate' : 'activate'} this room?`)) {
+    const room = rooms?.find(r => String(r.id) === String(roomId));
+    if (room && window.confirm(`Are you sure you want to ${room.isActive ? 'deactivate' : 'activate'} this room?`)) {
       toggleRoomStatus(roomId);
     }
   };
 
   const handleAddRoomSubmit = async (roomData: RoomFormData) => {
-    // addRoom now returns a boolean indicating success
     const success = await addRoom(roomData);
     if (success) {
-        setIsAddRoomOpen(false); // Close overlay only on success
+        setIsAddRoomOpen(false);
     }
-    // If not successful, formErrors should be populated by useRooms, and overlay remains open
   };
 
   const handleEditRoomSubmit = async (updatedFormData: RoomFormData) => {
     if (!currentRoom) return;
-    // updateRoom now takes currentRoom (initial data) and returns a boolean
     const success = await updateRoom(String(currentRoom.id), updatedFormData, currentRoom);
     if (success) {
         setIsEditRoomOpen(false);
-        setCurrentRoom(null); // Clear current room on success
+        setCurrentRoom(null);
     }
   };
 
@@ -147,20 +144,20 @@ const handleEditRoom = (roomId: string) => {
   useEffect(() => {
     if (showContent) {
       setAnimate(false);
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         setAnimate(true);
-      }, 100);
+      }, 50);
+      return () => clearTimeout(timer);
     }
-  }, [searchTerm, statusFilter, filterOptions, showContent]);
+  }, [searchTerm, statusFilter, filterOptions]);
 
-  if (!showContent && isLoading) {
+  // Conditional Rendering Logic
+  if (isLoading && !showContent) {
     return (
       <div className={styles.loadingContainer}>
+        {/* ... loading animation ... (as provided previously) ... */}
         <div className={styles.loadingAnimation}>
-          <div className={styles.spinnerContainer}>
-            <i className="fa-solid fa-door-open fa-beat-fade"></i>
-          </div>
-          {/* ... rest of loading animation ... */}
+          <div className={styles.spinnerContainer}><i className="fa-solid fa-door-open fa-beat-fade"></i></div>
           <div className={styles.loadingCards}>
             <div className={`${styles.loadingCard} ${styles.loadingCard1}`}></div>
             <div className={`${styles.loadingCard} ${styles.loadingCard2}`}></div>
@@ -169,12 +166,7 @@ const handleEditRoom = (roomId: string) => {
           <div className={styles.loadingTable}>
             <div className={styles.loadingTableHeader}></div>
             <div className={styles.loadingRooms}>
-              <div className={styles.loadingRoom}></div>
-              <div className={styles.loadingRoom}></div>
-              <div className={styles.loadingRoom}></div>
-              <div className={styles.loadingRoom}></div>
-              <div className={styles.loadingRoom}></div>
-              <div className={styles.loadingRoom}></div>
+              {[...Array(6)].map((_, i) => <div key={i} className={styles.loadingRoom}></div>)}
             </div>
           </div>
         </div>
@@ -190,13 +182,7 @@ const handleEditRoom = (roomId: string) => {
         <i className="fa-regular fa-exclamation-circle"></i>
         <h3>Error Loading Rooms</h3>
         <p>{error}</p>
-        <button
-          className={styles.retryButton}
-          onClick={() => {
-            clearError();
-            refreshRooms();
-          }}
-        >
+        <button className={styles.retryButton} onClick={() => { clearError(); refreshRooms(); }}>
           Retry
         </button>
       </div>
@@ -204,12 +190,12 @@ const handleEditRoom = (roomId: string) => {
   }
 
   return (
-    <div className={`${styles.roomDashboard} ${animate ? styles.fadeIn : ""}`}>
-      <div className={`${animate ? styles.animateFirst : ""}`}>
+    <div className={`${styles.roomDashboard} ${showContent && animate ? styles.fadeIn : styles.hiddenInitially}`}>
+      <div className={`${showContent && animate ? styles.animateFirst : styles.hiddenInitially}`}>
         <RoomStats stats={roomStats} />
       </div>
 
-      <div className={`${styles.topContent} ${animate ? styles.animateSecond : ""}`}>
+      <div className={`${showContent && animate ? styles.animateSecond : styles.hiddenInitially}`}>
         <RoomsHeader
           searchTerm={searchTerm}
           onSearchChange={handleSearchChange}
@@ -225,11 +211,12 @@ const handleEditRoom = (roomId: string) => {
           searchTerm={searchTerm}
           onEdit={handleEditRoom}
           onToggleStatus={handleToggleStatus}
+          reservationLookup={reservationLookup || {}}
         />
       </div>
 
       {totalPages > 1 && (
-        <div className={`${animate ? styles.animateThird : ""}`}>
+        <div className={`${showContent && animate ? styles.animateThird : styles.hiddenInitially}`}>
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
@@ -245,25 +232,25 @@ const handleEditRoom = (roomId: string) => {
         initialFilters={filterOptions}
       />
       
-      <AddRoomOverlay 
+      <AddRoomOverlay
         isOpen={isAddRoomOpen}
         onClose={() => setIsAddRoomOpen(false)}
         onSubmit={handleAddRoomSubmit}
-        existingRooms={rooms.map(r => ({ id: String(r.id), name: r.name, amenities: r.amenities }))}
-        formErrors={formErrors} // Passed from useRooms
+        existingRooms={rooms?.map(r => ({ id: String(r.id), name: r.name, amenities: r.amenities })) || []}
+        formErrors={formErrors}
       />
       
       {currentRoom && (
-        <EditRoomOverlay 
+        <EditRoomOverlay
           isOpen={isEditRoomOpen}
           onClose={() => {
             setIsEditRoomOpen(false);
             setCurrentRoom(null);
           }}
           onSubmit={handleEditRoomSubmit}
-          formErrors={formErrors} // Passed from useRooms
+          formErrors={formErrors}
           room={currentRoom}
-existingRooms={rooms.map(r => ({ id: String(r.id), name: r.name, amenities: r.amenities || [] }))} 
+          existingRooms={rooms?.map(r => ({ id: String(r.id), name: r.name, amenities: r.amenities || [] })) || []} 
         />
       )}
     </div>

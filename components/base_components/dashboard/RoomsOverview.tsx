@@ -57,7 +57,7 @@ const RoomsOverview: React.FC<RoomsOverviewProps> = ({ roomStats, recentRooms })
               </span>
               {room.occupant && <span className={styles.occupantName}> {room.occupant.name}</span>}
               <div className={styles.roomPrice}>
-                <span>PHP {room.price.toLocaleString()}</span>
+                <span>PHP {room.room_price.toLocaleString()}</span>
               </div>
             </div>
           </div>

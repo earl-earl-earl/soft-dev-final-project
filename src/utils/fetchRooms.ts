@@ -1,6 +1,6 @@
 // src/utils/fetchRooms.ts
-import { supabase } from "@/lib/supabaseClient"; // Assuming this path is correct
-import { Room, Reservation } from "../types/room";   // Your Room and Reservation types
+import { supabase } from "@/lib/supabaseClient";
+import { Room, Reservation } from "../types/room";
 
 export interface ReservationLookup {
   [key: string]: Reservation[]; 
@@ -8,7 +8,7 @@ export interface ReservationLookup {
 
 export interface FetchRoomsResult {
   rooms?: Room[]; 
-  reservationLookup?: ReservationLookup; // Still useful if other parts of app need it
+  reservationLookup?: ReservationLookup;
   error?: string; 
 }
 
@@ -30,25 +30,13 @@ export const fetchRooms = async (): Promise<FetchRoomsResult> => {
   }
 
   const roomIds = roomsData.map(room => room.id); 
-  const reservationLookup: ReservationLookup = {}; // Keep this if other parts of your app use it
+  const reservationLookup: ReservationLookup = {}; 
   
-  // Fetching reservations can still be useful for other parts of the app,
-  // or you can remove this whole block if reservationLookup is no longer needed anywhere.
   if (roomIds.length > 0) {
     const { data: reservationsData, error: reservationsError } = await supabase
       .from("reservations")
-      .select(`
-        id,
-        room_id,
-        customer_id,
-        customer_name_at_booking,
-        check_in,
-        check_out,
-        status 
-      `) // Assuming 'status' here is reservation_status enum
+      .select(`id, room_id, customer_id, customer_name_at_booking, check_in, check_out, status`)
       // .in('room_id', roomIds)
-      // // You might still want to filter reservations if reservationLookup is used elsewhere
-      // // For example, only show current/future non-cancelled reservations in the lookup
       // .gte('check_out', new Date().toISOString().split('T')[0]) 
       // .not('status', 'in', ['Cancelled', 'Rejected']);
 
@@ -60,7 +48,6 @@ export const fetchRooms = async (): Promise<FetchRoomsResult> => {
         if (!reservationLookup[roomId]) {
           reservationLookup[roomId] = [];
         }
-        
         reservationLookup[roomId].push({
           checkIn: new Date(reservation.check_in),
           checkOut: new Date(reservation.check_out),
@@ -71,45 +58,44 @@ export const fetchRooms = async (): Promise<FetchRoomsResult> => {
   }
   
   const rooms: Room[] = roomsData.map(dbRoom => {
-    let lastUpdatedValue: string;
+    let determinedLastUpdated: string;
     if (dbRoom.last_updated) { 
-      lastUpdatedValue = dbRoom.last_updated;
-    } else if (dbRoom.updated_at) { 
-      lastUpdatedValue = dbRoom.updated_at;
-    } else if (dbRoom.created_at) { 
-      lastUpdatedValue = dbRoom.created_at;
+      determinedLastUpdated = dbRoom.last_updated; // Prefer this if it exists
+    } else if (dbRoom.updated_at) { // Supabase's default update timestamp
+      determinedLastUpdated = dbRoom.updated_at;
+    } else if (dbRoom.created_at) {
+      determinedLastUpdated = dbRoom.created_at;
     } else {
-      lastUpdatedValue = new Date().toISOString(); 
+      determinedLastUpdated = new Date().toISOString();
     }
 
-    // This object structure MUST EXACTLY MATCH your `Room` interface in `src/types/room.ts`
     return {
-      id: dbRoom.id, 
+      // Fields that directly match between dbRoom (snake_case) and Room type (snake_case)
+      id: dbRoom.id, // Room type has id: number
       name: dbRoom.name || "Unnamed Room",
       capacity: dbRoom.capacity || 1,
-      room_price: dbRoom.room_price || 0,        // Matches 'Room' type (snake_case from DB)
       amenities: dbRoom.amenities || [],
-      isActive: typeof dbRoom.is_active === 'boolean' ? dbRoom.is_active : true,  // Add camelCase for Room interface
-      last_updated: lastUpdatedValue,            // Matches 'Room' type (snake_case from DB)
-      created_at: dbRoom.created_at,             // Matches 'Room' type (snake_case from DB, optional)
+      room_price: dbRoom.room_price || 0,    // Room type has room_price
+      last_updated: determinedLastUpdated,   // Room type has last_updated
+      created_at: dbRoom.created_at,
       
       image_paths: dbRoom.image_paths || [],
       panoramic_image_path: dbRoom.panoramic_image_path || undefined,
-      
-      // VVVVVV REMOVED THESE DERIVED FIELDS VVVVVV
-      // status: currentReservation ? "Occupied" : "Vacant",
-      // reservation: currentReservation ? { ... } : undefined,
-      // ^^^^^^ REMOVED THESE DERIVED FIELDS ^^^^^^
+
+      // Field that needs mapping from dbRoom (snake_case) to Room type (camelCase)
+      isActive: typeof dbRoom.is_active === 'boolean' ? dbRoom.is_active : true, // Room type has isActive
+
+      // status and reservation are no longer added here
     };
   });
   
   return {
     rooms,
-    reservationLookup // You can choose to remove reservationLookup too if it's not used
+    reservationLookup
   };
 };
 
-// formatDate and subscribeToRoomsChanges remain the same
+// formatDate and subscribeToRoomsChanges can remain the same as previously provided
 const formatDate = (dateInput: string | Date): string => {
   if (!dateInput) return 'N/A';
   try {
@@ -153,7 +139,7 @@ export const subscribeToRoomsChanges = (
     )
     .subscribe((status, err) => {
       if (status === 'SUBSCRIBED') {
-        // console.log('fetchRooms: Successfully subscribed to real-time changes!');
+        console.log('fetchRooms: Successfully subscribed to real-time changes!');
       }
       if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
         console.error('fetchRooms: Real-time subscription error:', status, err);

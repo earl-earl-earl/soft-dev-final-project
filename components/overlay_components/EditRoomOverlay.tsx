@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import styles from '../component_styles/FilterOverlay.module.css'; // Ensure this path is correct
+import styles from '../component_styles/FilterOverlay.module.css';
 import Image from 'next/image';
 import { RoomFormData } from '../../src/types/room'; 
 import { Room as RoomType } from '../../src/types/room'; 
@@ -8,7 +8,7 @@ interface EditRoomOverlayProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: RoomFormData) => void;
-  existingRooms: { id: string; name: string; amenities?: string[] }[]; // For amenity suggestions
+  existingRooms: { id: string; name: string; amenities?: string[] }[];
   formErrors?: Record<string, string>;
   room: RoomType; // The room object being edited
 }
@@ -24,7 +24,7 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
   // Helper to initialize price, preferring room_price from DB, then price, then 0
   const getInitialPrice = (currentRoom: RoomType): number => {
     if (typeof currentRoom.room_price === 'number') return currentRoom.room_price;
-    if (typeof (currentRoom as any).price === 'number') return (currentRoom as any).price; // Fallback if 'price' exists
+    if (typeof (currentRoom as any).price === 'number') return (currentRoom as any).price;
     return 0;
   };
 
@@ -33,26 +33,24 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
     capacity: room.capacity || 1,
     price: getInitialPrice(room),
     amenities: room.amenities ? [...room.amenities] : [],
-    is_active: typeof room.is_active === 'boolean' ? room.is_active : true, // Default to true if undefined
-    images: room.image_paths ? [...room.image_paths] : [], 
-    panoramicImage: room.panoramic_image_path || undefined, 
+    isActive: typeof room.is_active === 'boolean' ? room.is_active : true,
+    images: room.image_paths ? [...room.image_paths] : [],
+    panoramicImage: room.panoramic_image_path || undefined,
   });
   
   const [formErrorsState, setFormErrorsState] = useState<Record<string, string>>(formErrors);
   const [amenityInput, setAmenityInput] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [generalFormError, setGeneralFormError] = useState<string | null>(null); // For general form/amenity errors
-  const [imageError, setImageError] = useState<string | null>(null); // For regular image specific errors
-  const [panoramicImageError, setPanoramicImageError] = useState<string | null>(null); // For panoramic image specific errors
+  const [generalFormError, setGeneralFormError] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [panoramicImageError, setPanoramicImageError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const panoramicFileInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Store ObjectURLs for File objects to manage their lifecycle
   const objectUrlMapRef = useRef<Map<File, string>>(new Map());
 
-  // Function to get/create ObjectURL for a File and store it
   const getOrCreateObjectURL = (file: File): string => {
     if (!objectUrlMapRef.current.has(file)) {
       const url = URL.createObjectURL(file);
@@ -61,7 +59,6 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
     return objectUrlMapRef.current.get(file)!;
   };
 
-  // Function to revoke and remove ObjectURL for a File
   const revokeAndRemoveObjectURL = (file: File) => {
     if (objectUrlMapRef.current.has(file)) {
       URL.revokeObjectURL(objectUrlMapRef.current.get(file)!);
@@ -85,47 +82,49 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
       capacity: room.capacity || 1,
       price: getInitialPrice(room),
       amenities: room.amenities ? [...room.amenities] : [],
-      is_active: typeof room.is_active === 'boolean' ? room.is_active : true,
+      isActive: typeof room.is_active === 'boolean' ? room.is_active : true,
       images: initialImages,
       panoramicImage: initialPanoramicImage,
     });
 
     // 3. If initial images/panoramicImage are File objects (unlikely for data from DB, but for robustness),
-    // create their ObjectURLs. This step is mostly defensive.
+    // create their ObjectURLs
     initialImages.forEach(img => {
-        if (img instanceof File) getOrCreateObjectURL(img);
+        if (typeof img === 'object' && (img as any) instanceof File) getOrCreateObjectURL(img);
     });
-    if (initialPanoramicImage instanceof File) {
+    if (
+      initialPanoramicImage &&
+      typeof initialPanoramicImage === 'object' &&
+      initialPanoramicImage !== null &&
+      (initialPanoramicImage as any) instanceof File
+    ) {
         getOrCreateObjectURL(initialPanoramicImage);
     }
 
     // 4. Reset error states
-    setFormErrorsState(formErrors); // Update local form errors with those from props
+    setFormErrorsState(formErrors);
     setImageError(null);
     setPanoramicImageError(null);
     setGeneralFormError(null);
     setAmenityInput('');
-  }, [room, formErrors]); // Dependencies: room and formErrors
+  }, [room, formErrors]);
 
-  // Effect for cleaning up ALL ObjectURLs when the component unmounts
   useEffect(() => {
     return () => {
       // console.log("EditRoomOverlay: Unmounting, cleaning up ObjectURLs.");
       objectUrlMapRef.current.forEach(url => URL.revokeObjectURL(url));
       objectUrlMapRef.current.clear();
     };
-  }, []); // Empty dependency array means this runs only on mount and unmount
+  }, []);
 
   // Helper function to get image preview URL (either existing URL or ObjectURL for new File)
   const getImagePreviewUrl = (image: File | string): string => {
     if (typeof image === 'string') {
-      return image; // It's an existing URL from Supabase/storage
+      return image;
     }
-    // It's a File object, get or create its ObjectURL from our map
     return getOrCreateObjectURL(image);
   };
   
-  // Effect for handling clicks outside the amenity dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -136,7 +135,7 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  if (!isOpen || !room) return null; // Guard against rendering if not open or no room data
+  if (!isOpen || !room) return null;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -145,12 +144,10 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
     if (type === 'checkbox') {
       processedValue = checked;
     } else if (type === 'number') {
-      // Allow empty string for temporary clearing, otherwise parse or default to 0
       processedValue = value === '' ? '' : (parseFloat(value) || 0);
       if (name === 'capacity' && typeof processedValue === 'number' && processedValue < 1 && value !== '') {
-        processedValue = 1; // Min capacity 1
+        processedValue = 1;
       }
-      // For price, allow 0 but not negative.
       if (name === 'price' && typeof processedValue === 'number' && processedValue < 0) {
         processedValue = 0;
       }
@@ -165,13 +162,13 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
     if (formErrorsState[name]) {
       setFormErrorsState(prev => ({ ...prev, [name]: '' }));
     }
-    setGeneralFormError(null); // Clear general form error on any change
+    setGeneralFormError(null);
   };
 
   const allExistingAmenities = [...new Set(existingRooms.flatMap(r => r.amenities || []))];
   const filteredAmenities = allExistingAmenities
-    .filter(amenity => 
-      amenity && amenity.toLowerCase().includes(amenityInput.toLowerCase()) && 
+    .filter(amenity =>
+      amenity && amenity.toLowerCase().includes(amenityInput.toLowerCase()) &&
       !formData.amenities.includes(amenity)
     );
 
@@ -216,24 +213,24 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
       const remainingSlots = 3 - formData.images.length;
       if (remainingSlots > 0) {
           const filesToAdd = files.slice(0, remainingSlots);
-          filesToAdd.forEach(file => getOrCreateObjectURL(file)); // Manage ObjectURL
+          filesToAdd.forEach(file => getOrCreateObjectURL(file));
           setFormData(prev => ({ ...prev, images: [...prev.images, ...filesToAdd] }));
       }
       return;
     }
-    files.forEach(file => getOrCreateObjectURL(file)); // Manage ObjectURL
+    files.forEach(file => getOrCreateObjectURL(file));
     setFormData(prev => ({ ...prev, images: [...prev.images, ...files] }));
     setImageError(null);
-    if (fileInputRef.current) fileInputRef.current.value = ''; // Reset file input
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const removeImage = (index: number) => {
     const imageToRemove = formData.images[index];
-    if (imageToRemove instanceof File) { // If it's a File, revoke its ObjectURL
+    if (imageToRemove instanceof File) {
       revokeAndRemoveObjectURL(imageToRemove);
     }
     setFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
-    setImageError(null); 
+    setImageError(null);
   };
 
   const handlePanoramicImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -244,15 +241,14 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
         if (panoramicFileInputRef.current) panoramicFileInputRef.current.value = '';
         return;
       }
-      // If there was a previous panoramic image that was a File, revoke its ObjectURL
       if (formData.panoramicImage instanceof File) {
         revokeAndRemoveObjectURL(formData.panoramicImage);
       }
-      getOrCreateObjectURL(file); // Create and store ObjectURL for the new file
+      getOrCreateObjectURL(file);
       setFormData(prev => ({ ...prev, panoramicImage: file }));
       setPanoramicImageError(null);
     }
-     // Don't reset panoramicFileInputRef.current.value here if you want the browser to show the selected file name
+     // Don't reset panoramicFileInputRef.current.value here to show the selected file name
   };
 
   const removePanoramicImage = () => {
@@ -260,9 +256,9 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
     if (formData.panoramicImage instanceof File) {
       revokeAndRemoveObjectURL(formData.panoramicImage);
     }
-    setFormData(prev => ({ ...prev, panoramicImage: null })); // Set to null to indicate removal to backend
+    setFormData(prev => ({ ...prev, panoramicImage: null }));
     setPanoramicImageError(null);
-    if (panoramicFileInputRef.current) panoramicFileInputRef.current.value = ''; // Clear file input
+    if (panoramicFileInputRef.current) panoramicFileInputRef.current.value = '';
   };
 
   const validateForm = (): boolean => {
@@ -293,7 +289,7 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setGeneralFormError(null); // Clear general error on new submit attempt
+    setGeneralFormError(null);
     if (!validateForm()) {
       setGeneralFormError('Please fix the errors highlighted in the form.');
       return;
@@ -345,7 +341,7 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
                   </div>
                 )}
               </div>
-              {formErrorsState.amenities && <p className={styles.errorText}>{formErrorsState.amenities}</p>} {/* If amenities had a specific error field */}
+              {formErrorsState.amenities && <p className={styles.errorText}>{formErrorsState.amenities}</p>}
               {formData.amenities.length > 0 && (
                 <div className={styles.amenityTags}>
                   {formData.amenities.map(amenity => (<div key={amenity} className={styles.amenityTag}><span>{amenity}</span><button type="button" onClick={() => removeAmenity(amenity)} className={styles.removeTag}><i className="fa-regular fa-xmark"></i></button></div>))}
@@ -356,12 +352,12 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
             <div className={styles.filterField}>
               <label>Status</label>
               <div className={styles.toggleContainer}>
-                <span className={!formData.is_active ? styles.activeLabel : ''}>Inactive</span>
+                <span className={!formData.isActive ? styles.activeLabel : ''}>Inactive</span>
                 <div className={styles.toggleSwitch}>
-                  <input type="checkbox" id={`status-toggle-edit-${room.id}`} checked={formData.is_active} name="is_active" onChange={handleChange} />
+                  <input type="checkbox" id={`status-toggle-edit-${room.id}`} checked={formData.isActive} name="is_active" onChange={handleChange} />
                   <label htmlFor={`status-toggle-edit-${room.id}`}></label>
                 </div>
-                <span className={formData.is_active ? styles.activeLabel : ''}>Active</span>
+                <span className={formData.isActive ? styles.activeLabel : ''}>Active</span>
               </div>
             </div>
           </div>

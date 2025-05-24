@@ -1084,3 +1084,349 @@
 .retryButton:hover {
   background-color: var(--primary-550);
 }
+
+
+.roomCard.deactivated {
+  background-color: #f0f0f0;
+  opacity: 0.7;
+  border-left: 5px solid #aaa;
+}
+
+.roomStatusSection {
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+}
+
+.roomStatusSection h4,
+.roomStatusSection h5 {
+  margin-bottom: 8px;
+  font-size: 0.9em;
+  color: #333;
+  font-weight: 600;
+}
+
+.statusDisplay {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.status {
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+.status.occupied {
+  color: #ffffff;
+  background-color: #dc3545;
+}
+
+.status.vacant {
+  color: #ffffff;
+  background-color: #28a745;
+}
+
+.status.inactiveStatus {
+  color: #495057;
+  background-color: #e9ecef;
+}
+
+.dateSpan {
+  font-size: 0.8em;
+  color: #555;
+  margin-left: 5px;
+}
+
+.bookingInfoSection { /* Wrapper for booking summary & "View All" link in card */
+  margin-top: 5px;
+}
+
+.reservationsList ul {
+  list-style: none;
+  padding-left: 0;
+  margin-top: 0; 
+  margin-bottom: 8px; 
+}
+
+.reservationItem { /* For each LI in the summary booking list in card */
+  font-size: 0.85em;
+  color: #333;
+  margin-bottom: 4px; 
+  display: flex;
+  align-items: center;
+}
+
+.reservationItem i { /* Icon in summary booking list item */
+  margin-right: 8px;
+  color: #007bff; 
+}
+
+.guestName { /* For guest name in summary booking list item */
+  font-style: italic;
+  color: #555;
+  margin-left: 5px;
+  font-size: 0.9em; 
+}
+
+.noBookings { /* For "No upcoming bookings" or "Room is currently inactive" messages in card */
+  font-style: italic;
+  color: #6c757d;
+  font-size: 0.85em;
+  margin-top: 8px;
+}
+
+.viewAllBookingsLink { /* Text link to open the bookings popup */
+  display: inline-block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #007bff;
+  text-decoration: none;
+  cursor: pointer;
+  margin-top: 8px;
+  padding: 2px 0;
+  transition: color 0.15s ease-in-out;
+}
+
+.viewAllBookingsLink:hover,
+.viewAllBookingsLink:focus {
+  color: #0056b3;
+  text-decoration: underline;
+  outline: none;
+}
+
+.viewAllIcon {
+  margin-left: 4px;
+  font-size: 0.9em;
+  display: inline-block;
+  vertical-align: middle;
+  transition: transform 0.2s ease;
+}
+.viewAllBookingsLink:hover .viewAllIcon {
+  transform: translateX(2px);
+}
+.bookingsPopupOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(30, 30, 30, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+  animation: fadeInOverlay 0.25s ease-out forwards;
+}
+
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.bookingsPopup {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 550px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  animation: scaleUpPopup 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  overflow: hidden;
+}
+
+@keyframes scaleUpPopup {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.bookingsPopupHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 25px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.bookingsPopupHeader h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #212529;
+}
+
+.closeButton {
+  background: transparent;
+  border: none;
+  font-size: 1.75rem;
+  color: #adb5bd;
+  cursor: pointer;
+  padding: 5px;
+  line-height: 1;
+  transition: color 0.2s ease;
+}
+.closeButton:hover {
+  color: #495057;
+}
+
+
+.bookingsPopupList {
+  list-style: none;
+  padding: 0px 5px 15px 5px;
+  margin: 0;
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+.bookingsPopupList::-webkit-scrollbar {
+  width: 6px;
+}
+.bookingsPopupList::-webkit-scrollbar-track {
+  background: #f8f9fa;
+  border-radius: 10px;
+}
+.bookingsPopupList::-webkit-scrollbar-thumb {
+  background: #dee2e6;
+  border-radius: 10px;
+}
+.bookingsPopupList::-webkit-scrollbar-thumb:hover {
+  background: #ced4da;
+}
+
+
+.bookingPopupItem {
+  padding: 15px 20px;
+  border-bottom: 1px solid #f1f3f5;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease;
+}
+.bookingPopupItem:last-child {
+  border-bottom: none;
+}
+.bookingPopupItem:hover {
+  background-color: #f8f9fa;
+}
+
+.bookingDetailLine {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  color: #495057;
+  line-height: 1.5;
+}
+.bookingDetailLine:last-child {
+  margin-bottom: 0;
+}
+
+.bookingDetailLine i {
+  margin-right: 12px;
+  width: 20px;
+  text-align: center;
+  font-size: 1rem;
+}
+.bookingDetailLine i.fa-calendar-alt { color: #17a2b8; }
+.bookingDetailLine i.fa-user { color: #28a745; }
+.bookingDetailLine i.fa-info-circle { color: #ffc107; }
+
+
+.bookingDetailLine strong {
+  font-weight: 500;
+  min-width: 55px; 
+  display: inline-block;
+  margin-right: 5px;
+  color: #343a40;
+}
+
+.noBookingsInPopup {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6c757d;
+  font-style: italic;
+  font-size: 1rem;
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.leftColumn {
+  /* ... */
+}
+.rightColumn {
+  /* ... */
+}
+
+.seeMoreLink {
+  font-size: 0.8em;
+  color: #007bff;
+  cursor: pointer;
+  display: inline-block;
+  margin-top: 5px;
+}
+.seeMoreLink:hover {
+  text-decoration: underline;
+}
+.seeMoreLink i {
+  margin-right: 4px;
+}
+
+.amenitiesPopupOverlay { 
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1040; 
+  padding: 20px;
+  animation: fadeInOverlay 0.3s ease-out;
+}
+.amenitiesPopup { 
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 400px; 
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideInPopup 0.3s ease-out;
+}
+.amenitiesPopupHeader { 
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 12px;
+  margin-bottom: 15px;
+}
+.amenitiesPopupHeader h3 {
+   margin: 0;
+   font-size: 1.1rem;
+   font-weight: 600;
+   color: #333;
+}
+.amenitiesPopupList { 
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  flex-grow: 1;
+}
+.amenitiesPopupList li {
+  padding: 8px 0;
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+}
+.amenitiesPopupList li i {
+  margin-right: 8px;
+  color: #28a745;
+}

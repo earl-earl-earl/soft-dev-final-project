@@ -11,7 +11,7 @@ export interface RoomData {
   id: string;
   name: string;
   capacity: number;
-  price: number;
+  room_price: number;
   status: "Occupied" | "Vacant";
   occupant?: { name: string };
 }
