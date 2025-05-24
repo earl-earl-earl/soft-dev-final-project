@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import styles from '../component_styles/FilterOverlay.module.css';
+import styles from '../component_styles/FilterOverlay.module.css'; // Ensure this path is correct
 import Image from 'next/image';
-import { RoomFormData } from '../../src/types/room'; // Assuming RoomFormData is correctly defined
-import { Room as RoomType } from '../../src/types/room'; // Import Room type for the 'room' prop
+import { RoomFormData } from '../../src/types/room'; 
+import { Room as RoomType } from '../../src/types/room'; 
 
 interface EditRoomOverlayProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: RoomFormData) => void;
-  existingRooms: { id: string; name: string; amenities?: string[] }[];
+  existingRooms: { id: string; name: string; amenities?: string[] }[]; // For amenity suggestions
   formErrors?: Record<string, string>;
-  room: RoomType; // Use the imported RoomType
+  room: RoomType; // The room object being edited
 }
 
 const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
@@ -19,80 +19,114 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
   onSubmit,
   existingRooms,
   formErrors = {},
-  room // This 'room' object should contain image_paths and panoramic_image_path
+  room
 }) => {
+  // Helper to initialize price, preferring room_price from DB, then price, then 0
+  const getInitialPrice = (currentRoom: RoomType): number => {
+    if (typeof currentRoom.room_price === 'number') return currentRoom.room_price;
+    if (typeof (currentRoom as any).price === 'number') return (currentRoom as any).price; // Fallback if 'price' exists
+    return 0;
+  };
+
   const [formData, setFormData] = useState<RoomFormData>({
-    name: room.name,
-    capacity: room.capacity,
-    // Use room.room_price if that's the actual field name in your RoomType
-    price: typeof room.room_price === 'number'
-      ? room.room_price
-      : typeof room.price === 'number'
-        ? room.price
-        : 0, // Handle potential naming diff and ensure number type
+    name: room.name || '',
+    capacity: room.capacity || 1,
+    price: getInitialPrice(room),
     amenities: room.amenities ? [...room.amenities] : [],
-    is_active: room.is_active,
-    // Initialize with existing image URLs from room.image_paths
+    is_active: typeof room.is_active === 'boolean' ? room.is_active : true, // Default to true if undefined
     images: room.image_paths ? [...room.image_paths] : [], 
-    // Initialize with existing panoramic image URL from room.panoramic_image_path
     panoramicImage: room.panoramic_image_path || undefined, 
   });
   
-  // ... (other states: formErrorsState, amenityInput, errors, imageError, panoramicImageError, refs)
   const [formErrorsState, setFormErrorsState] = useState<Record<string, string>>(formErrors);
   const [amenityInput, setAmenityInput] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [imageError, setImageError] = useState<string | null>(null);
-  const [panoramicImageError, setPanoramicImageError] = useState<string | null>(null);
+  const [generalFormError, setGeneralFormError] = useState<string | null>(null); // For general form/amenity errors
+  const [imageError, setImageError] = useState<string | null>(null); // For regular image specific errors
+  const [panoramicImageError, setPanoramicImageError] = useState<string | null>(null); // For panoramic image specific errors
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const panoramicFileInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Store ObjectURLs for File objects to manage their lifecycle
+  const objectUrlMapRef = useRef<Map<File, string>>(new Map());
 
-  useEffect(() => {
-    // When the room prop changes (e.g., opening overlay for a different room)
-    // or when external formErrors are passed, reset the form.
-    setFormData({
-      name: room.name,
-      capacity: room.capacity,
-      price: typeof room.room_price === 'number'
-        ? room.room_price
-        : typeof room.price === 'number'
-          ? room.price
-          : 0,
-      amenities: room.amenities ? [...room.amenities] : [],
-      is_active: room.is_active,
-      images: room.image_paths ? [...room.image_paths] : [],
-      panoramicImage: room.panoramic_image_path || undefined,
-    });
-    setFormErrorsState(formErrors);
-    setImageError(null);
-    setPanoramicImageError(null);
-    setError(null);
-    setAmenityInput('');
-  }, [room, formErrors]);
-
-  // Helper function to get image preview URL
-  const getImagePreviewUrl = (image: File | string): string => {
-    if (typeof image === 'string') {
-      return image; // It's already a URL from Supabase
+  // Function to get/create ObjectURL for a File and store it
+  const getOrCreateObjectURL = (file: File): string => {
+    if (!objectUrlMapRef.current.has(file)) {
+      const url = URL.createObjectURL(file);
+      objectUrlMapRef.current.set(file, url);
     }
-    return URL.createObjectURL(image); // It's a new File object
+    return objectUrlMapRef.current.get(file)!;
+  };
+
+  // Function to revoke and remove ObjectURL for a File
+  const revokeAndRemoveObjectURL = (file: File) => {
+    if (objectUrlMapRef.current.has(file)) {
+      URL.revokeObjectURL(objectUrlMapRef.current.get(file)!);
+      objectUrlMapRef.current.delete(file);
+    }
   };
   
-  // ... (useEffect for handleClickOutside, other handlers: handleChange, amenities, image uploads, remove panoramic, validateForm, handleSubmit) ...
-  // Ensure these handlers are correctly managing the (File | string) types for images.
+  // Effect to reset form when 'room' prop changes or 'formErrors' are passed
+  useEffect(() => {
+    // console.log("EditRoomOverlay: useEffect for room/formErrors triggered. Room:", room);
+    // 1. Revoke all existing ObjectURLs from the map before processing new/old room data
+    objectUrlMapRef.current.forEach(url => URL.revokeObjectURL(url));
+    objectUrlMapRef.current.clear();
 
-  // (Make sure all your handlers like handleImageUpload, removeImage, handlePanoramicImageUpload,
-  // removePanoramicImage, validateForm, and handleSubmit are the ones we worked on previously
-  // that correctly handle the mixed array `(File | string)[]` for `images`
-  // and `File | string | null` for `panoramicImage`)
+    // 2. Initialize formData from the current 'room' prop
+    const initialImages = room.image_paths ? [...room.image_paths] : [];
+    const initialPanoramicImage = room.panoramic_image_path || undefined;
 
-  // ... (rest of the handlers from the version you confirmed was working for EditRoomOverlay)
+    setFormData({
+      name: room.name || '',
+      capacity: room.capacity || 1,
+      price: getInitialPrice(room),
+      amenities: room.amenities ? [...room.amenities] : [],
+      is_active: typeof room.is_active === 'boolean' ? room.is_active : true,
+      images: initialImages,
+      panoramicImage: initialPanoramicImage,
+    });
 
-    useEffect(() => {
+    // 3. If initial images/panoramicImage are File objects (unlikely for data from DB, but for robustness),
+    // create their ObjectURLs. This step is mostly defensive.
+    initialImages.forEach(img => {
+        if (img instanceof File) getOrCreateObjectURL(img);
+    });
+    if (initialPanoramicImage instanceof File) {
+        getOrCreateObjectURL(initialPanoramicImage);
+    }
+
+    // 4. Reset error states
+    setFormErrorsState(formErrors); // Update local form errors with those from props
+    setImageError(null);
+    setPanoramicImageError(null);
+    setGeneralFormError(null);
+    setAmenityInput('');
+  }, [room, formErrors]); // Dependencies: room and formErrors
+
+  // Effect for cleaning up ALL ObjectURLs when the component unmounts
+  useEffect(() => {
+    return () => {
+      // console.log("EditRoomOverlay: Unmounting, cleaning up ObjectURLs.");
+      objectUrlMapRef.current.forEach(url => URL.revokeObjectURL(url));
+      objectUrlMapRef.current.clear();
+    };
+  }, []); // Empty dependency array means this runs only on mount and unmount
+
+  // Helper function to get image preview URL (either existing URL or ObjectURL for new File)
+  const getImagePreviewUrl = (image: File | string): string => {
+    if (typeof image === 'string') {
+      return image; // It's an existing URL from Supabase/storage
+    }
+    // It's a File object, get or create its ObjectURL from our map
+    return getOrCreateObjectURL(image);
+  };
+  
+  // Effect for handling clicks outside the amenity dropdown
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false);
@@ -102,54 +136,59 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  if (!isOpen || !room) return null; // Also ensure room is present
+  if (!isOpen || !room) return null; // Guard against rendering if not open or no room data
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     let processedValue: string | number | boolean = value;
+
     if (type === 'checkbox') {
       processedValue = checked;
     } else if (type === 'number') {
-      processedValue = parseFloat(value) || 0; // Default to 0 if parsing fails or empty
-      if (name === 'capacity' && processedValue < 1 && value !== '') processedValue = 1; // Min capacity 1
+      // Allow empty string for temporary clearing, otherwise parse or default to 0
+      processedValue = value === '' ? '' : (parseFloat(value) || 0);
+      if (name === 'capacity' && typeof processedValue === 'number' && processedValue < 1 && value !== '') {
+        processedValue = 1; // Min capacity 1
+      }
+      // For price, allow 0 but not negative.
+      if (name === 'price' && typeof processedValue === 'number' && processedValue < 0) {
+        processedValue = 0;
+      }
     }
 
     setFormData(prev => ({
       ...prev,
-      [name]: processedValue
+      // If number field was cleared (processedValue is ''), store 0, else store processedValue
+      [name]: (type === 'number' && processedValue === '') ? 0 : processedValue 
     }));
 
     if (formErrorsState[name]) {
       setFormErrorsState(prev => ({ ...prev, [name]: '' }));
     }
-    setError(null); 
+    setGeneralFormError(null); // Clear general form error on any change
   };
 
   const allExistingAmenities = [...new Set(existingRooms.flatMap(r => r.amenities || []))];
-  
   const filteredAmenities = allExistingAmenities
     .filter(amenity => 
       amenity && amenity.toLowerCase().includes(amenityInput.toLowerCase()) && 
       !formData.amenities.includes(amenity)
     );
 
-
   const handleAmenityInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setAmenityInput(e.target.value);
     setDropdownOpen(!!e.target.value);
-    setError(null);
+    setGeneralFormError(null);
   };
 
   const addAmenity = (amenity: string = amenityInput.trim()) => {
     const trimmedAmenity = amenity.trim();
     if (!trimmedAmenity) return;
     if (formData.amenities.length >= 10) {
-      setError('Maximum 10 amenities allowed');
-      return;
+      setGeneralFormError('Maximum 10 amenities allowed'); return;
     }
     if (formData.amenities.includes(trimmedAmenity)) {
-      setError('This amenity is already added');
-      return;
+      setGeneralFormError('This amenity is already added'); return;
     }
     setFormData(prev => ({ ...prev, amenities: [...prev.amenities, trimmedAmenity] }));
     setAmenityInput('');
@@ -158,7 +197,7 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
 
   const removeAmenity = (amenity: string) => {
     setFormData(prev => ({ ...prev, amenities: prev.amenities.filter(a => a !== amenity) }));
-    setError(null);
+    setGeneralFormError(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -169,31 +208,29 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
     const files = Array.from(e.target.files || []);
     const invalidFiles = files.filter(file => !file.type.startsWith('image/'));
     if (invalidFiles.length > 0) {
-      setImageError('Only image files are allowed.');
-      return;
+      setImageError('Only image files are allowed.'); return;
     }
     const totalImages = formData.images.length + files.length;
     if (totalImages > 3) {
       setImageError('Maximum 3 images allowed.');
       const remainingSlots = 3 - formData.images.length;
       if (remainingSlots > 0) {
-          setFormData(prev => ({ ...prev, images: [...prev.images, ...files.slice(0, remainingSlots)] }));
+          const filesToAdd = files.slice(0, remainingSlots);
+          filesToAdd.forEach(file => getOrCreateObjectURL(file)); // Manage ObjectURL
+          setFormData(prev => ({ ...prev, images: [...prev.images, ...filesToAdd] }));
       }
       return;
     }
+    files.forEach(file => getOrCreateObjectURL(file)); // Manage ObjectURL
     setFormData(prev => ({ ...prev, images: [...prev.images, ...files] }));
     setImageError(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (fileInputRef.current) fileInputRef.current.value = ''; // Reset file input
   };
 
   const removeImage = (index: number) => {
     const imageToRemove = formData.images[index];
-    // If it's an object URL, revoke it to prevent memory leaks, only if it's a File
-    if (typeof imageToRemove !== 'string' && imageToRemove instanceof File) {
-      const objectUrl = getImagePreviewUrl(imageToRemove); // This would have created it
-      if (objectUrl.startsWith('blob:')) { // Check if it's actually a blob URL
-        URL.revokeObjectURL(objectUrl);
-      }
+    if (imageToRemove instanceof File) { // If it's a File, revoke its ObjectURL
+      revokeAndRemoveObjectURL(imageToRemove);
     }
     setFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
     setImageError(null); 
@@ -203,90 +240,79 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
-        setPanoramicImageError('Only image files are allowed for panoramic view.');
+        setPanoramicImageError('Only image files are allowed.');
         if (panoramicFileInputRef.current) panoramicFileInputRef.current.value = '';
         return;
       }
-      // Revoke previous object URL if it was a File
+      // If there was a previous panoramic image that was a File, revoke its ObjectURL
       if (formData.panoramicImage instanceof File) {
-        const objectUrl = getImagePreviewUrl(formData.panoramicImage);
-        if (objectUrl.startsWith('blob:')) {
-            URL.revokeObjectURL(objectUrl);
-        }
+        revokeAndRemoveObjectURL(formData.panoramicImage);
       }
+      getOrCreateObjectURL(file); // Create and store ObjectURL for the new file
       setFormData(prev => ({ ...prev, panoramicImage: file }));
       setPanoramicImageError(null);
     }
+     // Don't reset panoramicFileInputRef.current.value here if you want the browser to show the selected file name
   };
 
   const removePanoramicImage = () => {
-     // Revoke previous object URL if it was a File
+    // If the current panoramic image is a File, revoke its ObjectURL
     if (formData.panoramicImage instanceof File) {
-        const objectUrl = getImagePreviewUrl(formData.panoramicImage);
-        if (objectUrl.startsWith('blob:')) {
-            URL.revokeObjectURL(objectUrl);
-        }
+      revokeAndRemoveObjectURL(formData.panoramicImage);
     }
-    setFormData(prev => ({ ...prev, panoramicImage: null })); 
+    setFormData(prev => ({ ...prev, panoramicImage: null })); // Set to null to indicate removal to backend
     setPanoramicImageError(null);
-    if (panoramicFileInputRef.current) panoramicFileInputRef.current.value = '';
+    if (panoramicFileInputRef.current) panoramicFileInputRef.current.value = ''; // Clear file input
   };
 
   const validateForm = (): boolean => {
-    const localFormErrors: Record<string, string> = {}; // Use a local var for this validation pass
+    const localFormErrors: Record<string, string> = {}; 
     let hasErrors = false;
 
     if (!formData.name.trim()) { localFormErrors.name = 'Room name is required'; hasErrors = true; }
-    if (formData.capacity < 1) { localFormErrors.capacity = 'Capacity must be at least 1'; hasErrors = true; }
-    if (formData.price <= 0) { localFormErrors.price = 'Price must be greater than 0'; hasErrors = true; }
+    if (typeof formData.capacity !== 'number' || formData.capacity < 1) { localFormErrors.capacity = 'Capacity must be at least 1'; hasErrors = true; }
+    // Price can be 0, but not negative. API expects price > 0.
+    if (typeof formData.price !== 'number' || formData.price <= 0) { localFormErrors.price = 'Price must be greater than 0'; hasErrors = true; }
     
     if (formData.images.length !== 3) {
       setImageError('Exactly 3 regular images are required.');
-      localFormErrors.images = 'Exactly 3 regular images are required.'; // For overall form error summary
+      localFormErrors.images = 'Exactly 3 regular images are required.';
       hasErrors = true;
-    } else {
-      setImageError(null);
-    }
+    } else { setImageError(null); }
 
+    // Make panoramic image required for edit too, or adjust if it can be optional
     if (!formData.panoramicImage) { 
       setPanoramicImageError('A panoramic image is required.');
       localFormErrors.panoramicImage = 'A panoramic image is required.';
       hasErrors = true;
-    } else {
-      setPanoramicImageError(null);
-    }
+    } else { setPanoramicImageError(null); }
     
-    setFormErrorsState(localFormErrors); // Update the state with errors from this validation pass
+    setFormErrorsState(localFormErrors);
     return !hasErrors;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setGeneralFormError(null); // Clear general error on new submit attempt
     if (!validateForm()) {
-      // General error message for the form if specific field errors aren't enough.
-      // This 'error' state is for general/amenity errors, consider a specific one for submit failure.
-      // setError('Please fix the errors in the form.'); 
-      alert('Please fix the errors highlighted in the form.'); // Simple alert
+      setGeneralFormError('Please fix the errors highlighted in the form.');
       return;
     }
-    // setError(null); // Clear general form error
     onSubmit(formData);
   };
-
 
   return (
     <div className={styles.overlay}>
       <div className={styles.filterOverlayContent}>
         <div className={styles.overlayHeader}>
-          <h2>Edit Room: {room.name}</h2> {/* Display current room name being edited */}
+          <h2>Edit Room: {room.name}</h2>
           <button className={styles.closeButton} onClick={onClose}>
             <i className="fa-regular fa-xmark"></i>
           </button>
         </div>
         
         <form onSubmit={handleSubmit} className={styles.filterForm} noValidate>
-          {/* General form error display can go here if needed */}
-          {/* {error && <p className={`${styles.errorText} ${styles.generalFormError}`}>{error}</p>} */}
+          {generalFormError && <p className={`${styles.errorText} ${styles.generalFormError}`}>{generalFormError}</p>}
 
           <div className={styles.filterSection}>
             <h3>Room Details</h3>
@@ -304,7 +330,7 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
             
             <div className={styles.filterField}>
               <label className={styles.requiredField}>Price (PHP)</label>
-              <input type="number" name="price" value={formData.price} onChange={handleChange} min="0.01" step="any" className={formErrorsState.price ? styles.inputError : ''} required />
+              <input type="number" name="price" value={formData.price} onChange={handleChange} min="0.01" step="any" placeholder="Enter price" className={formErrorsState.price ? styles.inputError : ''} required />
               {formErrorsState.price && <p className={styles.errorText}>{formErrorsState.price}</p>}
             </div>
             
@@ -319,8 +345,7 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
                   </div>
                 )}
               </div>
-              {error && <p className={styles.errorText}>{error}</p>} {/* Amenity specific error */}
-              {formErrorsState.amenities && <p className={styles.errorText}>{formErrorsState.amenities}</p>}
+              {formErrorsState.amenities && <p className={styles.errorText}>{formErrorsState.amenities}</p>} {/* If amenities had a specific error field */}
               {formData.amenities.length > 0 && (
                 <div className={styles.amenityTags}>
                   {formData.amenities.map(amenity => (<div key={amenity} className={styles.amenityTag}><span>{amenity}</span><button type="button" onClick={() => removeAmenity(amenity)} className={styles.removeTag}><i className="fa-regular fa-xmark"></i></button></div>))}
@@ -341,11 +366,10 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
             </div>
           </div>
 
-          {/* SECTION FOR REGULAR IMAGES */}
           <div className={styles.filterSection}>
             <h3>Room Images</h3>
             <div className={styles.filterField}>
-              <label className={styles.requiredField}>Upload Regular Images (exactly 3)</label>
+              <label className={styles.requiredField}>Regular Images (exactly 3)</label>
               <div className={styles.imageUploadContainer}>
                 <input type="file" accept="image/*" onChange={handleImageUpload} ref={fileInputRef} style={{ display: 'none' }} multiple />
                 <button type="button" onClick={() => fileInputRef.current?.click()} className={styles.uploadButton} disabled={formData.images.length >= 3}>
@@ -359,15 +383,14 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
               {formData.images.length > 0 && (
                 <div className={styles.imagePreviewContainer}>
                   {formData.images.map((image, index) => (
-                    <div key={typeof image === 'string' ? image : image.name + index + image.size} className={styles.imagePreviewItem}>
+                    <div key={typeof image === 'string' ? image : `${image.name}-${index}-${image.size}`} className={styles.imagePreviewItem}>
                       <Image
-                        src={getImagePreviewUrl(image)} // This will display existing URLs or ObjectURLs for new files
+                        src={getImagePreviewUrl(image)}
                         alt={`Room preview ${index + 1}`}
                         width={100}
                         height={100}
                         style={{ objectFit: 'cover' }}
-                        unoptimized // Important for ObjectURLs
-                        // No need for onLoad revoke here if removeImage handles it for Files
+                        unoptimized
                       />
                       <button type="button" onClick={() => removeImage(index)} className={styles.removeImageButton}><i className="fa-regular fa-xmark"></i></button>
                     </div>
@@ -377,7 +400,6 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
             </div>
           </div>
 
-          {/* SECTION FOR PANORAMIC IMAGE */}
           <div className={styles.filterSection}>
             <h3>Panoramic Image</h3>
             <div className={styles.filterField}>
@@ -388,7 +410,7 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
                   <i className="fa-regular fa-panorama"></i> 
                   {formData.panoramicImage ? 'Change' : 'Select'} Panoramic Image
                 </button>
-                {formData.panoramicImage && ( // Show remove button only if an image is selected/present
+                {formData.panoramicImage && (
                     <button type="button" onClick={removePanoramicImage} className={styles.removePanoramicButton} style={{marginLeft: '10px'}}>
                         <i className="fa-regular fa-trash-can"></i> Remove
                     </button>
@@ -397,16 +419,15 @@ const EditRoomOverlay: React.FC<EditRoomOverlayProps> = ({
               {panoramicImageError && <p className={styles.errorText}>{panoramicImageError}</p>}
               {formErrorsState.panoramicImage && !panoramicImageError && <p className={styles.errorText}>{formErrorsState.panoramicImage}</p>}
               
-              {formData.panoramicImage && ( // Display preview if an image (File or URL string) is present
+              {formData.panoramicImage && (
                 <div className={styles.imagePreviewContainer} style={{ marginTop: '10px' }}>
                   <div className={styles.imagePreview} style={{ width: '200px', height: '100px' }}>
                     <Image
-                      src={getImagePreviewUrl(formData.panoramicImage as File | string)} // Cast to satisfy, null checked by outer if
+                      src={getImagePreviewUrl(formData.panoramicImage as File | string)}
                       alt="Panoramic preview"
                       width={200} height={100}
                       style={{ objectFit: 'contain' }}
-                      unoptimized // Important for ObjectURLs
-                       // No need for onLoad revoke here if removePanoramicImage handles it for Files
+                      unoptimized
                     />
                   </div>
                   {formData.panoramicImage instanceof File && (

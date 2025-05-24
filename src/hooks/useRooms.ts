@@ -1,15 +1,15 @@
 // src/hooks/useRooms.ts
 import { useState, useCallback, useEffect } from 'react';
 import { Room, RoomFormData } from '../types/room'; // Ensure these types are the updated ones
-import { fetchRooms } from '../utils/fetchRooms'; // Assuming this utility exists and works
+import { fetchRooms, FetchRoomsResult } from '../utils/fetchRooms'; // Assuming fetchRooms and its result type
 
 export interface UseRoomsReturn {
   rooms: Room[];
   isLoading: boolean;
   error: string | null;
   formErrors: Record<string, string>;
-  addRoom: (roomData: RoomFormData) => Promise<boolean>; // Return true on success, false on failure
-  updateRoom: (roomId: string, roomData: RoomFormData, initialRoomData: Room) => Promise<boolean>; // Add initialRoomData
+  addRoom: (roomData: RoomFormData) => Promise<boolean>; 
+  updateRoom: (roomId: string, roomData: RoomFormData, initialRoomData: Room) => Promise<boolean>;
   toggleRoomStatus: (roomId: string) => Promise<void>;
   clearError: () => void;
   refreshRooms: () => Promise<void>;
@@ -23,23 +23,26 @@ export const useRooms = (): UseRoomsReturn => {
 
   const clearError = useCallback(() => {
     setError(null);
-    setFormErrors({}); // Also clear form errors
+    setFormErrors({});
   }, []);
 
   const refreshRooms = useCallback(async () => {
     setIsLoading(true);
-    setFormErrors({}); // Clear form errors on refresh attempt
+    setFormErrors({}); 
     try {
-      const result = await fetchRooms(); // Assuming fetchRooms GETs /api/rooms
+      const result: FetchRoomsResult = await fetchRooms(); // Assuming fetchRooms returns FetchRoomsResult
       if (result.rooms) {
-        setRooms(result.rooms); // Ensure result.rooms matches Room[]
+        setRooms(result.rooms); 
         setError(null);
-      } else if (result) {
-        setError(typeof result === 'string' ? result : 'Failed to load rooms');
+      } else if (result && typeof result === 'object' && 'error' in result) { // Prefer a consistent error property from fetchRooms
+        setError((result as { error?: string }).error || "Failed to load rooms: Unknown error.");
+      } else {
+        // Fallback if result structure is unexpected
+        setError("Failed to load rooms: Unexpected response structure.");
       }
     } catch (err) {
       console.error("Error loading rooms:", err);
-      setError(err instanceof Error ? err.message : "Failed to load rooms");
+      setError(err instanceof Error ? err.message : "Failed to load rooms: An unknown error occurred.");
     } finally {
       setIsLoading(false);
     }
@@ -57,12 +60,11 @@ export const useRooms = (): UseRoomsReturn => {
     const apiFormData = new FormData();
     apiFormData.append('name', roomData.name);
     apiFormData.append('capacity', String(roomData.capacity));
-    apiFormData.append('room_price', String(roomData.price));
+    apiFormData.append('price', String(roomData.price)); // API expects 'price' in FormData
     apiFormData.append('is_active', String(roomData.is_active));
     roomData.amenities.forEach(amenity => apiFormData.append('amenities[]', amenity));
     
-    // roomData.images for ADD will be File[]
-    (roomData.images as File[]).forEach(file => {
+    (roomData.images as File[]).forEach(file => { // Assuming for ADD, images are always File[]
       apiFormData.append('images', file);
     });
     if (roomData.panoramicImage instanceof File) {
@@ -72,7 +74,7 @@ export const useRooms = (): UseRoomsReturn => {
     try {
       const response = await fetch('/api/rooms', {
         method: 'POST',
-        body: apiFormData, // Send FormData, DO NOT set Content-Type header
+        body: apiFormData, 
       });
       
       const data = await response.json();
@@ -84,24 +86,21 @@ export const useRooms = (): UseRoomsReturn => {
         return false;
       }
       
-      await refreshRooms(); // This will set isLoading to true then false
-      // setError(null); // refreshRooms handles this
-      // setFormErrors({}); // Already done at the start
+      await refreshRooms(); 
       return true;
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred during addRoom');
-      console.error(err);
+      console.error("addRoom catch block:", err);
       setIsLoading(false);
       return false;
     }
-    // No finally block for setIsLoading(false) here because refreshRooms handles it.
   }, [refreshRooms]);
 
   const updateRoom = useCallback(async (
     roomId: string, 
     updatedFormData: RoomFormData,
-    initialRoomData: Room // Need initial state to compare for sending only changed fields
+    initialRoomData: Room 
   ): Promise<boolean> => {
     setIsLoading(true);
     setFormErrors({});
@@ -110,37 +109,39 @@ export const useRooms = (): UseRoomsReturn => {
     const apiFormData = new FormData();
     apiFormData.append('id', roomId);
 
-    // Append base data only if it has changed or always send if API expects all
-    // Your API conditionally updates, so sending only changed or all is fine
     apiFormData.append('name', updatedFormData.name);
     apiFormData.append('capacity', String(updatedFormData.capacity));
-    apiFormData.append('room_price', String(updatedFormData.price));
+    apiFormData.append('price', String(updatedFormData.price)); // API expects 'price' in FormData
     apiFormData.append('is_active', String(updatedFormData.is_active));
     updatedFormData.amenities.forEach(amenity => apiFormData.append('amenities[]', amenity));
 
-    // Handle regular images (updatedFormData.images is (File | string)[])
+    console.log("CLIENT: updateRoom - updatedFormData.images:", updatedFormData.images); 
+
     updatedFormData.images.forEach(imgOrUrl => {
       if (typeof imgOrUrl === 'string') {
         apiFormData.append('image_urls_to_keep', imgOrUrl);
-      } else {
-        apiFormData.append('images', imgOrUrl); // New file
+        console.log("CLIENT: updateRoom - Appending to image_urls_to_keep:", imgOrUrl);
+      } else if (imgOrUrl instanceof File) { // Ensure it's a File
+        apiFormData.append('images', imgOrUrl); 
+        console.log("CLIENT: updateRoom - Appending new File to images:", imgOrUrl.name);
       }
     });
 
-    // Handle panoramic image (updatedFormData.panoramicImage is File | string | null)
     if (updatedFormData.panoramicImage instanceof File) {
       apiFormData.append('panoramicImage', updatedFormData.panoramicImage);
+      console.log("CLIENT: updateRoom - Appending new File to panoramicImage:", updatedFormData.panoramicImage.name);
     } else if (typeof updatedFormData.panoramicImage === 'string') {
       apiFormData.append('panoramic_image_url_to_keep', updatedFormData.panoramicImage);
+      console.log("CLIENT: updateRoom - Appending to panoramic_image_url_to_keep:", updatedFormData.panoramicImage);
     } else if (updatedFormData.panoramicImage === null) {
       apiFormData.append('remove_panoramic_image', 'true');
+      console.log("CLIENT: updateRoom - Flagging panoramic_image for removal");
     }
-    // If undefined (not touched), client sends nothing for panoramic, server should keep existing.
 
     try {
-      const response = await fetch(`/api/rooms`, { // Assuming PUT to /api/rooms with ID in body
+      const response = await fetch(`/api/rooms`, {
         method: 'PUT',
-        body: apiFormData, // Send FormData
+        body: apiFormData, 
       });
       
       const data = await response.json();
@@ -157,32 +158,30 @@ export const useRooms = (): UseRoomsReturn => {
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred during updateRoom');
-      console.error(err);
+      console.error("updateRoom catch block:", err);
       setIsLoading(false);
       return false;
     }
   }, [refreshRooms]);
 
   const toggleRoomStatus = useCallback(async (roomId: string) => {
-    setIsLoading(true); // Indicate loading
+    setIsLoading(true); 
     setError(null);
     setFormErrors({});
 
-    const roomToToggle = rooms.find(r => r.id === roomId);
+    const roomToToggle = rooms.find(r => String(r.id) === roomId); // Ensure ID comparison is safe
     if (!roomToToggle) {
       setError('Room not found for toggling status.');
       setIsLoading(false);
       return;
     }
 
-    // For toggle, we only need to send the ID and the new is_active state.
-    // The API's PUT handler is designed to update only fields provided (conditionally).
     const apiFormData = new FormData();
     apiFormData.append('id', roomId);
-    apiFormData.append('is_active', String(!roomToToggle.is_active)); // Send the new state
+    apiFormData.append('is_active', String(!roomToToggle.is_active)); 
 
     try {
-      const response = await fetch(`/api/rooms`, { // PUT to /api/rooms
+      const response = await fetch(`/api/rooms`, {
         method: 'PUT',
         body: apiFormData,
       });
@@ -192,13 +191,12 @@ export const useRooms = (): UseRoomsReturn => {
         throw new Error(data.error || 'Failed to toggle room status');
       }
       
-      await refreshRooms(); // This will set error to null on success
-      // setIsLoading is handled by refreshRooms
+      await refreshRooms();
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred during toggle');
-      console.error(err);
-      setIsLoading(false); // Ensure loading is false on error here
+      console.error("toggleRoomStatus catch block:", err);
+      setIsLoading(false); 
     }
   }, [rooms, refreshRooms]);
 

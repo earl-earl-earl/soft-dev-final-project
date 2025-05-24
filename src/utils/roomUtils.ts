@@ -26,7 +26,8 @@ export const filterRooms = (
     if (
       searchTerm && 
       !room.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
-      !room.roomNumber.toLowerCase().includes(searchTerm.toLowerCase())
+      //!room.roomNumber.toLowerCase().includes(searchTerm.toLowerCase()
+      !room.id.toLowerCase().includes(searchTerm.toLowerCase())
     ) {
       return false;
     }

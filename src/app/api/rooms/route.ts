@@ -22,7 +22,7 @@ function sanitizeForPath(name: string): string {
 // Upload a file to Supabase Storage and return its public URL
 async function uploadFileToSupabase(
   file: File,
-  pathSuffix: string, // e.g., "roomId/sanitizedName_variant.ext"
+  pathSuffix: string, // e.g., "roomId/subfolder/fileName.ext"
   supabaseClient: SupabaseClient = supabase
 ): Promise<string> {
   const { data, error } = await supabaseClient.storage
@@ -46,46 +46,6 @@ async function uploadFileToSupabase(
     throw new Error(`Failed to get public URL for ${pathSuffix}. Ensure bucket is public or RLS allows access.`);
   }
   return publicUrlData.publicUrl;
-}
-
-// Delete files from Supabase Storage based on their public URLs
-async function deleteFilesFromSupabase(
-  publicUrls: string[],
-  supabaseClient: SupabaseClient = supabase
-): Promise<void> {
-  if (!publicUrls || publicUrls.length === 0) return;
-
-  const storagePaths = publicUrls.map(fullUrl => {
-    try {
-      const url = new URL(fullUrl);
-      // Pathname example: /storage/v1/object/public/room-images/actual/path/in/bucket.jpg
-      // We need to extract "actual/path/in/bucket.jpg"
-      const bucketPathSegment = `/${ROOM_IMAGES_BUCKET}/`;
-      const startIndex = url.pathname.indexOf(bucketPathSegment);
-      if (startIndex === -1) {
-        console.warn(`Could not find bucket segment in URL: ${fullUrl}`);
-        return ''; // Or handle as an error if format is strictly expected
-      }
-      return url.pathname.substring(startIndex + bucketPathSegment.length);
-    } catch (e) {
-      console.warn(`Invalid URL format for deletion: ${fullUrl}`, e);
-      return ''; // Or handle as an error
-    }
-  }).filter(path => path); // Filter out any empty strings from parsing errors
-
-  if (storagePaths.length === 0) {
-    console.log("No valid storage paths derived for deletion.");
-    return;
-  }
-
-  const { error } = await supabaseClient.storage
-    .from(ROOM_IMAGES_BUCKET)
-    .remove(storagePaths);
-
-  if (error) {
-    // Log error but don't necessarily throw, as main DB update might still be important
-    console.error('Supabase delete error:', error);
-  }
 }
 
 // --- INTERFACES AND VALIDATION ---
@@ -203,7 +163,7 @@ export async function POST(request: NextRequest) {
       .insert({
         name: roomBaseData.name,
         capacity: roomBaseData.capacity,
-        room_price: roomBaseData.price,
+        room_price: roomBaseData.price, // <<<< DB uses 'room_price'
         amenities: roomBaseData.amenities,
         is_active: roomBaseData.is_active,
         last_updated: new Date().toISOString(),
@@ -226,14 +186,14 @@ export async function POST(request: NextRequest) {
     try {
       const regularUploadPromises = regularImageFiles.map((file, index) => {
         const fileExtension = file.name.split('.').pop() || 'jpg';
-        const pathSuffix = `${newRoomId}/${sanitizedRoomName}_reg_${index + 1}_${uuidv4().slice(0, 8)}.${fileExtension}`;
+        const pathSuffix = `${newRoomId}/regular/${sanitizedRoomName}_${index + 1}_${uuidv4().slice(0, 8)}.${fileExtension}`;
         return uploadFileToSupabase(file, pathSuffix);
       });
       uploadedRegularImageUrls = await Promise.all(regularUploadPromises);
 
       if (panoramicImageFile) {
         const fileExtension = (panoramicImageFile as File).name.split('.').pop() || 'jpg';
-        const pathSuffix = `${newRoomId}/${sanitizedRoomName}_pano_${uuidv4().slice(0, 8)}.${fileExtension}`;
+        const pathSuffix = `${newRoomId}/panoramic/${sanitizedRoomName}_pano_${uuidv4().slice(0, 8)}.${fileExtension}`;
         uploadedPanoramicImageUrl = await uploadFileToSupabase(panoramicImageFile, pathSuffix);
       }
     } catch (uploadError: any) {
@@ -272,13 +232,66 @@ export async function POST(request: NextRequest) {
   }
 }
 
+
+async function deleteFilesFromSupabase( // Ensure this function has detailed logging too
+  publicUrls: string[],
+  supabaseClient: SupabaseClient = supabase
+): Promise<void> {
+  if (!publicUrls || publicUrls.length === 0) {
+    // console.log("DELETE_HELPER: No publicUrls provided for deletion."); // Optional log
+    return;
+  }
+
+  const storagePaths = publicUrls.map(fullUrl => {
+    try {
+      if (!fullUrl || typeof fullUrl !== 'string') { // Add check for invalid URL
+        console.warn(`DELETE_HELPER: Invalid or empty URL provided: ${fullUrl}`);
+        return '';
+      }
+      const url = new URL(fullUrl);
+      const bucketPathSegment = `/${ROOM_IMAGES_BUCKET}/`; 
+      const startIndex = url.pathname.indexOf(bucketPathSegment);
+      
+      // console.log(`DELETE_HELPER: Processing URL: ${fullUrl}, BucketPathSegment: ${bucketPathSegment}, StartIndex: ${startIndex}`);
+
+      if (startIndex === -1) {
+        console.warn(`DELETE_HELPER: Could not find bucket segment in URL: ${fullUrl}`);
+        return ''; 
+      }
+      const extractedPath = decodeURIComponent(url.pathname.substring(startIndex + bucketPathSegment.length)); // decodeURIComponent added
+      // console.log(`DELETE_HELPER: Extracted path for deletion: ${extractedPath}`);
+      return extractedPath;
+    } catch (e) {
+      console.warn(`DELETE_HELPER: Invalid URL format for deletion: ${fullUrl}`, e);
+      return ''; 
+    }
+  }).filter(path => path); 
+
+  if (storagePaths.length === 0) {
+    console.log("DELETE_HELPER: No valid storage paths derived for deletion. Original URLs provided:", publicUrls);
+    return;
+  }
+
+  console.log("DELETE_HELPER: Attempting to remove paths from Supabase Storage:", storagePaths);
+  const { data, error } = await supabaseClient.storage 
+    .from(ROOM_IMAGES_BUCKET)
+    .remove(storagePaths);
+
+  if (error) {
+    console.error('DELETE_HELPER: Supabase Storage delete error:', error); 
+  } else {
+    console.log('DELETE_HELPER: Supabase Storage delete successful for paths:', storagePaths, 'Response data:', data); 
+  }
+}
+
+
 // PUT handler to update a room
 export async function PUT(request: NextRequest) {
   try {
     const formData = await request.formData();
     const roomBaseData: RoomBaseData = {};
-    const newRegularImageFiles: File[] = []; // New files for regular images
-    let newPanoramicImageFile: File | undefined = undefined; // New file for panoramic
+    const newRegularImageFiles: File[] = []; 
+    let newPanoramicImageFile: File | null = null; 
 
     const roomId = formData.get('id') as string;
     if (!roomId) {
@@ -286,16 +299,22 @@ export async function PUT(request: NextRequest) {
     }
     roomBaseData.id = roomId;
 
-    // Extract non-file fields
-    roomBaseData.name = formData.get('name') as string;
-    roomBaseData.capacity = parseInt(formData.get('capacity') as string, 10);
-    roomBaseData.price = parseFloat(formData.get('room_price') as string);
-    roomBaseData.amenities = formData.getAll('amenities[]').map(String) || [];
-    const isActiveString = formData.get('isActive') as string;
-    if (isActiveString !== null) { // Check if 'isActive' was actually sent
+    // Extract non-file fields (name, capacity, price, amenities, is_active)
+    const nameValue = formData.get('name');
+    if (nameValue !== null) roomBaseData.name = nameValue as string;
+
+    const capacityString = formData.get('capacity');
+    if (capacityString !== null) roomBaseData.capacity = parseInt(capacityString as string, 10);
+    
+    const priceString = formData.get('price'); 
+    if (priceString !== null) roomBaseData.price = parseFloat(priceString as string);
+
+    roomBaseData.amenities = formData.getAll('amenities[]').map(String); 
+
+    const isActiveString = formData.get('is_active') as string; 
+    if (isActiveString !== null) {
         roomBaseData.is_active = isActiveString === 'true';
     }
-
 
     // Extract file-related actions and data from FormData
     const imageUrlsToKeep: string[] = formData.getAll('image_urls_to_keep').map(String);
@@ -309,51 +328,73 @@ export async function PUT(request: NextRequest) {
     const panoramicImageUrlToKeep = formData.get('panoramic_image_url_to_keep') as string | null;
     const removePanoramicImageFlag = formData.get('remove_panoramic_image') === 'true';
 
-    const validation = validateRoomBaseData(roomBaseData, false); // isPost = false
+    // --- SERVER LOGGING (START) ---
+    console.log(`--- API PUT /api/rooms (Room ID: ${roomId}) ---`);
+    console.log("SERVER: Received image_urls_to_keep:", imageUrlsToKeep);
+    console.log("SERVER: Received newRegularImageFiles count:", newRegularImageFiles.length, newRegularImageFiles.map(f => f.name));
+    console.log("SERVER: Received newPanoramicImageFile:", newPanoramicImageFile ? (newPanoramicImageFile as File).name : 'None');
+    console.log("SERVER: Received panoramic_image_url_to_keep:", panoramicImageUrlToKeep);
+    console.log("SERVER: Received remove_panoramic_image flag:", removePanoramicImageFlag);
+    // --- SERVER LOGGING (END) ---
+
+    const validation = validateRoomBaseData(roomBaseData, false);
     if (!validation.valid) {
+      console.error("SERVER: Validation failed", validation.errors);
       return NextResponse.json({ error: 'Validation failed', details: validation.errors }, { status: 400 });
     }
 
-    // Fetch existing room data
     const { data: existingRoom, error: fetchError } = await supabase
       .from('rooms')
-      .select('name, image_paths, panoramic_image_path')
+      .select('name, image_paths, panoramic_image_path') // Select fields needed for comparison/deletion
       .eq('id', roomId)
       .single();
 
     if (fetchError || !existingRoom) {
+      console.error("SERVER: Fetch existing room error or room not found", fetchError);
       return NextResponse.json({ error: 'Room not found or failed to fetch existing data.' }, { status: 404 });
     }
 
     const currentImagePaths: string[] = existingRoom.image_paths || [];
     const currentPanoramicPath: string | null = existingRoom.panoramic_image_path || null;
-    const effectiveRoomName = roomBaseData.name || existingRoom.name; // Use new name if provided, else old
+    
+    console.log("SERVER: Current DB image_paths:", currentImagePaths);
+    console.log("SERVER: Current DB panoramic_image_path:", currentPanoramicPath);
+
+    const effectiveRoomName = roomBaseData.name || existingRoom.name; 
     const sanitizedRoomName = sanitizeForPath(effectiveRoomName || `room_${roomId}`);
 
     // --- Handle Regular Images ---
-    let finalRegularImageUrls: string[] = [...imageUrlsToKeep];
+    let finalRegularImageUrls: string[] = [...imageUrlsToKeep]; // Start with images client wants to keep
+    // Identify images that were in the DB but client doesn't want to keep them anymore
     const regularImagesToDelete = currentImagePaths.filter(path => !imageUrlsToKeep.includes(path));
+
+    console.log("SERVER: Calculated regularImagesToDelete:", regularImagesToDelete);
+    console.log("SERVER: Initial finalRegularImageUrls (from kept URLs):", finalRegularImageUrls);
 
     try {
       if (newRegularImageFiles.length > 0) {
         const uploadPromises = newRegularImageFiles.map((file, index) => {
           const fileExtension = file.name.split('.').pop() || 'jpg';
-          // Path based on how many images are being kept + index of new files
-          const pathSuffix = `${roomId}/${sanitizedRoomName}_reg_upd_${finalRegularImageUrls.length + index}_${uuidv4().slice(0,8)}.${fileExtension}`;
+          const pathSuffix = `${roomId}/regular/${sanitizedRoomName}_upd_${finalRegularImageUrls.length + index}_${uuidv4().slice(0,8)}.${fileExtension}`;
+          console.log("SERVER: Uploading new regular image to path:", pathSuffix);
           return uploadFileToSupabase(file, pathSuffix);
         });
         const newlyUploadedUrls = await Promise.all(uploadPromises);
         finalRegularImageUrls.push(...newlyUploadedUrls);
+        console.log("SERVER: After new regular uploads, finalRegularImageUrls:", finalRegularImageUrls);
       }
+
       if (regularImagesToDelete.length > 0) {
+        console.log("SERVER: Attempting to delete regular images from Supabase Storage:", regularImagesToDelete);
         await deleteFilesFromSupabase(regularImagesToDelete);
       }
     } catch (uploadError: any) {
-      console.error('Regular image update error:', uploadError);
+      console.error('SERVER: Regular image update/delete process error:', uploadError);
       return NextResponse.json({ error: 'Failed to update regular images.', details: uploadError.message }, { status: 500 });
     }
     
     if (finalRegularImageUrls.length !== 3) {
+        console.warn("SERVER: Room must have exactly 3 regular images after update. Current count:", finalRegularImageUrls.length);
         return NextResponse.json({ error: 'Room must have exactly 3 regular images after update.' }, { status: 400 });
     }
 
@@ -361,42 +402,48 @@ export async function PUT(request: NextRequest) {
     let finalPanoramicImageUrl: string | null = null;
 
     try {
-      if (newPanoramicImageFile) { // New panoramic uploaded
-        if (currentPanoramicPath) await deleteFilesFromSupabase([currentPanoramicPath]); // Delete old
+      if (newPanoramicImageFile) { 
+        console.log("SERVER: New panoramic image file provided. Current DB path:", currentPanoramicPath);
+        if (currentPanoramicPath) {
+            console.log("SERVER: Deleting old panoramic (due to new upload):", [currentPanoramicPath]);
+            await deleteFilesFromSupabase([currentPanoramicPath]); 
+        }
         const fileExtension = (newPanoramicImageFile as File).name.split('.').pop() || 'jpg';
-        const pathSuffix = `${roomId}/${sanitizedRoomName}_pano_upd_${uuidv4().slice(0,8)}.${fileExtension}`;
-        finalPanoramicImageUrl = await uploadFileToSupabase(newPanoramicImageFile as File, pathSuffix);
-      } else if (panoramicImageUrlToKeep) { // Explicitly keep existing
+        const pathSuffix = `${roomId}/panoramic/${sanitizedRoomName}_pano_upd_${uuidv4().slice(0,8)}.${fileExtension}`;
+        console.log("SERVER: Uploading new panoramic image to path:", pathSuffix);
+        finalPanoramicImageUrl = await uploadFileToSupabase(newPanoramicImageFile, pathSuffix);
+      } else if (panoramicImageUrlToKeep) { 
         finalPanoramicImageUrl = panoramicImageUrlToKeep;
-      } else if (removePanoramicImageFlag) { // Explicitly remove
-        if (currentPanoramicPath) await deleteFilesFromSupabase([currentPanoramicPath]);
-        finalPanoramicImageUrl = null; // Set to null in DB
-      } else { // No action specified, so retain current path if it exists
-        finalPanoramicImageUrl = currentPanoramicPath;
+        console.log("SERVER: Keeping existing panoramic image URL:", finalPanoramicImageUrl);
+      } else if (removePanoramicImageFlag) { 
+        console.log("SERVER: Remove panoramic image flag is true. Current DB path:", currentPanoramicPath);
+        if (currentPanoramicPath) {
+            console.log("SERVER: Deleting panoramic (due to remove flag):", [currentPanoramicPath]);
+            await deleteFilesFromSupabase([currentPanoramicPath]);
+        }
+        finalPanoramicImageUrl = null; 
+      } else { 
+        finalPanoramicImageUrl = currentPanoramicPath; // No action, retain current
+        console.log("SERVER: No action specified for panoramic image, retaining current:", finalPanoramicImageUrl);
       }
     } catch (uploadError: any) {
-      console.error('Panoramic image update error:', uploadError);
+      console.error('SERVER: Panoramic image update/delete process error:', uploadError);
       return NextResponse.json({ error: 'Failed to update panoramic image.', details: uploadError.message }, { status: 500 });
     }
 
-    // Server-side validation: if a panoramic image is always required
-    if (!finalPanoramicImageUrl) { // Adjust if panoramic can be optional
-        // return NextResponse.json({ error: 'A panoramic image is required after update.' }, { status: 400 });
-    }
-
     // Update room in database
-    const dbUpdatePayload: any = {
+    const dbUpdatePayload: Record<string, any> = { 
         image_paths: finalRegularImageUrls,
         panoramic_image_path: finalPanoramicImageUrl,
         last_updated: new Date().toISOString(),
     };
-    // Conditionally add fields to update only if they were provided in FormData
-    if (roomBaseData.name) dbUpdatePayload.name = roomBaseData.name;
+    if (roomBaseData.name !== undefined) dbUpdatePayload.name = roomBaseData.name;
     if (roomBaseData.capacity !== undefined) dbUpdatePayload.capacity = roomBaseData.capacity;
-    if (roomBaseData.price !== undefined) dbUpdatePayload.price = roomBaseData.price;
+    if (roomBaseData.price !== undefined) dbUpdatePayload.room_price = roomBaseData.price; 
     if (roomBaseData.amenities !== undefined) dbUpdatePayload.amenities = roomBaseData.amenities;
     if (roomBaseData.is_active !== undefined) dbUpdatePayload.is_active = roomBaseData.is_active;
 
+    console.log("SERVER: Final DB update payload for room:", dbUpdatePayload);
 
     const { data: updatedDbRoomData, error: dbUpdateError } = await supabase
       .from('rooms')
@@ -406,14 +453,15 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (dbUpdateError) {
-      console.error('Room DB update error:', dbUpdateError);
+      console.error('SERVER: Room DB update error:', dbUpdateError);
       return NextResponse.json({ error: 'Failed to update room in database.', details: dbUpdateError.message }, { status: 500 });
     }
 
+    console.log("SERVER: Room update successful. Response:", updatedDbRoomData)
     return NextResponse.json(updatedDbRoomData);
 
   } catch (e: any) {
-    console.error('PUT request processing error:', e);
+    console.error('SERVER: Unhandled PUT request processing error:', e);
     return NextResponse.json({ error: 'Failed to process PUT request.', details: e.message }, { status: 500 });
   }
 }
