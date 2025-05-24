@@ -61,7 +61,7 @@ export const useRooms = (): UseRoomsReturn => {
     apiFormData.append('name', roomData.name);
     apiFormData.append('capacity', String(roomData.capacity));
     apiFormData.append('price', String(roomData.price)); // API expects 'price' in FormData
-    apiFormData.append('is_active', String(roomData.is_active));
+    apiFormData.append('is_active', String(roomData.isActive));
     roomData.amenities.forEach(amenity => apiFormData.append('amenities[]', amenity));
     
     (roomData.images as File[]).forEach(file => { // Assuming for ADD, images are always File[]
@@ -112,7 +112,7 @@ export const useRooms = (): UseRoomsReturn => {
     apiFormData.append('name', updatedFormData.name);
     apiFormData.append('capacity', String(updatedFormData.capacity));
     apiFormData.append('price', String(updatedFormData.price)); // API expects 'price' in FormData
-    apiFormData.append('is_active', String(updatedFormData.is_active));
+    apiFormData.append('is_active', String(updatedFormData.isActive));
     updatedFormData.amenities.forEach(amenity => apiFormData.append('amenities[]', amenity));
 
     console.log("CLIENT: updateRoom - updatedFormData.images:", updatedFormData.images); 

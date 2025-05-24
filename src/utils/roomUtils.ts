@@ -27,7 +27,7 @@ export const filterRooms = (
       searchTerm && 
       !room.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
       //!room.roomNumber.toLowerCase().includes(searchTerm.toLowerCase()
-      !room.id.toLowerCase().includes(searchTerm.toLowerCase())
+      !room.id.toString().toLowerCase().includes(searchTerm.toLowerCase())
     ) {
       return false;
     }
@@ -37,8 +37,8 @@ export const filterRooms = (
     if (filterOptions.maxCapacity && room.capacity > parseInt(filterOptions.maxCapacity)) return false;
     
     // Price filter
-    if (filterOptions.minPrice && room.price < parseInt(filterOptions.minPrice)) return false;
-    if (filterOptions.maxPrice && room.price > parseInt(filterOptions.maxPrice)) return false;
+    if (filterOptions.minPrice && typeof room.price === 'number' && room.price < parseInt(filterOptions.minPrice)) return false;
+    if (filterOptions.maxPrice && typeof room.price === 'number' && room.price > parseInt(filterOptions.maxPrice)) return false;
     
     // Active status filter
     if (filterOptions.isActive === 'active' && !room.isActive) return false;
@@ -72,9 +72,9 @@ export const filterRooms = (
         case 'name_desc':
           return b.name.localeCompare(a.name);
         case 'id_asc':
-          return a.id.localeCompare(b.id);
+          return a.id - b.id;
         case 'id_desc':
-          return b.id.localeCompare(a.id);
+          return b.id - a.id;
         default:
           return 0;
       }

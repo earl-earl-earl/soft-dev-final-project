@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
     // Extract non-file fields
     roomBaseData.name = formData.get('name') as string;
     roomBaseData.capacity = parseInt(formData.get('capacity') as string, 10);
-    roomBaseData.price = parseFloat(formData.get('room_price') as string);
+    roomBaseData.price = parseFloat(formData.get('price') as string);
     // For amenities array, client should append 'amenities[]'
     roomBaseData.amenities = formData.getAll('amenities[]').map(String) || [];
     const isActiveString = formData.get('isActive') as string;

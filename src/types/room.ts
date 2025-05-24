@@ -1,39 +1,40 @@
 // src/types/room.ts
 
-// This seems to be for display/filtering, keep if needed, but not directly in core Room DB model
+// For client-side display/filtering, not directly in core Room DB model if derived
 export type RoomStatus = "Occupied" | "Vacant";
 
-// Reservation type is fine if used elsewhere
+// Reservation type if used for displaying reservation details alongside a room
 export interface Reservation {
-  checkIn: Date;
-  checkOut: Date;
+  checkIn: Date;  // Or string if you handle date conversion elsewhere
+  checkOut: Date; // Or string
   guestName: string;
 }
 
-// Core Room interface, matching database and API response
+// Core Room interface: This should accurately reflect the structure of objects
+// returned by your GET /api/rooms endpoint.
 export interface Room {
-  id: string; // Or number, depending on your DB's actual ID type (Supabase serial is number)
+  id: number;                   // From your API response, ID is a number
   name: string;
-  // roomNumber: string; // REMOVED
   capacity: number;
-  price: number; // Assuming price is still a field, though not in your initial DB schema for rooms
   amenities: string[];
-  is_active: boolean; // Renamed from isActive to match DB snake_case
-  last_updated: string; // Renamed from lastUpdated and type to string (ISO date string)
-  
-  // New image fields from DB
-  image_paths?: string[];         // Array of public URLs for regular images
-  panoramic_image_path?: string;  // Public URL for panoramic image
+  isActive: boolean;           // Matches API response
+  last_updated: string;         // Matches API response (ISO date string)
+  room_price: number;           // Matches API response (key is room_price)
+  created_at?: string;          // Present in your API response, added as optional
 
-  // These are likely derived or for client-side state, not direct DB fields for 'rooms' table
+  image_paths?: string[];         // Key matches API response, array of public URLs
+  panoramic_image_path?: string;  // Key matches API response, public URL
+
+  // These are likely derived or for additional client-side state,
+  // not necessarily direct fields from the 'rooms' table API GET response.
   status?: RoomStatus;          // Derived based on is_active or reservations
   reservation?: Reservation;    // Likely joined or fetched separately
 
-  // To allow for other potential properties from Supabase or joins
+  // To allow for other potential properties if your API sends more
   [key: string]: unknown;
 }
 
-// RoomStats interface looks fine for its purpose
+// Statistics about rooms
 export interface RoomStats {
   totalRooms: number;
   totalRoomsChange: number;
@@ -43,27 +44,24 @@ export interface RoomStats {
   availableChange: number;
 }
 
-// RoomFormData: This is what the FORMS (AddRoomOverlay, EditRoomOverlay) will submit
-// It will be converted to FormData for API calls involving files.
+// RoomFormData: Data structure for FORMS (AddRoomOverlay, EditRoomOverlay).
+// This is what the client-side forms manage and what useRooms expects for add/update operations
+// before it's converted to FormData for the API.
 export interface RoomFormData {
   name: string;
-  // roomNumber: string; // REMOVED
   capacity: number;
-  price: number; // Keep if your form collects it
+  price: number;                 // Client-side forms use 'price' (camelCase)
   amenities: string[];
-  is_active: boolean; // Changed from isActive to is_active to align with db and API
+  is_active: boolean;            // Client-side forms use 'is_active'
 
   // For regular images: an array of new Files or existing URLs (strings)
-  // This is primarily for the Edit form. Add form will only have Files.
   images: (File | string)[]; 
 
-  // For panoramic image: a new File, an existing URL (string),
-  // or null to indicate removal (for Edit form).
-  // Add form will have File or undefined.
+  // For panoramic image: a new File, an existing URL (string), or null for removal
   panoramicImage?: File | string | null; 
 }
 
-// RoomFilterOptions looks fine for its purpose
+// Options for filtering rooms
 export interface RoomFilterOptions {
   minCapacity: string;
   maxCapacity: string;
@@ -71,6 +69,6 @@ export interface RoomFilterOptions {
   maxPrice: string;
   availableFrom: string;
   availableTo: string;
-  isActive: 'all' | 'active' | 'inactive'; // 'isActive' here refers to the filter, not the room property directly
+  isActive: 'all' | 'active' | 'inactive'; // Filter criteria
   sortBy: 'none' | 'name_asc' | 'name_desc' | 'id_asc' | 'id_desc';
 }
