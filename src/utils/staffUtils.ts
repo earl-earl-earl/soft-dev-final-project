@@ -1,68 +1,84 @@
+// src/utils/staffUtils.ts
+
 import { StaffMember, FilterOptions } from '../types/staff';
 
+
 export const filterStaff = (
-  staff: StaffMember[],
+  staffList: StaffMember[], // Renamed to avoid conflict if used in a component named 'staff'
   searchTerm: string,
   filterOptions: FilterOptions
 ): StaffMember[] => {
-  let filtered = [...staff];
+  if (!staffList) return [];
+
+  let filtered = [...staffList];
   
-  // Text search filter
-  if (searchTerm.trim()) {
-    const lowerSearchTerm = searchTerm.toLowerCase();
+  // Text search filter (general search across multiple fields)
+  if (searchTerm && searchTerm.trim()) {
+    const lowerSearchTerm = searchTerm.trim().toLowerCase();
     filtered = filtered.filter(
-      (staffMember) =>
-        staffMember.name.toLowerCase().includes(lowerSearchTerm) ||
-        staffMember.username.toLowerCase().includes(lowerSearchTerm) ||
-        staffMember.email.toLowerCase().includes(lowerSearchTerm)
+      (member) =>
+        member.name.toLowerCase().includes(lowerSearchTerm) ||
+        (member.username ? member.username.toLowerCase().includes(lowerSearchTerm) : false) ||
+        member.email.toLowerCase().includes(lowerSearchTerm) ||
+        (member.phoneNumber ? member.phoneNumber.includes(lowerSearchTerm) : false) ||
+        member.position.toLowerCase().includes(lowerSearchTerm)
     );
   }
   
-  // Name filter
-  if (filterOptions.nameFilter.trim()) {
-    const lowerNameFilter = filterOptions.nameFilter.toLowerCase();
-    filtered = filtered.filter(staffMember => 
-      staffMember.name.toLowerCase().includes(lowerNameFilter)
+  // Specific field filters from advanced filter options
+  if (filterOptions.nameFilter && filterOptions.nameFilter.trim()) {
+    const lowerNameFilter = filterOptions.nameFilter.trim().toLowerCase();
+    filtered = filtered.filter(member => 
+      member.name.toLowerCase().includes(lowerNameFilter)
     );
   }
   
-  // Email filter
-  if (filterOptions.emailFilter.trim()) {
-    const lowerEmailFilter = filterOptions.emailFilter.toLowerCase();
-    filtered = filtered.filter(staffMember => 
-      staffMember.email.toLowerCase().includes(lowerEmailFilter)
+  if (filterOptions.emailFilter && filterOptions.emailFilter.trim()) {
+    const lowerEmailFilter = filterOptions.emailFilter.trim().toLowerCase();
+    filtered = filtered.filter(member => 
+      member.email.toLowerCase().includes(lowerEmailFilter)
     );
   }
   
-  // Phone filter
-  if (filterOptions.phoneFilter.trim()) {
-    filtered = filtered.filter(staffMember => 
-      staffMember.phoneNumber.includes(filterOptions.phoneFilter)
+  if (filterOptions.phoneFilter && filterOptions.phoneFilter.trim()) {
+    const phoneFilterValue = filterOptions.phoneFilter.trim();
+    filtered = filtered.filter(member => 
+      member.phoneNumber ? member.phoneNumber.includes(phoneFilterValue) : false
     );
   }
   
-  // Role filter
   if (filterOptions.roleFilter) {
-    filtered = filtered.filter(staffMember => staffMember.role === filterOptions.roleFilter);
+    filtered = filtered.filter(member => member.role === filterOptions.roleFilter);
   }
   
-  // Position filter
   if (filterOptions.positionFilter) {
-    filtered = filtered.filter(staffMember => staffMember.position === filterOptions.positionFilter);
+    filtered = filtered.filter(member => member.position === filterOptions.positionFilter);
   }
   
   // Sort the filtered data
   if (filterOptions.sortField) {
-    filtered.sort((a, b) => {
-      const fieldA = (a[filterOptions.sortField as keyof StaffMember] as string).toLowerCase();
-      const fieldB = (b[filterOptions.sortField as keyof StaffMember] as string).toLowerCase();
-      
-      if (filterOptions.sortDirection === 'asc') {
-        return fieldA.localeCompare(fieldB);
-      } else {
-        return fieldB.localeCompare(fieldA);
+    const sortable = [...filtered];
+    sortable.sort((a, b) => {
+      const valA = a[filterOptions.sortField as keyof StaffMember];
+      const valB = b[filterOptions.sortField as keyof StaffMember];
+
+      const fieldA = typeof valA === 'string' ? valA.toLowerCase() : 
+                     typeof valA === 'number' ? valA : 
+                     typeof valA === 'boolean' ? String(valA) : ''; 
+      const fieldB = typeof valB === 'string' ? valB.toLowerCase() : 
+                     typeof valB === 'number' ? valB : 
+                     typeof valB === 'boolean' ? String(valB) : '';
+
+      let comparison = 0;
+      if (typeof fieldA === 'string' && typeof fieldB === 'string') {
+        comparison = fieldA.localeCompare(fieldB);
+      } else if (typeof fieldA === 'number' && typeof fieldB === 'number') {
+        comparison = fieldA - fieldB;
       }
+
+      return filterOptions.sortDirection === 'asc' ? comparison : -comparison;
     });
+    filtered = sortable;
   }
   
   return filtered;

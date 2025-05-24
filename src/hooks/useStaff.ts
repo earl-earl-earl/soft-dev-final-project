@@ -1,159 +1,144 @@
+// src/hooks/useStaff.ts
 import { useState, useCallback, useEffect } from 'react';
 import { StaffMember, StaffFormData } from '../types/staff';
-import { fetchStaff, subscribeToStaffChanges } from '../utils/fetchStaff';
-import { supabase } from '@/lib/supabaseClient';
+import { fetchStaff, subscribeToStaffChanges, FetchStaffResult } from '../utils/fetchStaff';
 
-export function useStaff() {
+interface MutationResult {
+  success: boolean;
+  error?: string;
+  formErrors?: Record<string, string>; // For field-specific errors like "email taken"
+  data?: StaffMember; 
+}
+
+export interface UseStaffReturn {
+  staff: StaffMember[];
+  isLoading: boolean;
+  error: string | null;
+  formErrors: Record<string, string>;
+  addStaff: (staffData: StaffFormData) => Promise<MutationResult>; 
+  updateStaff: (staffId: string, staffData: Partial<StaffFormData>) => Promise<MutationResult>;
+  toggleStaffStatus: (staffId: string, currentIsActive: boolean) => Promise<MutationResult>;
+  refreshStaff: (options?: { showLoading?: boolean; silentError?: boolean }) => Promise<Pick<FetchStaffResult, 'error'> & {success: boolean, data?: StaffMember[]}>;
+  clearError: () => void;
+}
+
+export function useStaff(): UseStaffReturn {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // Set up real-time subscription when component mounts
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  const clearError = useCallback(() => {
+    setError(null);
+    setFormErrors({});
+  }, []);
+
+  const refreshStaff = useCallback(async (options?: { showLoading?: boolean; silentError?: boolean }) => {
+    if (options?.showLoading !== false) setIsLoading(true);
+    clearError();
+    try {
+      const result = await fetchStaff(); // fetchStaff GETs from an API or directly
+      if (result.error && !options?.silentError) {
+        setError(result.error); setStaff([]);
+        return { success: false, error: result.error };
+      }
+      setStaff(result.staff || []);
+      return { success: true, data: result.staff || [] };
+    } catch (err: any) {
+      if (!options?.silentError) setError(err.message || "Failed to refresh staff");
+      setStaff([]);
+      return { success: false, error: err.message || "Unknown error" };
+    } finally {
+      if (options?.showLoading !== false) setIsLoading(false);
+    }
+  }, [clearError]);
+
   useEffect(() => {
-    console.log("Setting up staff subscription");
-    
-    // Subscribe to changes and update state when data changes
-    const subscription = subscribeToStaffChanges((result) => {
-      setStaff(result.staff);
-      setIsLoading(false);
-      setError(null);
+    refreshStaff();
+    const { unsubscribe } = subscribeToStaffChanges((result) => {
+      if (result.staff) setStaff(result.staff);
     });
-    
-    // Clean up subscription when component unmounts
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-  
-  const refreshStaff = useCallback(async (options?: { showLoading?: boolean, silentError?: boolean }) => {
-    if (options?.showLoading !== false) {
-      setIsLoading(true);
-    }
-    
+    return () => { if (unsubscribe) unsubscribe(); };
+  }, [refreshStaff]);
+
+  const addStaff = useCallback(async (staffData: StaffFormData): Promise<MutationResult> => {
+    setIsLoading(true);
+    clearError();
     try {
-      console.log("Manually refreshing staff data...");
-      const result = await fetchStaff();
-      setStaff(result.staff);
-      setError(null);
-      return { success: true, data: result.staff };
-    } catch (err) {
-      console.error("Error refreshing staff:", err);
-      if (!options?.silentError) {
-        setError(err instanceof Error ? err.message : "Failed to refresh staff");
+      const response = await fetch('/api/staff', { // <<<< CALL BACKEND API
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(staffData),
+      });
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        setFormErrors(responseData.formErrors || {}); // Expecting { field: 'message' }
+        throw new Error(responseData.error || 'Server error adding staff.');
       }
-      return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
-    } finally {
-      if (options?.showLoading !== false) {
-        setIsLoading(false);
-      }
-    }
-  }, []);
-  
-  const addStaff = useCallback(async (staffData: StaffFormData) => {
-    try {
-      setIsLoading(true);
-      
-      // Make a real API call to create a staff member
-      const { /* data */ error: insertError } = await supabase
-        .from('staff')
-        .insert([{
-          username: staffData.username,
-          name: staffData.name,
-          phone_number: staffData.phoneNumber,
-          role: staffData.role,
-          position: staffData.position,
-          is_active: true
-        }])
-        .select();
-      
-      if (insertError) {
-        throw new Error(insertError.message);
-      }
-      
-      // The subscription will automatically update the UI with the new data
-      setError(null);
-      return { success: true };
-    } catch (err) {
-      setError('Failed to add staff member: ' + (err instanceof Error ? err.message : String(err)));
-      console.error(err);
-      return { success: false, error: 'Failed to add staff member' };
+      await refreshStaff({ showLoading: false });
+      return { success: true, data: responseData as StaffMember };
+    } catch (err: any) {
+      setError(err.message || 'Failed to add staff member.');
+      return { success: false, error: err.message, formErrors };
     } finally {
       setIsLoading(false);
     }
-  }, []);
-  
-  const updateStaff = useCallback(async (staffId: string, staffData: Partial<StaffFormData>) => {
+  }, [refreshStaff, clearError, formErrors]); // Added formErrors to dependency array
+
+  const updateStaff = useCallback(async (staffId: string, staffData: Partial<StaffFormData>): Promise<MutationResult> => {
+    setIsLoading(true);
+    clearError();
     try {
-      setIsLoading(true);
-      
-      // Only include fields that exist in the staff table
-      const { error: updateError } = await supabase
-        .from('staff')
-        .update({
-          name: staffData.name,
-          username: staffData.username,
-          phone_number: staffData.phoneNumber,
-          position: staffData.position,
-          // Don't include role as it's not in the staff table
-        })
-        .eq('user_id', staffId);
-      
-      if (updateError) {
-        throw new Error(updateError.message);
+      const response = await fetch(`/api/staff/${staffId}`, { // <<<< CALL BACKEND API
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(staffData),
+      });
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        setFormErrors(responseData.formErrors || {});
+        throw new Error(responseData.error || 'Server error updating staff.');
       }
-      
-      setError(null);
-      return { success: true };
-    } catch (err) {
-      setError('Failed to update staff member: ' + (err instanceof Error ? err.message : String(err)));
-      console.error(err);
-      return { success: false, error: 'Failed to update staff member' };
+      await refreshStaff({ showLoading: false });
+      return { success: true, data: responseData as StaffMember };
+    } catch (err: any) {
+      setError(err.message || 'Failed to update staff member.');
+      return { success: false, error: err.message, formErrors };
     } finally {
       setIsLoading(false);
     }
-  }, []);
-  
-  const toggleStaffStatus = useCallback(async (staffId: string) => {
+  }, [refreshStaff, clearError, formErrors]); // Added formErrors
+
+  const toggleStaffStatus = useCallback(async (staffId: string, currentIsActive: boolean): Promise<MutationResult> => {
+    setIsLoading(true);
+    clearError();
     try {
-      setIsLoading(true);
-      
-      // Find the staff member to get the current status
-      const staffMember = staff.find(member => member.id === staffId);
-      if (!staffMember) {
-        throw new Error('Staff member not found');
+      // should update 'users.is_active' and potentially 'auth.users' if reacvtivating/deactivating
+      const response = await fetch(`/api/staff/${staffId}/status`, { // <<<< DEDICATED API for status
+        method: 'PATCH', // Or PUT
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !currentIsActive }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to toggle staff status via API.');
       }
-      
-      // Make a real API call to toggle the status
-      const { error: updateError } = await supabase
-        .from('staff')
-        .update({
-          is_active: !staffMember.isActive
-        })
-        .eq('user_id', staffId);
-      
-      if (updateError) {
-        throw new Error(updateError.message);
-      }
-      
-      // The subscription will automatically update the UI with the new data
-      setError(null);
+      await refreshStaff({ showLoading: false });
       return { success: true };
-    } catch (err) {
-      setError('Failed to toggle staff status: ' + (err instanceof Error ? err.message : String(err)));
-      console.error(err);
-      return { success: false, error: 'Failed to toggle staff status' };
+    } catch (err: any) {
+      setError(err.message || 'Failed to toggle staff status.');
+      return { success: false, error: err.message };
     } finally {
       setIsLoading(false);
     }
-  }, [staff]);
-  
+  }, [refreshStaff, clearError]);
+
   return {
-    staff,
-    isLoading,
-    error,
-    addStaff,
-    updateStaff,
-    toggleStaffStatus,
-    refreshStaff
+    staff, isLoading, error, formErrors,
+    addStaff, updateStaff, toggleStaffStatus,
+    refreshStaff, clearError,
   };
 }

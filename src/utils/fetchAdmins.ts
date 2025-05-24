@@ -1,6 +1,6 @@
-import { supabase } from "@/lib/supabaseClient";
-import { AdminMember } from "../types/admin";
-import { ROLES } from "@/types/staff";
+// src/utils/fetchAdmins.ts
+import { supabase } from '@/lib/supabaseClient';
+import { AdminMember } from '../types/admin';
 
 export interface AdminLookup {
   [key: string]: AdminMember;
@@ -9,132 +9,116 @@ export interface AdminLookup {
 export interface FetchAdminsResult {
   admins: AdminMember[];
   adminLookup: AdminLookup;
+  error?: string;
 }
 
-// Main fetch function
+// Main fetch function - now calls your API endpoint
 export const fetchAdmins = async (): Promise<FetchAdminsResult> => {
-  console.log("Starting to fetch admins...");
-  
+  // console.log("fetchAdmins utility: Attempting to fetch /api/admin");
   try {
-    // First, get admin users from users table
-    const { data: adminUsers, error: adminError } = await supabase
-      .from("users")
-      .select('*')
-      .in("role", ["admin", "super_admin"]);
-
-    console.log("Raw admin users response:", { data: adminUsers?.length || 0, error: adminError });
+    const response = await fetch('/api/admin'); // <<<< CALLS YOUR GET /api/admin ENDPOINT
     
-    if (adminError) {
-      console.error("Error fetching admin users:", adminError);
-      return { admins: [], adminLookup: {} };
-    }
-    
-    if (!adminUsers || adminUsers.length === 0) {
-      console.log("No admin users found");
-      return { admins: [], adminLookup: {} };
+    if (!response.ok) {
+      let errorJson;
+      try {
+        errorJson = await response.json();
+      } catch (e) {
+        // Response body was not JSON
+      }
+      const errorMessage = errorJson?.error || `HTTP error! Status: ${response.status} ${response.statusText}`;
+      console.error("fetchAdmins utility: API request to /api/admin failed:", errorMessage);
+      throw new Error(errorMessage);
     }
 
-    // Extract user IDs to query staff table
-    const userIds = adminUsers.map(user => user.id);
-    console.log("User IDs for staff lookup:", userIds);
+    const adminsData: AdminMember[] = await response.json();
+    // console.log("fetchAdmins utility: Successfully fetched and parsed adminsData count:", adminsData?.length);
     
-    // Now fetch corresponding staff records
-    const { data: staffRecords, error: staffError } = await supabase
-      .from("staff")
-      .select('*')
-      .in('user_id', userIds);
-      
-    console.log("Raw staff records for admins:", { 
-      data: staffRecords?.length || 0, 
-      error: staffError 
+    const adminLookup: AdminLookup = {};
+    (adminsData || []).forEach(admin => { 
+      if (admin && admin.id) {
+        adminLookup[admin.id] = admin; 
+      }
     });
-    
-    if (staffError) {
-      console.error("Error fetching staff records:", staffError);
-      // Continue with just user data if staff fetch fails
-    }
-    
-    // Create a lookup object for staff records keyed by user_id for quick access
-    const staffLookup: Record<string, any> = {};
-    if (staffRecords && staffRecords.length > 0) {
-      staffRecords.forEach(record => {
-        if (record.user_id) {
-          staffLookup[record.user_id] = record;
-        }
-      });
-    }
-    
-    console.log("Built staff lookup with keys:", Object.keys(staffLookup));
-    
-    // Process the combined data
-    const adminLookup: Record<string, AdminMember> = {};
-    const admins: AdminMember[] = adminUsers.map(user => {
-      // Get the corresponding staff record if exists
-      const staffRecord = staffLookup[user.id];
-      
-      const adminMember: AdminMember = {
-        id: user.id,
-        // Use staff data if available, otherwise fallback to user data
-        name: staffRecord?.name || user.name || 'Unknown Admin',
-        email: user.email || '',
-        phoneNumber: staffRecord?.phone_number || user.phone_number || '',
-        role: user.role || 'admin',
-        accessLevel: staffRecord?.position || 'Standard Access',
-        isActive: user.is_active !== undefined ? user.is_active : true
-      };
-      
-      // Add to lookup
-      adminLookup[adminMember.id] = adminMember;
-      
-      return adminMember;
-    });
-    
-    console.log("Processed admins:", admins.length);
-    return { admins, adminLookup };
-  } catch (err) {
-    console.error("Exception fetching admins:", err);
-    return { admins: [], adminLookup: {} };
+
+    return { admins: adminsData || [], adminLookup };
+  } catch (error: any) {
+    console.error("fetchAdmins utility: Caught error:", error);
+    return { admins: [], adminLookup: {}, error: error.message || "Unknown error fetching admins." };
   }
 };
 
 // Real-time subscription functionality
-let adminsSubscription: { unsubscribe: () => void } | null = null;
+let adminSubscriptionChannel: any = null;
 
 export const subscribeToAdminChanges = (
   onAdminChange: (result: FetchAdminsResult) => void
 ): { unsubscribe: () => void } => {
-  // Unsubscribe from existing subscription if there is one
-  if (adminsSubscription) {
-    adminsSubscription.unsubscribe();
+  const channelName = 'admin-user-and-staff-profile-changes';
+  
+  if (!supabase) {
+    console.error("fetchAdmins - subscribeToAdminChanges: Supabase client not initialized.");
+    return { unsubscribe: () => {} };
   }
 
-  console.log("Setting up real-time subscription to admins...");
+  const existingChannel = supabase.channel(channelName);
+  if (existingChannel && typeof (existingChannel as any).unsubscribe === 'function') {
+    // console.log(`fetchAdmins: Removing existing channel ${channelName} before re-subscribing.`);
+    supabase.removeChannel(existingChannel);
+  }
   
-  // Initial fetch to get current state
-  fetchAdmins().then(onAdminChange);
+  const handleSubscriptionUpdate = async () => {
+    // console.log(`fetchAdmins: Realtime change detected for admin-related tables, refetching admins via API...`);
+    fetchAdmins().then(onAdminChange); // fetchAdmins now calls GET /api/admin
+  };
   
-  // Subscribe to all changes in the admin table
-  adminsSubscription = supabase
-    .channel('admin-changes')
+  adminSubscriptionChannel = supabase.channel(channelName);
+  adminSubscriptionChannel
     .on('postgres_changes', 
-      { 
-        event: '*', 
-        schema: 'public', 
-        table: 'users',  // Add a filter to only get admin updates
-      }, 
-      () => {
-        console.log("Admin user change detected, fetching updated data...");
-        fetchAdmins().then(onAdminChange);
+      { event: '*', schema: 'public', table: 'staff' }, // Changes to staff profiles
+      (payload: any) => {
+        // To be more efficient, check if payload involves a user_id that *is* an admin
+        // For now, refetch if any staff profile changes, as admins have staff profiles.
+        // console.log("Realtime: 'staff' table change potentially affecting admins detected.", payload);
+        handleSubscriptionUpdate();
       }
     )
-    .subscribe();
+    .on('postgres_changes', 
+      { event: '*', schema: 'public', table: 'users' }, 
+      (payload: any) => {
+        const oldRole = payload.old?.role; 
+        const newRole = payload.new?.role;
+        const adminRoles = ['admin', 'super_admin']; // Lowercase DB enum values
 
-  return {
-    unsubscribe: () => {
-      if (adminsSubscription) {
-        console.log("Unsubscribing from admin changes...");
-        adminsSubscription.unsubscribe();
-        adminsSubscription = null;
+        // Refetch if a user's role changes to/from an admin role,
+        // or if an existing admin user's record is updated/deleted.
+        if ( (newRole && adminRoles.includes(newRole.toLowerCase())) || 
+             (oldRole && adminRoles.includes(oldRole.toLowerCase())) ||
+             (payload.eventType === 'INSERT' && newRole && adminRoles.includes(newRole.toLowerCase())) ||
+             (payload.eventType === 'DELETE' && oldRole && adminRoles.includes(oldRole.toLowerCase()))
+           ) {
+          // console.log("Realtime: 'users' table change relevant to admin list detected.", payload);
+          handleSubscriptionUpdate();
+        }
+      }
+    )
+    // .subscribe((status: string, err?: Error) => {
+    //   if (status === 'SUBSCRIBED') { 
+    //     // console.log(`Realtime: Successfully subscribed to ${channelName} for admin changes.`); 
+    //   } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+    //     console.error(`Realtime: Subscription on ${channelName} issue: ${status}`, err);
+    //   }
+    // });
+  
+  handleSubscriptionUpdate(); // Initial fetch when subscription is set up
+  
+  return { 
+    unsubscribe: () => { 
+      if (adminSubscriptionChannel && typeof adminSubscriptionChannel.unsubscribe === 'function') {
+        // console.log(`Realtime: Unsubscribing from ${channelName}`);
+        adminSubscriptionChannel.unsubscribe()
+          .then(() => { /* console.log(`Channel ${channelName} unsubscribed for admin changes.`); */ })
+          .catch((error: any) => console.error(`Error unsubscribing from ${channelName}:`, error));
+        adminSubscriptionChannel = null;
       }
     }
   };

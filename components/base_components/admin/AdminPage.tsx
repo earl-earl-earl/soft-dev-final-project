@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import styles from '../../component_styles/StaffFeature.module.css';
 import { useAdmins } from '../../../src/hooks/useAdmins';
 import { useFilteredAdmins } from '../../../src/hooks/useFilteredAdmins';
-import { AdminMember, AdminFormData } from '../../../src/types/admin';
+import { AdminMember, AdminFormData, FilterOptions } from '../../../src/types/admin';
 import AdminTable from './AdminTable';
 import AdminList from './AdminList';
 import AdminFilters from './AdminFilters';
@@ -49,11 +49,12 @@ const AdminPage: React.FC = () => {
     searchTerm,
     setSearchTerm,
     filterOptions,
-    updateFilter,
+    setFilterOptions,
     resetFilters,
     toggleSortDirection,
-    filteredAdmins
-  } = useFilteredAdmins(admins);
+    currentAdmins: filteredAdmins,
+    filteredAdminsCount,
+  } = useFilteredAdmins({ admins });
   
   // Calculate total pages
   const totalPages = Math.max(1, Math.ceil(filteredAdmins.length / ITEMS_PER_PAGE));
@@ -94,7 +95,7 @@ const AdminPage: React.FC = () => {
     
     setIsSubmitting(true);
     try {
-      const result = await toggleAdminStatus(adminToToggle.id);
+      const result = await toggleAdminStatus(adminToToggle.id, adminToToggle.isActive);
       if (result.success) {
         toast.success(`Admin ${adminToToggle.isActive ? 'deactivated' : 'activated'} successfully`);
       } else {
@@ -113,7 +114,7 @@ const AdminPage: React.FC = () => {
   // Handle add admin submit
   const handleAddAdminSubmit = async (formData: AdminFormData) => {
     // Basic validation
-    if (!formData.name.trim() || !formData.email.trim() || !formData.phoneNumber.trim()) {
+    if (!formData.name.trim() || !formData.email.trim() || !(formData.phoneNumber ?? "").trim()) {
       toast.error('Please fill all required fields');
       return;
     }
@@ -146,7 +147,7 @@ const AdminPage: React.FC = () => {
     if (!adminToEdit) return;
     
     // Basic validation
-    if (!formData.name.trim() || !formData.email.trim() || !formData.phoneNumber.trim()) {
+    if (!formData.name.trim() || !formData.email.trim() || !(formData.phoneNumber ?? "").trim()) {
       toast.error('Please fill all required fields');
       return;
     }
@@ -235,11 +236,16 @@ const AdminPage: React.FC = () => {
   }
   
   const isSuperAdmin = role === "super_admin";
+    const isAdmin = role === "admin";
   
-  if (!isSuperAdmin) {
+  if (!isSuperAdmin && !isAdmin) {
     return <div className={styles.error}>You do not have permission to access this page.</div>;
   }
   
+  function updateFilter(name: keyof FilterOptions, value: string): void {
+    throw new Error('Function not implemented.');
+  }
+
   return (
     <div className={`${styles.staffFeatureContainer} ${animate ? styles.fadeIn : ""}`}>
       <div className={`${styles.staffTopContent} ${animate ? styles.animateFirst : ""}`}>
@@ -247,8 +253,7 @@ const AdminPage: React.FC = () => {
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
           onFilterClick={() => setIsFilterOpen(true)}
-          onAddAdminClick={() => setIsAddAdminOpen(true)}
-        />
+          onAddAdminClick={() => setIsAddAdminOpen(true)} canAddAdmin={false}        />
 
         <div className={`${animate ? styles.animateSecond : ""}`}>
           {currentAdmins.length > 0 ? (

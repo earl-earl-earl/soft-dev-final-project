@@ -645,3 +645,20 @@
 .retryButton:hover {
   background-color: var(--primary-550);
 }
+
+.passwordPolicyErrorList {
+  list-style-type: none; /* Or 'disc' if you prefer bullets */
+  padding-left: 0; /* Or some padding if using bullets */
+  margin-top: 5px;
+  margin-bottom: 10px;
+  font-size: 0.8em;
+  color: #dc3545; /* Red for errors */
+}
+
+.passwordPolicyErrorList li {
+  margin-bottom: 2px;
+}
+
+/* .formControl.inputError {
+  border-color: #dc3545;
+} */

@@ -1,273 +1,184 @@
+// src/hooks/useAdmins.ts
 import { useState, useCallback, useEffect } from 'react';
 import { AdminMember, AdminFormData } from '../types/admin';
-import { subscribeToAdminChanges } from '../utils/fetchAdmins';
-import { supabase } from '../lib/supabaseClient'; // Make sure to import supabase
+import { fetchAdmins as fetchAdminsUtil, FetchAdminsResult, AdminLookup } from '../utils/fetchAdmins'; 
+// No direct supabase client needed here if all go through API
+// import { supabase } from '../lib/supabaseClient';
 
-export function useAdmins() {
+// Assuming subscribeToAdminChanges is also in fetchAdmins.ts and uses fetchAdminsUtil
+import { subscribeToAdminChanges } from '../utils/fetchAdmins'; 
+
+interface MutationResult {
+  success: boolean;
+  error?: string;
+  formErrors?: Record<string, string>;
+  data?: AdminMember; 
+}
+
+export interface UseAdminsReturn {
+  admins: AdminMember[];
+  isLoading: boolean;
+  error: string | null;
+  formErrors: Record<string, string>;
+  addAdmin: (adminData: AdminFormData) => Promise<MutationResult>; 
+  updateAdmin: (adminId: string, adminData: Partial<AdminFormData>) => Promise<MutationResult>;
+  toggleAdminStatus: (adminId: string, currentIsActive: boolean) => Promise<MutationResult>;
+  refreshAdmins: (options?: { showLoading?: boolean; silentError?: boolean }) => Promise<Pick<FetchAdminsResult, 'error' | 'admins'> & {success: boolean}>;
+  clearError: () => void;
+}
+
+export function useAdmins(): UseAdminsReturn {
   const [admins, setAdmins] = useState<AdminMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // Set up real-time subscription when component mounts
-  useEffect(() => {
-    const subscription = subscribeToAdminChanges((result) => {
-      setAdmins(result.admins);
-      setIsLoading(false);
-      setError(null);
-    });
-    
-    // Clean up subscription when component unmounts
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-  
-  const addAdmin = useCallback(async (adminData: AdminFormData) => {
-    try {
-      setIsLoading(true);
-      
-      // Step 1: First create the base user in the users table
-      const { data: newUser, error: userError } = await supabase
-        .from('users')
-        .insert([{
-          email: adminData.email,
-          role: adminData.role || 'admin',
-          is_active: true
-          // Only core user data goes here
-        }])
-        .select('id')
-        .single();
-    
-      if (userError || !newUser) {
-        throw new Error(userError?.message || "Failed to create user record");
-      }
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-      // Step 2: Create the admin profile record
-      const { error: adminError } = await supabase
-        .from('staff') // Using the same staff table for consistency
-        .insert([{
-          user_id: newUser.id, // Reference to the user record
-          name: adminData.name,
-          phone_number: adminData.phoneNumber,
-          position: adminData.accessLevel, // Or use adminData.position if available
-          username: adminData.email?.split('@')[0] || `admin-${newUser.id}`
-          // Other admin-specific fields can go here
-        }]);
-      
-      if (adminError) {
-        // Rollback the user creation if staff record creation fails
-        await supabase.from('users').delete().eq('id', newUser.id);
-        throw new Error(adminError.message);
+  const clearError = useCallback(() => {
+    setError(null);
+    setFormErrors({});
+  }, []);
+
+  const refreshAdmins = useCallback(async (options?: { showLoading?: boolean; silentError?: boolean }) => {
+    if (options?.showLoading !== false) setIsLoading(true);
+    clearError();
+    try {
+      const result = await fetchAdminsUtil(); // Uses the imported utility
+      if (result.error && !options?.silentError) {
+        setError(result.error); 
+        setAdmins([]);
+        return { success: false, error: result.error, admins: [] };
       }
-      
-      return { success: true };
-    } catch (err) {
-      console.error("Error adding admin:", err);
-      return { 
-        success: false, 
-        error: err instanceof Error ? err.message : 'Failed to add admin' 
-      };
+      setAdmins(result.admins || []);
+      // adminLookup is not directly used in this hook's state but returned by fetchAdminsUtil
+      return { success: true, admins: result.admins || [], error: undefined }; // Always include both admins and error
+    } catch (err: any) {
+      if (!options?.silentError) setError(err.message || "Failed to refresh admins");
+      setAdmins([]);
+      return { success: false, error: err.message || "Unknown error", admins: [] };
+    } finally {
+      if (options?.showLoading !== false) setIsLoading(false);
+    }
+  }, [clearError]);
+
+  useEffect(() => {
+    refreshAdmins();
+    // Assuming subscribeToAdminChanges uses fetchAdminsUtil internally for refetch
+    const { unsubscribe } = subscribeToAdminChanges((result) => {
+      if (result.admins) {
+        setAdmins(result.admins);
+      }
+      if (result.error && !error) {
+        // setError(result.error);
+      }
+    });
+    return () => { if (unsubscribe) unsubscribe(); };
+  }, [refreshAdmins]);
+
+  const addAdmin = useCallback(async (adminData: AdminFormData): Promise<MutationResult> => {
+    setIsLoading(true);
+    clearError();
+    try {
+      console.log("useAdmins: addAdmin - Calling POST /api/admin with data:", adminData);
+      const response = await fetch('/api/admin', { // Calls backend API
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(adminData),
+      });
+      const responseData = await response.json();
+      console.log("useAdmins: addAdmin - API Response:", response.status, responseData);
+
+      if (!response.ok) {
+        setFormErrors(responseData.formErrors || {}); 
+        const errorMessage = responseData.error || `Server error: ${response.status}`;
+        setError(errorMessage);
+        return { success: false, error: errorMessage, formErrors: responseData.formErrors || {} };
+      }
+      await refreshAdmins({ showLoading: false });
+      return { success: true, data: responseData as AdminMember };
+    } catch (err: any) { 
+      const message = err.message || 'Failed to add admin due to a client-side or network error.';
+      console.error("useAdmins: addAdmin - CATCH block error:", err);
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setIsLoading(false);
     }
-  }, []);
-  
-  const updateAdmin = useCallback(async (id: string, adminData: Partial<AdminFormData>) => {
+  }, [refreshAdmins, clearError]);
+
+  const updateAdmin = useCallback(async (adminId: string, adminData: Partial<AdminFormData>): Promise<MutationResult> => {
+    setIsLoading(true);
+    clearError();
     try {
-      setIsLoading(true);
-      
-      // Update the users table instead of admin table
-      const { error } = await supabase
-        .from('users')  // Change from 'admin' to 'users' to match the fetch operation
-        .update({
-          // name: adminData.name, - removed this field
-          email: adminData.email,  // Make sure column names match database schema
-          role: adminData.role,
-          // Removed access_level field that was causing issues
-        })
-        .eq('id', id);
-    
-      if (error) {
-        console.error("Supabase update error:", error);
-        throw new Error(error.message || "Unknown database error");
+      const payload = {...adminData};
+      if (payload.password === '') delete payload.password;
+      if (payload.confirmPassword === '') delete payload.confirmPassword;
+
+      console.log(`useAdmins: updateAdmin - Calling PUT /api/admin/${adminId} with payload:`, payload);
+      const response = await fetch(`/api/admin/${adminId}`, { // Calls backend API
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const responseData = await response.json();
+      console.log("useAdmins: updateAdmin - API Response:", response.status, responseData);
+
+      if (!response.ok) {
+        setFormErrors(responseData.formErrors || {});
+        const errorMessage = responseData.error || `Server error: ${response.status}`;
+        setError(errorMessage);
+        return { success: false, error: errorMessage, formErrors: responseData.formErrors || {} };
       }
-      
-      setError(null);
-      return { success: true };
-    } catch (err) {
-      setError('Failed to update admin: ' + (err instanceof Error ? err.message : String(err)));
-      console.error(err);
-      return { success: false, error: 'Failed to update admin' };
+      await refreshAdmins({ showLoading: false });
+      return { success: true, data: responseData as AdminMember };
+    } catch (err: any) {
+      const message = err.message || 'Failed to update admin due to a client-side or network error.';
+      console.error("useAdmins: updateAdmin - CATCH block error:", err);
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setIsLoading(false);
     }
-  }, []);
-  
-  const toggleAdminStatus = useCallback(async (id: string) => {
+  }, [refreshAdmins, clearError]);
+
+  const toggleAdminStatus = useCallback(async (adminId: string, currentIsActive: boolean): Promise<MutationResult> => {
+    setIsLoading(true);
+    clearError();
     try {
-      // Find current status
-      const admin = admins.find(a => a.id === id);
-      if (!admin) {
-        throw new Error('Admin not found');
+      console.log(`useAdmins: toggleAdminStatus - Calling PATCH /api/admin/${adminId}/status`);
+      const response = await fetch(`/api/admin/${adminId}/status`, { // Dedicated API
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !currentIsActive }),
+      });
+      // const responseData = await response.json(); // Not strictly needed if only expecting success/failure message
+      console.log("useAdmins: toggleAdminStatus - API Response status:", response.status);
+
+
+      if (!response.ok) {
+        const responseData = await response.json();
+        throw new Error(responseData.error || `Server error: ${response.status}`);
       }
-      
-      // Use users table, not admin table
-      const { error } = await supabase
-        .from('users')  // Changed from 'admin' to 'users'
-        .update({ is_active: !admin.isActive })
-        .eq('id', id);
-      
-      if (error) {
-        throw new Error(error.message);
-      }
-      
+      await refreshAdmins({ showLoading: false });
       return { success: true };
-    } catch (err) {
-      console.error("Error toggling admin status:", err);
-      return { 
-        success: false, 
-        error: err instanceof Error ? err.message : 'Failed to toggle admin status' 
-      };
-    }
-  }, [admins]);
-  
-  const refreshAdmins = useCallback(async (options?: { showLoading?: boolean, silentError?: boolean }) => {
-    if (options?.showLoading !== false) {
-      setIsLoading(true);
-    }
-    
-    try {
-      console.log("Manually refreshing admin data...");
-      const result = await fetchAdmins();
-      setAdmins(result.admins);
-      setError(null);
-      return { success: true, data: result.admins };
-    } catch (err) {
-      console.error("Error refreshing admins:", err);
-      if (!options?.silentError) {
-        setError(err instanceof Error ? err.message : "Failed to refresh admins");
-      }
-      return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    } catch (err: any) {
+      const message = err.message || 'Failed to toggle admin status.';
+      console.error("useAdmins: toggleAdminStatus - CATCH block error:", err);
+      setError(message);
+      return { success: false, error: message };
     } finally {
-      if (options?.showLoading !== false) {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
     }
-  }, []);
-  
+  }, [refreshAdmins, clearError]);
+
   return {
     admins,
     isLoading,
     error,
+    formErrors,
     addAdmin,
     updateAdmin,
     toggleAdminStatus,
-    refreshAdmins
+    refreshAdmins,
+    clearError,
   };
-}
-// Define the AdminFetchResult interface
-interface AdminFetchResult {
-  admins: AdminMember[];
-  adminLookup: Record<string, AdminMember>;
-}
-
-// Implementation of fetchAdmins function
-export const fetchAdmins = async (): Promise<AdminFetchResult> => {
-  console.log("Starting to fetch admins...");
-  
-  try {
-    // First, get admin users from users table
-    const { data: adminUsers, error: adminError } = await supabase
-      .from("users")
-      .select('*')
-      .in("role", ["admin", "super_admin"]); // Get both admin roles
-
-    console.log("Raw admin users response:", { data: adminUsers?.length || 0, error: adminError });
-    
-    if (adminError) {
-      console.error("Error fetching admin users:", adminError);
-      return { admins: [], adminLookup: {} };
-    }
-    
-    if (!adminUsers || adminUsers.length === 0) {
-      return { admins: [], adminLookup: {} };
-    }
-
-    // Extract user IDs to query staff table
-    const userIds = adminUsers.map(user => user.id);
-    
-    // Now fetch corresponding staff records
-    const { data: staffRecords, error: staffError } = await supabase
-      .from("staff")
-      .select('*')
-      .in('user_id', userIds);
-      
-    console.log("Raw staff records for admins:", { 
-      data: staffRecords?.length || 0, 
-      error: staffError 
-    });
-    
-    // Create a lookup object for staff records keyed by user_id for quick access
-    const staffLookup: Record<string, any> = {};
-    if (staffRecords) {
-      staffRecords.forEach(record => {
-        staffLookup[record.user_id] = record;
-      });
-    }
-    
-    // Process the combined data
-    const adminLookup: Record<string, AdminMember> = {};
-    const admins: AdminMember[] = adminUsers.map(user => {
-      // Get the corresponding staff record if exists
-      const staffRecord = staffLookup[user.id];
-      
-      const adminMember: AdminMember = {
-        id: user.id,
-        // Use staff data if available, otherwise fallback to user data
-        name: staffRecord?.name || user.name || 'Unknown Admin',
-        email: user.email || '',
-        phoneNumber: staffRecord?.phone_number || user.phone_number || '',
-        role: user.role || 'admin',
-        accessLevel: staffRecord?.position || 'Standard Access',
-        isActive: user.is_active !== undefined ? user.is_active : true
-      };
-      
-      // Add to lookup
-      adminLookup[adminMember.id] = adminMember;
-      
-      return adminMember;
-    });
-    
-    return { admins, adminLookup };
-  } catch (err) {
-    console.error("Exception fetching admins:", err);
-    return { admins: [], adminLookup: {} };
-  }
-};
-
-// This would be in a server-side API route
-export async function createAdminUser(adminData) {
-  // 1. Create auth user
-  const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-    email: adminData.email,
-    password: adminData.password,
-    email_confirm: true // Auto-confirm the email
-  });
-  
-  if (authError) throw authError;
-  
-  // 2. Set user metadata in users table
-  const { error: dbError } = await supabase
-    .from('users')
-    .insert({
-      id: authUser.user, // Use the auth user ID
-      email: adminData.email,
-      name: adminData.name,
-      role: adminData.role,
-      is_active: true
-    });
-    
-  if (dbError) throw dbError;
-  
-  return { success: true };
 }

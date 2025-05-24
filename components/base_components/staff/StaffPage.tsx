@@ -119,7 +119,7 @@ const StaffPage: React.FC = () => {
   const handleToggleStatus = async () => {
     if (!staffToToggle) return;
     
-    const result = await toggleStaffStatus(staffToToggle.id);
+    const result = await toggleStaffStatus(staffToToggle.id, staffToToggle.isActive);
     if (result.success) {
       setIsConfirmationOpen(false);
       setStaffToToggle(null);
@@ -256,9 +256,10 @@ const StaffPage: React.FC = () => {
           isOpen={isEditStaffOpen}
           initialData={{
             name: selectedStaff.name,
+            email: selectedStaff.email,
             username: selectedStaff.username,
             phoneNumber: selectedStaff.phoneNumber,
-            role: selectedStaff.role,
+            role: selectedStaff.role as "Staff" | "Admin" | undefined,
             position: selectedStaff.position,
             password: '',
             confirmPassword: ''

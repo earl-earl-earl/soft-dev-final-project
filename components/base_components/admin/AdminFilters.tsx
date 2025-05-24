@@ -1,16 +1,16 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import styles from '../../component_styles/StaffFeature.module.css';
-import { ACCESS_LEVELS, ADMIN_ROLES, FilterOptions } from '../../../src/types/admin';
+import { ACCESS_LEVELS, ADMIN_FORM_SELECTABLE_ROLES, AdminMember, FilterOptions } from '../../../src/types/admin';
 
 interface AdminFiltersProps {
-  isOpen: boolean;
+ isOpen: boolean;
   onClose: () => void;
   filterOptions: FilterOptions;
-  onFilterChange: (name: keyof FilterOptions, value: string | 'asc' | 'desc') => void;
+  onFilterChange: (name: keyof FilterOptions, value: string) => void;
   onApplyFilters: () => void;
   onResetFilters: () => void;
-  onToggleSortDirection: () => void;
+  onToggleSortDirection: (field: keyof AdminMember) => void;
 }
 
 const AdminFilters: React.FC<AdminFiltersProps> = ({
@@ -77,7 +77,7 @@ const AdminFilters: React.FC<AdminFiltersProps> = ({
               className={styles.formControl}
             >
               <option value="">All Roles</option>
-              {ADMIN_ROLES.map(role => (
+              {ADMIN_FORM_SELECTABLE_ROLES.map(role => (
                 <option key={role.value} value={role.value}>{role.label}</option>
               ))}
             </select>
@@ -87,7 +87,7 @@ const AdminFilters: React.FC<AdminFiltersProps> = ({
             <select
               id="accessLevelFilter"
               value={filterOptions.accessLevelFilter}
-              onChange={(e) => onFilterChange('accessLevelFilter', e.target.value)}
+              onChange={(e) => onFilterChange('accessLevelFilter' as keyof FilterOptions, e.target.value)}
               className={styles.formControl}
             >
               <option value="">All Access Levels</option>
@@ -119,8 +119,13 @@ const AdminFilters: React.FC<AdminFiltersProps> = ({
               <div className={styles.sortDirectionToggle}>
                 <button 
                   type="button"
-                  onClick={onToggleSortDirection}
+                  onClick={() => {
+                    if (filterOptions.sortField) {
+                      onToggleSortDirection(filterOptions.sortField as keyof AdminMember);
+                    }
+                  }}
                   className={styles.sortDirectionButton}
+                  disabled={!filterOptions.sortField}
                 >
                   {filterOptions.sortDirection === 'asc' ? (
                     <><i className="fa-regular fa-arrow-up-a-z"></i> Ascending</>

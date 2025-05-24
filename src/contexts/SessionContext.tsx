@@ -9,6 +9,7 @@ interface SessionContextType {
   userId: string | null;
   role: string | null;
   staffName: string | null;
+  staffuserName: string | null;
   position: string | null;
   loading: boolean;
 }
@@ -18,6 +19,7 @@ const SessionContext = createContext<SessionContextType>({
   userId: null,
   role: null,
   staffName: null,
+  staffuserName: null,
   position: null,
   loading: true,
 });
@@ -27,6 +29,7 @@ export const SessionProvider = ({ children }: { children: React.ReactNode }) => 
   const [userId, setUserId] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [staffName, setStaffName] = useState<string | null>(null);
+  const [staffuserName, setStaffUsername] = useState<string | null>(null);
   const [position, setPosition] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -35,6 +38,7 @@ export const SessionProvider = ({ children }: { children: React.ReactNode }) => 
     setUserId(null);
     setRole(null);
     setStaffName(null);
+    setStaffUsername(null);
     setPosition(null);
     setLoading(false);
   };
@@ -72,7 +76,7 @@ export const SessionProvider = ({ children }: { children: React.ReactNode }) => 
     if (userRole !== "customer") {
       const { data: staffRow, error: staffError } = await supabase
         .from("staff")
-        .select("name, position")
+        .select("name, username, position")
         .eq("user_id", authUser.id)
         .single();
 
@@ -81,9 +85,11 @@ export const SessionProvider = ({ children }: { children: React.ReactNode }) => 
       }
 
       setStaffName(staffRow?.name ?? null);
+      setStaffUsername(staffRow?.username ?? null);
       setPosition(staffRow?.position ?? null);
     } else {
       setStaffName(null);
+      setStaffUsername(null);
       setPosition(null);
     }
 
@@ -109,7 +115,7 @@ export const SessionProvider = ({ children }: { children: React.ReactNode }) => 
   }, []);
 
   return (
-    <SessionContext.Provider value={{ user, userId, role, staffName, position, loading }}>
+    <SessionContext.Provider value={{ user, userId, role, staffName, staffuserName, position, loading }}>
       {children}
     </SessionContext.Provider>
   );

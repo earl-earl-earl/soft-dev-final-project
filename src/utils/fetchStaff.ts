@@ -1,156 +1,126 @@
-import { supabase } from "@/lib/supabaseClient";
-import { StaffMember } from "../types/staff";
+// src/utils/fetchStaff.ts
+import { supabase } from '@/lib/supabaseClient';
+import { StaffMember } from '../types/staff';
 
 export interface StaffLookup {
-  [key: string]: StaffMember;
+  [key: string]: StaffMember; // Key will be staff member's ID (string UUID)
 }
 
 export interface FetchStaffResult {
   staff: StaffMember[];
-  staffLookup: StaffLookup;
+  staffLookup: StaffLookup; 
+  error?: string;
 }
 
-// Main fetch function
 export const fetchStaff = async (): Promise<FetchStaffResult> => {
-  console.log("Starting to fetch staff...");
-  
+  // console.log("fetchStaff: Attempting to fetch /api/staff");
   try {
-    // First, get users with "staff" role
-    const { data: staffUsers, error: userError } = await supabase
-      .from("users")
-      .select('*')
-      .eq("role", "staff");
+    const response = await fetch('/api/staff'); 
     
-    if (userError) {
-      console.error("Error fetching staff users:", userError.message);
-      return { staff: [], staffLookup: {} };
+    if (!response.ok) {
+      let errorJson;
+      try {
+        errorJson = await response.json();
+      } catch (e) {
+      }
+      const errorMessage = errorJson?.error || `HTTP error! Status: ${response.status} ${response.statusText}`;
+      console.error("fetchStaff: API request failed:", errorMessage);
+      throw new Error(errorMessage);
     }
+
+    const staffData: StaffMember[] = await response.json();
+    // console.log("fetchStaff: Successfully fetched and parsed staffData count:", staffData?.length);
     
-    if (!staffUsers || staffUsers.length === 0) {
-      console.log("No staff users found");
-      return { staff: [], staffLookup: {} };
-    }
-    
-    // Get user IDs to fetch corresponding staff records
-    const userIds = staffUsers.map(user => user.id);
-    
-    // Now fetch corresponding staff details
-    const { data: staffData, error: staffError } = await supabase
-      .from("staff")
-      .select('*')
-      .in('user_id', userIds);
-      
-    if (staffError) {
-      console.error("Error fetching staff details:", staffError.message);
-      return { staff: [], staffLookup: {} };
-    }
-    
-    if (!staffData || staffData.length === 0) {
-      console.log("No staff details found");
-      return { staff: [], staffLookup: {} };
-    }
-    
-    // Create a lookup object for staff records keyed by user_id for quick access
-    const usersLookup: Record<string, any> = {};
-    staffUsers.forEach(user => {
-      usersLookup[user.id] = user;
-    });
-    
-    // Create lookup table
     const staffLookup: StaffLookup = {};
-    
-    // Transform staff data to our application format
-    const staff: StaffMember[] = staffData.map(member => {
-      const user = usersLookup[member.user_id];
-      
-      const staffMember: StaffMember = {
-        id: member.user_id,
-        username: member.username || user?.email?.split('@')[0] || `user-${member.user_id}`,
-        name: member.name || 'Unknown Name',
-        phoneNumber: member.phone_number || '',
-        role: user?.role || 'staff',
-        position: member.position || 'Staff',
-        isActive: member.is_active !== undefined ? member.is_active : true
-      };
-      
-      // Add to lookup
-      staffLookup[staffMember.id] = staffMember;
-      
-      return staffMember;
+    (staffData || []).forEach(s => {
+      if (s && s.id) {
+        staffLookup[s.id] = s;
+      }
     });
-    
-    console.log("Processed staff:", staff.length);
-    
-    return {
-      staff,
-      staffLookup
-    };
-  } catch (err) {
-    console.error("Error in fetchStaff:", err);
-    return { staff: [], staffLookup: {} };
+
+    return { staff: staffData || [], staffLookup };
+  } catch (error: any) {
+    console.error("fetchStaff: Caught utility error:", error);
+    return { staff: [], staffLookup: {}, error: error.message || "Unknown error fetching staff." };
   }
 };
 
-// Helper function to format date in "Month DD, YYYY" format
-const formatDate = (dateInput: string | Date): string => {
-  const date = new Date(dateInput);
-  return date.toLocaleDateString('en-US', {
-    month: 'long',
-    day: '2-digit',
-    year: 'numeric'
-  });
-};
-
-// Real-time subscription functionality
-let staffSubscription: { unsubscribe: () => void } | null = null;
+let staffSubscriptionChannel: any = null;
 
 export const subscribeToStaffChanges = (
   onStaffChange: (result: FetchStaffResult) => void
 ): { unsubscribe: () => void } => {
-  // Unsubscribe from existing subscription if there is one
-  if (staffSubscription) {
-    staffSubscription.unsubscribe();
+  const channelName = `staff-and-users-public-changes`;
+  
+  if (!supabase) {
+    console.error("fetchStaff - subscribeToStaffChanges: Supabase client is not initialized. Realtime disabled.");
+    return { unsubscribe: () => {} };
   }
 
-  console.log("Setting up real-time subscription to staff...");
+  const cleanupOldChannel = () => {
+    if (staffSubscriptionChannel && typeof staffSubscriptionChannel.unsubscribe === 'function') {
+      // console.log(`fetchStaff: Removing existing channel subscription for ${channelName}`);
+      supabase.removeChannel(staffSubscriptionChannel)
+        .then(() => { /* console.log(`Channel ${channelName} removed.`); */ })
+        .catch(err => console.error(`Error removing channel ${channelName}:`, err));
+      staffSubscriptionChannel = null;
+    }
+  };
   
-  // Initial fetch to get current state
-  fetchStaff().then(onStaffChange);
+  cleanupOldChannel();
   
-  // Subscribe to all changes in the staff table
-  staffSubscription = supabase
-    .channel('staff-changes')
+  const handleSubscriptionUpdate = async () => {
+    // console.log("fetchStaff: Realtime change detected, refetching staff list via API...");
+    fetchStaff().then(onStaffChange);
+  };
+  
+  staffSubscriptionChannel = supabase.channel(channelName);
+  staffSubscriptionChannel
     .on('postgres_changes', 
-      { 
-        event: '*', 
-        schema: 'public', 
-        table: 'staff' 
-      }, 
-      () => {
-        console.log("Staff change detected, fetching updated data...");
-        fetchStaff().then(onStaffChange);
+      { event: '*', schema: 'public', table: 'staff' }, 
+      (payload: any) => {
+        // console.log("Realtime: 'staff' table change detected.", payload);
+        handleSubscriptionUpdate();
       }
     )
-    .on('postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'users'
-      },
-      (payload) => {
-        // Only refetch if it might affect staff data
-        console.log("User change detected, fetching updated staff data...");
-        fetchStaff().then(onStaffChange);
-      }
-    )
-    .subscribe();
+    .on('postgres_changes', 
+      { event: '*', schema: 'public', table: 'users' }, 
+      (payload: any) => {
+        const oldRole = payload.old?.role; 
+        const newRole = payload.new?.role;
+        // Define relevant roles based on your application's user types for staff/admins
+        const relevantRolesForStaffList = ['staff', 'admin'];
 
-  return {
-    unsubscribe: () => {
-      if (staffSubscription) {
-        console.log("Unsubscribing from staff changes...");
-        staffSubscription.unsubscribe();
-        staffSubscription = null;
+        // Check if the change involves a relevant role for the staff list
+        if ( (newRole && relevantRolesForStaffList.includes(newRole.toLowerCase())) || 
+             (oldRole && relevantRolesForStaffList.includes(oldRole.toLowerCase())) ||
+             (payload.eventType === 'INSERT' && newRole && relevantRolesForStaffList.includes(newRole.toLowerCase())) ||
+             (payload.eventType === 'DELETE' && oldRole && relevantRolesForStaffList.includes(oldRole.toLowerCase()))
+           ) {
+          // console.log("Realtime: 'users' table change relevant to staff/admin list detected.", payload);
+          handleSubscriptionUpdate();
+        }
+      }
+    )
+    // .subscribe((status: string, err?: Error) => {
+    //   if (status === 'SUBSCRIBED') { 
+    //     // console.log(`Realtime: Successfully subscribed to ${channelName}`); 
+    //   } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+    //     console.error(`Realtime: Subscription on ${channelName} issue: ${status}`, err);
+    //   }
+    //   // You might want to handle 'SUBSCRIPTION_ERROR' as well
+    // });
+  
+  handleSubscriptionUpdate();
+  
+  return { 
+    unsubscribe: () => { 
+      if (staffSubscriptionChannel && typeof staffSubscriptionChannel.unsubscribe === 'function') {
+        // console.log(`Realtime: Unsubscribing from ${channelName}`);
+        staffSubscriptionChannel.unsubscribe()
+          .then(() => { /* console.log(`Channel ${channelName} unsubscribed.`); */ })
+          .catch((err: any) => console.error(`Error unsubscribing from ${channelName}:`, err));
+        staffSubscriptionChannel = null;
       }
     }
   };

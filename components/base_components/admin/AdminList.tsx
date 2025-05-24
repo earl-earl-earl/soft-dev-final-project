@@ -6,6 +6,7 @@ interface AdminListProps {
   onSearchChange: (term: string) => void;
   onFilterClick: () => void;
   onAddAdminClick: () => void;
+canAddAdmin: boolean;
 }
 
 const AdminList: React.FC<AdminListProps> = ({
