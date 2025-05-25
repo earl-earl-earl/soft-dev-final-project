@@ -1,131 +1,135 @@
-// app/api/admin/[adminId]/route.ts
+// app/api/admin/[adminId]/status/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { AdminFormData, AdminMember } from '../../../../../types/admin'; // Adjust path if needed
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!; 
 const supabaseAdminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-// Password policy validation helper
-const validatePasswordPolicyOnServer = (password: string): { isValid: boolean; messages: string[] } => {
-  const messages: string[] = [];
-  if (password.length < 8) messages.push("be at least 8 characters");
-  if (!/[A-Z]/.test(password)) messages.push("contain an uppercase letter");
-  // ... (rest of policy checks)
-  if (!/[a-z]/.test(password)) messages.push("contain a lowercase letter");
-  if (!/[0-9]/.test(password)) messages.push("contain a number");
-  if (!/[^A-Za-z0-9]/.test(password)) messages.push("contain a special character");
-  return { isValid: messages.length === 0, messages };
-};
-
 interface RouteContext {
-  params: { adminId: string; }
+  params: {
+    adminId: string; // This comes from the [adminId] folder name
+  }
 }
 
-export async function PUT(request: NextRequest, { params }: RouteContext) {
-  const { adminId } = params;
+// Helper function to get the role and ID of the user making the request
+// In a real app, this would come from verifying a session token (JWT) or Supabase session cookie.
+async function getRequestingUserInfo(request: NextRequest): Promise<{ id: string; role: string } | null> {
+  // Placeholder: Replace with your actual session/token verification logic
+  // For example, if using Supabase Auth on the client and it sets cookies that this API can read:
+  // const tempSupabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
+  //   global: { headers: { Authorization: request.headers.get('Authorization')! } }
+  // });
+  // const { data: { user } } = await tempSupabaseClient.auth.getUser();
+  // if (user) {
+  //   const { data: userProfile } = await supabaseAdminClient.from('users').select('role').eq('id', user.id).single();
+  //   if (userProfile) return { id: user.id, role: userProfile.role };
+  // }
+
+  // For demonstration, assuming a header or a fixed role for testing:
+  const mockRole = request.headers.get('X-User-Role') || 'super_admin'; // Default to super_admin for testing
+  const mockId = request.headers.get('X-User-Id') || 'mock-super-admin-id';
+  console.warn(`API Authorization: Using mock user role '${mockRole}' and ID '${mockId}'. IMPLEMENT REAL AUTH!`);
+  return { id: mockId, role: mockRole };
+  // return null; // If no user is authenticated
+}
+
+
+export async function PATCH(request: NextRequest, { params }: RouteContext) {
+  const { adminId } = params; // The ID of the admin whose status is to be changed
+  
   if (!adminId) {
     return NextResponse.json({ error: 'Admin User ID is required.' }, { status: 400 });
   }
-  console.log(`API PUT /api/admin/${adminId}: Received update request.`);
+  console.log(`API PATCH /api/admin/${adminId}/status: Received request.`);
 
   try {
-    const adminData = (await request.json()) as Partial<AdminFormData>;
-    console.log(`API PUT /api/admin/${adminId}: Received data:`, adminData);
+    const { isActive } = (await request.json()) as { isActive: boolean }; 
 
-    // --- TODO: AUTHORIZATION CHECK ---
-    // (Same authorization logic as described in the previous combined file)
-    // - Get current user's role
-    // - Get target user's role
-    // - Enforce REQ-ADMINUSR-07, REQ-ADMINUSR-13, REQ-ADMINUSR-14
-    // --- END AUTHORIZATION ---
-
-    // 1. Update Supabase Auth User (Password if provided)
-    if (adminData.password && adminData.password.length > 0) {
-      // ... (password policy validation and auth.admin.updateUserById logic) ...
-      const passwordPolicyCheck = validatePasswordPolicyOnServer(adminData.password);
-      if (!passwordPolicyCheck.isValid) { /* ... return error ... */ }
-      const { error: authPasswordError } = await supabaseAdminClient.auth.admin.updateUserById(
-        adminId, { password: adminData.password }
-      );
-      if (authPasswordError) { /* ... return error ... */ }
+    if (typeof isActive !== 'boolean') {
+      return NextResponse.json({ error: "'isActive' (boolean) field is required in the request body." }, { status: 400 });
     }
 
-    // 2. Update public.users table
-    const userUpdatePayload: Partial<{ role: string; email: string; last_updated: string; /* username? */ }> = {
-      last_updated: new Date().toISOString()
-    };
-    let userTableNeedsUpdate = false; // Flag to see if we actually need to call update
-    if (adminData.role !== undefined) {
-      const dbUserRole = adminData.role.toLowerCase();
-      if (dbUserRole === 'admin' || dbUserRole === 'super_admin') {
-          userUpdatePayload.role = dbUserRole;
-          userTableNeedsUpdate = true;
-      } else { /* handle invalid role for update */ }
-    }
-    // Email is generally not changed for auth users easily.
-    // If adminData.username is for users.username:
-    // if (adminData.username !== undefined) { userUpdatePayload.username = adminData.username; userTableNeedsUpdate = true; }
-
-
-    if (userTableNeedsUpdate) { // Only update if there are changes other than last_updated or if explicitly needed
-      const { error: publicUserUpdateError } = await supabaseAdminClient
-        .from('users').update(userUpdatePayload).eq('id', adminId);
-      if (publicUserUpdateError) { /* ... return error ... */ }
+    // --- AUTHORIZATION CHECK ---
+    const requestingUser = await getRequestingUserInfo(request);
+    if (!requestingUser) {
+      return NextResponse.json({ error: 'Unauthorized: No authenticated user found.' }, { status: 401 });
     }
 
-    // 3. Update public.staff table
-    const staffProfileUpdatePayload: Partial<{ name: string; username: string | null; phone_number: string | null; position: string; is_admin: boolean }> = {};
-    let staffProfileNeedsUpdate = false;
-    if (adminData.name !== undefined) { staffProfileUpdatePayload.name = adminData.name; staffProfileNeedsUpdate = true;}
-    if (adminData.username !== undefined) { staffProfileUpdatePayload.username = adminData.username || null; staffProfileNeedsUpdate = true;}
-    if (adminData.phoneNumber !== undefined) { staffProfileUpdatePayload.phone_number = adminData.phoneNumber || null; staffProfileNeedsUpdate = true;}
-    if (adminData.position !== undefined) { staffProfileUpdatePayload.position = adminData.position; staffProfileNeedsUpdate = true;}
-    // is_admin should be true if role is 'admin' or 'super_admin'
-    if (userUpdatePayload.role) { // If role was changed
-        staffProfileUpdatePayload.is_admin = (userUpdatePayload.role === 'admin' || userUpdatePayload.role === 'super_admin');
-        staffProfileNeedsUpdate = true;
-    } else if (adminData.role && !userUpdatePayload.role) { // If role came in adminData but wasn't set for userUpdate (e.g. already correct)
-        staffProfileUpdatePayload.is_admin = (adminData.role.toLowerCase() === 'admin' || adminData.role.toLowerCase() === 'super_admin');
-        staffProfileNeedsUpdate = true;
+    const { data: targetUser, error: targetUserFetchError } = await supabaseAdminClient
+      .from('users')
+      .select('role, is_active') // Also fetch current is_active to avoid unnecessary updates
+      .eq('id', adminId)
+      .single();
+
+    if (targetUserFetchError || !targetUser) {
+      return NextResponse.json({ error: 'Target admin user not found.' }, { status: 404 });
+    }
+
+    // REQ-ADMINUSR-14: Prevent deactivation of 'super_admin' via UI.
+    if (targetUser.role === 'super_admin' && isActive === false) {
+      console.warn(`API PATCH: Attempt to deactivate super_admin ${adminId} by ${requestingUser.id} (${requestingUser.role}) denied.`);
+      return NextResponse.json({ error: 'Super admin accounts cannot be deactivated.' }, { status: 403 });
+    }
+
+    // REQ-ADMINUSR-13 & REQ-ADMINUSR-07:
+    // Only 'super_admin' can deactivate/reactivate an 'admin'.
+    // An 'admin' cannot deactivate another 'admin' (unless it's themselves, which is usually not a UI flow).
+    if (targetUser.role === 'admin') {
+      if (requestingUser.role !== 'super_admin') {
+        // If the requesting user is an 'admin', they cannot change another 'admin's status.
+        // Exception: an admin *could* potentially deactivate themselves if that's a desired feature,
+        // but this endpoint is typically for an admin managing other users.
+        if (requestingUser.id !== adminId || requestingUser.role !== 'super_admin') { // Super admin can always proceed
+             console.warn(`API PATCH: User ${requestingUser.id} (${requestingUser.role}) attempt to change status of admin ${adminId} denied.`);
+            return NextResponse.json({ error: 'Permission denied: Only Super Admins can change the status of admin accounts.' }, { status: 403 });
+        }
+      }
+    }
+    // --- END AUTHORIZATION CHECK ---
+
+    // Check if an update is even needed
+    if (targetUser.is_active === isActive) {
+        console.log(`API PATCH /api/admin/${adminId}/status: No change needed. User is already ${isActive ? 'active' : 'inactive'}.`);
+        return NextResponse.json({ message: `Admin user status is already ${isActive ? 'Active' : 'Inactive'}.` }, { status: 200 });
     }
 
 
-    if (staffProfileNeedsUpdate) {
-      const { error: staffError } = await supabaseAdminClient
-        .from('staff').update(staffProfileUpdatePayload).eq('user_id', adminId);
-      if (staffError) { /* ... return error, handle unique username ... */ }
+    console.log(`API PATCH /api/admin/${adminId}/status: Updating users.is_active to:`, isActive);
+    const { error: updateError } = await supabaseAdminClient
+      .from('users')
+      .update({ 
+        is_active: isActive,
+        last_updated: new Date().toISOString() 
+      })
+      .eq('id', adminId);
+
+    if (updateError) {
+      console.error(`API PATCH /api/admin/${adminId}/status: Error updating status:`, updateError);
+      return NextResponse.json({ error: `Failed to update admin status: ${updateError.message}` }, { status: 500 });
     }
 
-    // Fetch the combined, updated AdminMember data to return
-    const { data: finalUserData, error: finalUserFetchError } = await supabaseAdminClient.from("users").select('id, email, role, is_active, created_at, last_updated').eq('id', adminId).single();
-    const { data: finalStaffData, error: finalStaffFetchError } = await supabaseAdminClient.from("staff").select('user_id, name, username, phone_number, position, is_admin').eq('user_id', adminId).single();
-
-    if (finalUserFetchError || !finalUserData) {
-      return NextResponse.json({ error: 'Failed to fetch updated user data.' }, { status: 500 });
+    // If deactivating a Supabase Auth user, sign them out from all sessions
+    if (isActive === false) {
+      // All users created via your forms are Supabase Auth users in this model
+      console.log(`API PATCH: User ${adminId} (role: ${targetUser.role}) deactivated. Attempting to sign out from Supabase Auth sessions.`);
+      const { error: signOutError } = await supabaseAdminClient.auth.admin.signOut(adminId); 
+      if (signOutError) {
+          console.error(`API PATCH: Error signing out deactivated user ${adminId} from Supabase Auth:`, signOutError);
+          // This is a non-critical error for the deactivation process itself, but should be logged.
+      } else {
+          console.log(`API PATCH: Successfully signed out user ${adminId} from all Supabase Auth sessions.`);
+      }
     }
-    if (finalStaffFetchError || !finalStaffData) {
-      return NextResponse.json({ error: 'Failed to fetch updated staff data.' }, { status: 500 });
-    }
 
-    const responseMember: AdminMember = { 
-        id: finalUserData.id,
-        email: finalUserData.email,
-        name: finalStaffData.name || finalUserData.email?.split('@')[0] || "Admin User",
-        username: finalStaffData.username || undefined,
-        phoneNumber: finalStaffData.phone_number || undefined,
-        role: finalUserData.role as AdminMember['role'],
-        isAdmin: finalStaffData.is_admin !== undefined ? finalStaffData.is_admin : true,
-        position: finalStaffData.position || "N/A",
-        isActive: finalUserData.is_active,
-        created_at: finalUserData.created_at,
-        last_updated: finalUserData.last_updated,
-    };
-    return NextResponse.json(responseMember, { status: 200 });
+    console.log(`API PATCH /api/admin/${adminId}/status: Status updated successfully to ${isActive}.`);
+    return NextResponse.json({ message: `Admin user status successfully updated to ${isActive ? 'Active' : 'Inactive'}.` }, { status: 200 });
 
   } catch (error: any) {
-    console.error(`API PUT /api/admin/${adminId} - Unhandled error:`, error);
-    return NextResponse.json({ error: 'Failed to process admin update: ' + (error.message || "Unknown server error") }, { status: 500 });
+    console.error(`API PATCH /api/admin/${adminId}/status - Unhandled error:`, error);
+    if (error instanceof SyntaxError && error.message.includes("JSON")) { // Check for JSON parse error from request.json()
+        return NextResponse.json({ error: 'Invalid request body: Expected JSON with an "isActive" boolean field.' }, { status: 400 });
+    }
+    return NextResponse.json({ error: 'Failed to process status toggle: ' + (error.message || "Unknown server error") }, { status: 500 });
   }
 }

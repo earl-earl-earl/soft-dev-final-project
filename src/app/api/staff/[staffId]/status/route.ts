@@ -41,10 +41,10 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: `Failed to update staff status: ${updateError.message}` }, { status: 500 });
     }
 
-    // Optional: If deactivating, and if you want to force sign-out from Supabase Auth sessions
-    // if (!isActive) {
-    //   await supabaseAdminClient.auth.admin.signOut(staffId); 
-    // }
+    // If deactivating, and if you want to force sign-out from Supabase Auth sessions
+    if (!isActive) {
+      await supabaseAdminClient.auth.admin.signOut(staffId); 
+    }
 
     return NextResponse.json({ message: 'Staff status updated successfully.' }, { status: 200 });
 
