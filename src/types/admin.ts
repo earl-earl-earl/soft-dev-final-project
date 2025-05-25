@@ -63,6 +63,6 @@ export const ACCESS_LEVELS: AccessLevel[] = [
 ];
 
 export const ADMIN_FORM_SELECTABLE_ROLES = [
-  { value: "Admin", label: "Admin" }, // User selects "Admin"
-  { value: "Staff", label: "Staff" }  // User selects "Staff"
+  { value: "admin", label: "Admin" }, // User selects "Admin"
+  { value: "staff", label: "Staff" }  // User selects "Staff"
 ] as const;

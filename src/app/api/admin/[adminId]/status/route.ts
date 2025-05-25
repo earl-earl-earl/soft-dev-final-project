@@ -1,133 +1,169 @@
 // app/api/admin/[adminId]/status/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient, type CookieOptions } from '@supabase/ssr'; // For user session
+import { createClient as createAdminSupabaseClient } from '@supabase/supabase-js'; // Renamed for clarity
+import { cookies } from 'next/headers'; // For App Router cookie access
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!; 
-const supabaseAdminClient = createClient(supabaseUrl, supabaseServiceKey);
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+// This admin client is for operations requiring service_role
+const supabaseAdmin = createAdminSupabaseClient(supabaseUrl, supabaseServiceKey);
 
 interface RouteContext {
   params: {
-    adminId: string; // This comes from the [adminId] folder name
+    adminId: string; 
   }
 }
 
-// Helper function to get the role and ID of the user making the request
-// In a real app, this would come from verifying a session token (JWT) or Supabase session cookie.
-async function getRequestingUserInfo(request: NextRequest): Promise<{ id: string; role: string } | null> {
-  // Placeholder: Replace with your actual session/token verification logic
-  // For example, if using Supabase Auth on the client and it sets cookies that this API can read:
-  // const tempSupabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
-  //   global: { headers: { Authorization: request.headers.get('Authorization')! } }
-  // });
-  // const { data: { user } } = await tempSupabaseClient.auth.getUser();
-  // if (user) {
-  //   const { data: userProfile } = await supabaseAdminClient.from('users').select('role').eq('id', user.id).single();
-  //   if (userProfile) return { id: user.id, role: userProfile.role };
-  // }
+// --- Function to get the currently authenticated user making the request ---
+async function getRequestingUserInfo(request: NextRequest): Promise<{ id: string; role: string; email: string; } | null> {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error("getRequestingUserInfo: Supabase URL or Anon Key for createServerClient is not defined.");
+    return null;
+  }
+  
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    supabaseUrl,
+    supabaseAnonKey,
+    {
+      cookies: {
+        get(name: string) { return cookieStore.get(name)?.value; },
+        set(name: string, value: string, options: CookieOptions) { try { cookieStore.set({ name, value, ...options }); } catch (error) {} },
+        remove(name: string, options: CookieOptions) { try { cookieStore.delete({ name, ...options }); } catch (error) {} },
+      },
+    }
+  );
 
-  // For demonstration, assuming a header or a fixed role for testing:
-  const mockRole = request.headers.get('X-User-Role') || 'super_admin'; // Default to super_admin for testing
-  const mockId = request.headers.get('X-User-Id') || 'mock-super-admin-id';
-  console.warn(`API Authorization: Using mock user role '${mockRole}' and ID '${mockId}'. IMPLEMENT REAL AUTH!`);
-  return { id: mockId, role: mockRole };
-  // return null; // If no user is authenticated
+  const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !authUser) {
+    console.warn("getRequestingUserInfo: No Supabase Auth user found from session.", authError?.message);
+    return null;
+  }
+
+  // Use supabaseAdmin (service role) to fetch user's role from public.users table
+  const { data: userProfile, error: profileError } = await supabaseAdmin
+    .from('users')
+    .select('id, role, email')
+    .eq('id', authUser.id)
+    .single();
+
+  if (profileError || !userProfile) {
+    console.error(`getRequestingUserInfo: User profile not found in 'users' table for auth ID ${authUser.id}.`, profileError?.message);
+    return null; 
+  }
+  
+  // console.log(`getRequestingUserInfo: Authenticated user: ID=${userProfile.id}, Role=${userProfile.role}`);
+  return { id: userProfile.id, role: userProfile.role, email: userProfile.email };
 }
 
 
 export async function PATCH(request: NextRequest, { params }: RouteContext) {
-  const { adminId } = params; // The ID of the admin whose status is to be changed
+  const { adminId } = params;
+  const operationId = Date.now();
   
+  // console.log(`[${operationId}] API PATCH /api/admin/${adminId}/status: Invoked.`);
+
   if (!adminId) {
     return NextResponse.json({ error: 'Admin User ID is required.' }, { status: 400 });
   }
-  console.log(`API PATCH /api/admin/${adminId}/status: Received request.`);
 
   try {
-    const { isActive } = (await request.json()) as { isActive: boolean }; 
+    const payload = await request.json();
+    const newIsActiveState = payload.isActive; 
 
-    if (typeof isActive !== 'boolean') {
+    if (typeof newIsActiveState !== 'boolean') {
       return NextResponse.json({ error: "'isActive' (boolean) field is required in the request body." }, { status: 400 });
     }
+    // console.log(`[${operationId}] API PATCH: Requesting to set isActive for ${adminId} to: ${newIsActiveState}`);
 
-    // --- AUTHORIZATION CHECK ---
+    // --- AUTHORIZATION ---
     const requestingUser = await getRequestingUserInfo(request);
     if (!requestingUser) {
-      return NextResponse.json({ error: 'Unauthorized: No authenticated user found.' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized: Authentication required.' }, { status: 401 });
     }
+    // console.log(`[${operationId}] API PATCH: Request by User ID=${requestingUser.id}, Role=${requestingUser.role}`);
 
-    const { data: targetUser, error: targetUserFetchError } = await supabaseAdminClient
+    const { data: targetUser, error: targetUserFetchError } = await supabaseAdmin
       .from('users')
-      .select('role, is_active') // Also fetch current is_active to avoid unnecessary updates
+      .select('role, is_active') 
       .eq('id', adminId)
       .single();
 
-    if (targetUserFetchError || !targetUser) {
-      return NextResponse.json({ error: 'Target admin user not found.' }, { status: 404 });
+    if (targetUserFetchError) {
+      return NextResponse.json({ error: 'Database error: Could not fetch target user details.' }, { status: 500 });
     }
+    if (!targetUser) {
+      return NextResponse.json({ error: `Target user with ID ${adminId} not found.` }, { status: 404 });
+    }
+    // console.log(`[${operationId}] API PATCH: Target user ${adminId} found. Role: ${targetUser.role}, Current isActive: ${targetUser.is_active}`);
 
-    // REQ-ADMINUSR-14: Prevent deactivation of 'super_admin' via UI.
-    if (targetUser.role === 'super_admin' && isActive === false) {
-      console.warn(`API PATCH: Attempt to deactivate super_admin ${adminId} by ${requestingUser.id} (${requestingUser.role}) denied.`);
-      return NextResponse.json({ error: 'Super admin accounts cannot be deactivated.' }, { status: 403 });
+    // REQ-ADMINUSR-14: Prevent deactivation of any 'super_admin' account.
+    if (targetUser.role === 'super_admin' && newIsActiveState === false) {
+      const msg = 'Permission Denied: Super admin accounts cannot be deactivated.';
+      console.warn(`[${operationId}] API PATCH: ${msg} (Attempt by ${requestingUser.role} ${requestingUser.id})`);
+      return NextResponse.json({ error: msg }, { status: 403 });
     }
 
     // REQ-ADMINUSR-13 & REQ-ADMINUSR-07:
-    // Only 'super_admin' can deactivate/reactivate an 'admin'.
-    // An 'admin' cannot deactivate another 'admin' (unless it's themselves, which is usually not a UI flow).
     if (targetUser.role === 'admin') {
       if (requestingUser.role !== 'super_admin') {
-        // If the requesting user is an 'admin', they cannot change another 'admin's status.
-        // Exception: an admin *could* potentially deactivate themselves if that's a desired feature,
-        // but this endpoint is typically for an admin managing other users.
-        if (requestingUser.id !== adminId || requestingUser.role !== 'super_admin') { // Super admin can always proceed
-             console.warn(`API PATCH: User ${requestingUser.id} (${requestingUser.role}) attempt to change status of admin ${adminId} denied.`);
-            return NextResponse.json({ error: 'Permission denied: Only Super Admins can change the status of admin accounts.' }, { status: 403 });
+        // An 'admin' cannot change the status of another 'admin' unless it's themselves
+        if (requestingUser.id !== adminId) { 
+            const msg = 'Permission Denied: Admins cannot change the status of other admin accounts.';
+            console.warn(`[${operationId}] API PATCH: ${msg} (Admin ${requestingUser.id} on Admin ${adminId})`);
+            return NextResponse.json({ error: msg }, { status: 403 });
+        }
+        // Policy for admin self-deactivation:
+        if (requestingUser.id === adminId && newIsActiveState === false) {
+            const msg = 'Permission Denied: Admins cannot deactivate their own account through this interface.';
+            // Or, if allowed, just log it: console.log(`[${operationId}] API PATCH: Admin ${requestingUser.id} deactivating self.`);
+            console.warn(`[${operationId}] API PATCH: ${msg}`);
+            return NextResponse.json({ error: msg }, { status: 403 }); // Example: Disallow self-deactivation by admin
         }
       }
     }
-    // --- END AUTHORIZATION CHECK ---
+    // (Assuming 'staff' role status changes are handled by /api/staff/[staffId]/status)
+    if (targetUser.role !== 'admin' && targetUser.role !== 'super_admin') {
+        return NextResponse.json({ error: `Target user ${adminId} is not an admin or super_admin. Use staff endpoint for staff users.` }, { status: 400 });
+    }
+    // --- END AUTHORIZATION ---
 
-    // Check if an update is even needed
-    if (targetUser.is_active === isActive) {
-        console.log(`API PATCH /api/admin/${adminId}/status: No change needed. User is already ${isActive ? 'active' : 'inactive'}.`);
-        return NextResponse.json({ message: `Admin user status is already ${isActive ? 'Active' : 'Inactive'}.` }, { status: 200 });
+    if (targetUser.is_active === newIsActiveState) {
+        return NextResponse.json({ message: `Admin user status is already ${newIsActiveState ? 'Active' : 'Inactive'}. No change made.` }, { status: 200 });
     }
 
-
-    console.log(`API PATCH /api/admin/${adminId}/status: Updating users.is_active to:`, isActive);
-    const { error: updateError } = await supabaseAdminClient
+    // console.log(`[${operationId}] API PATCH: Updating users.is_active for ${adminId} to: ${newIsActiveState}`);
+    const { error: updateError } = await supabaseAdmin
       .from('users')
-      .update({ 
-        is_active: isActive,
-        last_updated: new Date().toISOString() 
-      })
+      .update({ is_active: newIsActiveState, last_updated: new Date().toISOString() })
       .eq('id', adminId);
 
     if (updateError) {
-      console.error(`API PATCH /api/admin/${adminId}/status: Error updating status:`, updateError);
+      console.error(`[${operationId}] API PATCH: Error updating status in DB for ${adminId}:`, updateError);
       return NextResponse.json({ error: `Failed to update admin status: ${updateError.message}` }, { status: 500 });
     }
 
-    // If deactivating a Supabase Auth user, sign them out from all sessions
-    if (isActive === false) {
-      // All users created via your forms are Supabase Auth users in this model
-      console.log(`API PATCH: User ${adminId} (role: ${targetUser.role}) deactivated. Attempting to sign out from Supabase Auth sessions.`);
-      const { error: signOutError } = await supabaseAdminClient.auth.admin.signOut(adminId); 
+    if (newIsActiveState === false) {
+      // console.log(`[${operationId}] API PATCH: User ${adminId} (role: ${targetUser.role}) deactivated. Attempting Supabase Auth signOut.`);
+      const { error: signOutError } = await supabaseAdmin.auth.admin.signOut(adminId); 
       if (signOutError) {
-          console.error(`API PATCH: Error signing out deactivated user ${adminId} from Supabase Auth:`, signOutError);
-          // This is a non-critical error for the deactivation process itself, but should be logged.
+          console.error(`[${operationId}] API PATCH: Error signing out user ${adminId} from Supabase Auth:`, JSON.stringify(signOutError, null, 2));
       } else {
-          console.log(`API PATCH: Successfully signed out user ${adminId} from all Supabase Auth sessions.`);
+          // console.log(`[${operationId}] API PATCH: Successfully initiated signOut for user ${adminId}.`);
       }
     }
 
-    console.log(`API PATCH /api/admin/${adminId}/status: Status updated successfully to ${isActive}.`);
-    return NextResponse.json({ message: `Admin user status successfully updated to ${isActive ? 'Active' : 'Inactive'}.` }, { status: 200 });
+    const successMsg = `Admin user status successfully updated to ${newIsActiveState ? 'Active' : 'Inactive'}.`;
+    // console.log(`[${operationId}] API PATCH: ${successMsg}`);
+    return NextResponse.json({ message: successMsg }, { status: 200 });
 
   } catch (error: any) {
-    console.error(`API PATCH /api/admin/${adminId}/status - Unhandled error:`, error);
-    if (error instanceof SyntaxError && error.message.includes("JSON")) { // Check for JSON parse error from request.json()
+    console.error(`[${operationId}] API PATCH /api/admin/${adminId}/status - Unhandled error:`, error.message, error.stack);
+    if (error instanceof SyntaxError && error.message.includes("JSON")) {
         return NextResponse.json({ error: 'Invalid request body: Expected JSON with an "isActive" boolean field.' }, { status: 400 });
     }
     return NextResponse.json({ error: 'Failed to process status toggle: ' + (error.message || "Unknown server error") }, { status: 500 });

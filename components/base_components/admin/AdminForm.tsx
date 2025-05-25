@@ -44,10 +44,10 @@ const AdminForm: React.FC<AdminFormProps> = ({
     // For 'admin' role users created by this form, their role in users table is 'admin'
     // The 'staff.is_admin' flag will be true.
     role: admin?.role as "Admin" | "Staff" || (ADMIN_FORM_SELECTABLE_ROLES.length > 0
-      ? (ADMIN_FORM_SELECTABLE_ROLES[0].value === "Admin"
-          ? "Admin"
-          : "Staff")
-      : "Admin"), // Default to 'Admin' if no roles available
+      ? (ADMIN_FORM_SELECTABLE_ROLES[0].value === "admin"
+          ? "admin"
+          : "staff")
+      : "admin"), // Default to 'Admin' if no roles available
     position: admin?.position || (ACCESS_LEVELS.length > 0 ? ACCESS_LEVELS[0] : ""),
     password: "",
     confirmPassword: "",
