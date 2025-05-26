@@ -8,6 +8,83 @@ import { format, isSameDay } from 'date-fns';
 
 import styles from "../component_styles/Header.module.css";
 import { useReservations } from "../../src/hooks/useReservations";
+import NotificationsDropdown from "./NotificationsDropdown";
+
+// Define the Notification interface
+interface Notification {
+  id: string;
+  type: "reservation" | "check-out" | "new-booking" | "cancelled" | "payment";
+  title: string;
+  description: string;
+  timestamp: string;
+  isRead: boolean;
+  icon: string;
+  source: "online" | "direct" | undefined;
+}
+
+// Online reservation notifications only
+const onlineReservationNotifications: Notification[] = [
+  {
+    id: "1",
+    type: "reservation",
+    title: "New Online Reservation",
+    description: "Reservation #A1701 - Lozada, Daven Jerthrude - Room: Resthouse",
+    timestamp: "2 hours ago",
+    isRead: false,
+    icon: "fa-regular fa-calendar-check",
+    source: "online"
+  },
+  {
+    id: "2",
+    type: "reservation",
+    title: "New Online Reservation",
+    description: "Reservation #A1189 - Ledesma, Marben Jhon - Room: Ohana - Check-in: May 06, 2025",
+    timestamp: "5 hours ago",
+    isRead: false,
+    icon: "fa-regular fa-calendar-check",
+    source: "online"
+  },
+  {
+    id: "3",
+    type: "reservation",
+    title: "New Online Reservation",
+    description: "Reservation #A1702 - Santos, Maria - Room: Villa - Check-in: May 28, 2025",
+    timestamp: "Yesterday at 8:42 PM",
+    isRead: true,
+    icon: "fa-regular fa-calendar-check",
+    source: "online"
+  },
+  {
+    id: "4",
+    type: "reservation",
+    title: "New Online Reservation",
+    description: "Reservation #A1698 - Reyes, Antonio - Room: Villa - Check-in: June 12, 2025",
+    timestamp: "May 24 at 2:15 PM",
+    isRead: false,
+    icon: "fa-regular fa-calendar-check",
+    source: "online"
+  },
+  {
+    id: "5",
+    type: "reservation",
+    title: "New Online Reservation",
+    description: "Reservation #A1695 - Cruz, Isabella - Room: Camille - Check-in: May 30, 2025",
+    timestamp: "May 24 at 10:08 AM",
+    isRead: true,
+    icon: "fa-regular fa-calendar-check",
+    source: "online"
+  },
+  {
+    id: "6",
+    type: "reservation",
+    title: "New Online Reservation",
+    description: "Reservation #A1690 - Mendoza, Rafael - Room: Ohana - Check-in: June 05, 2025",
+    timestamp: "May 23 at 7:30 PM",
+    isRead: true,
+    icon: "fa-regular fa-calendar-check",
+    source: "online"
+  }
+];
 
 interface HeaderProps {
   title: string;
@@ -75,10 +152,7 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
 
       <div className={styles.actionsSection}>
         <div className={styles.actionItem}>
-          <div className={styles.iconTooltipWrapper}>
-            <i className={`fa-regular fa-bell ${styles.icon}`}></i>
-            <span className={styles.tooltipText}>Notifications</span>
-          </div>
+          <NotificationsDropdown notifications={onlineReservationNotifications} />
         </div>
 
         <div className={styles.datePickerContainer}>

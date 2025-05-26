@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Room, Reservation } from '../../../src/types/room';
+import { Room } from '../../../src/types/room';
 import { ReservationLookup } from '../../../src/utils/fetchRooms';
 import RoomCard from './RoomCard';
 import styles from '../../component_styles/Rooms.module.css';
@@ -11,6 +11,8 @@ interface RoomGridProps {
   searchTerm: string;
   onEdit: (roomId: string) => void;
   onToggleStatus: (roomId: string) => void;
+  onDelete: (roomId: string) => void; // Add this
+  isAdmin: boolean; // Add this
   reservationLookup: ReservationLookup;
 }
 
@@ -21,6 +23,8 @@ const RoomGrid: React.FC<RoomGridProps> = ({
   searchTerm,
   onEdit,
   onToggleStatus,
+  onDelete, // Add this
+  isAdmin, // Add this
   reservationLookup
 }) => {
   const [animate, setAnimate] = useState(false);
@@ -60,6 +64,8 @@ const RoomGrid: React.FC<RoomGridProps> = ({
             reservations={roomSpecificReservations}
             onEdit={() => onEdit(String(room.id))}
             onToggleStatus={() => onToggleStatus(String(room.id))}
+            onDelete={() => onDelete(String(room.id))} // Add this
+            isAdmin={isAdmin} // Add this
           />
         );
       })}

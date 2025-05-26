@@ -2,6 +2,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Room, RoomFormData } from '../types/room';
 import { fetchRooms, FetchRoomsResult, ReservationLookup } from '../utils/fetchRooms';
+import { supabase } from '@/lib/supabaseClient'; // Import supabase client
 
 export interface UseRoomsReturn {
   rooms: Room[];
@@ -14,6 +15,7 @@ export interface UseRoomsReturn {
   clearError: () => void;
   refreshRooms: () => Promise<void>;
   reservationLookup: ReservationLookup;
+  deleteRoom: (roomId: string) => Promise<boolean>; // Add deleteRoom to the return type
 }
 
 export const useRooms = (): UseRoomsReturn => {
@@ -205,6 +207,47 @@ export const useRooms = (): UseRoomsReturn => {
     }
   }, [rooms, refreshRooms]);
 
+  const deleteRoom = useCallback(async (roomId: string): Promise<boolean> => {
+    setIsLoading(true);
+    setFormErrors({});
+    setError(null);
+
+    try {
+      // Get the current session token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setError('No active session. Please log in again.');
+        setIsLoading(false);
+        return false;
+      }
+      const accessToken = session.access_token;
+
+      const response = await fetch(`/api/rooms/${roomId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.error || 'Failed to delete room');
+        setIsLoading(false);
+        return false;
+      }
+      
+      await refreshRooms();
+      return true;
+      
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred while deleting the room');
+      console.error("deleteRoom catch block:", err);
+      setIsLoading(false);
+      return false;
+    }
+  }, [refreshRooms]);
+
   const returnValue = {
     rooms,
     isLoading,
@@ -213,6 +256,7 @@ export const useRooms = (): UseRoomsReturn => {
     addRoom,
     updateRoom,
     toggleRoomStatus,
+    deleteRoom, // Add this
     clearError,
     refreshRooms,
     reservationLookup,

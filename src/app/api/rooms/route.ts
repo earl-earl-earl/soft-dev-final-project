@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid'; // For unique parts in file names
+import { cookies } from 'next/headers';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -284,6 +285,111 @@ async function deleteFilesFromSupabase( // Ensure this function has detailed log
   }
 }
 
+// --- DELETE handler for permanent room deletion (super admin only, with booking checks) ---
+
+// Helper to get the requesting user's info (id, role)
+async function getRequestingUserInfo(request: NextRequest) {
+  // 1. Try Authorization header (Bearer token)
+  const authHeader = request.headers.get('authorization') || request.headers.get('Authorization');
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const accessToken = authHeader.replace('Bearer ', '');
+    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+    });
+    const { data: { user } } = await supabaseUser.auth.getUser();
+    if (user) {
+      const { data: userProfile } = await supabase
+        .from('users')
+        .select('id, role')
+        .eq('id', user.id)
+        .single();
+      if (userProfile) return { id: userProfile.id, role: userProfile.role };
+    }
+  }
+  // 2. Fallback to cookie-based auth (SSR)
+  const cookieStore = cookies();
+  const supabaseAnonKey2 = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const supabaseUser = createClient(supabaseUrl, supabaseAnonKey2, {
+    cookies: {
+      get(name) { return cookieStore.get(name)?.value; },
+      set() {},
+      remove() {},
+    },
+  });
+  const { data: { user } } = await supabaseUser.auth.getUser();
+  if (!user) return null;
+  const { data: userProfile } = await supabase
+    .from('users')
+    .select('id, role')
+    .eq('id', user.id)
+    .single();
+  if (!userProfile) return null;
+  return { id: userProfile.id, role: userProfile.role };
+}
+
+export async function DELETE(request: NextRequest) {
+  // Room ID must be provided as a query param (?id=...)
+  const { searchParams } = new URL(request.url);
+  const roomId = searchParams.get('id');
+  if (!roomId) {
+    return NextResponse.json({ error: 'Room ID is required.' }, { status: 400 });
+  }
+  // Auth check
+  const user = await getRequestingUserInfo(request);
+  if (!user || user.role !== 'super_admin') {
+    return NextResponse.json({ error: 'Permission denied. Only super admin can delete rooms.' }, { status: 403 });
+  }
+  // Check for future bookings in restricted statuses
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const restrictedStatuses = [
+    'Confirmed_Pending_Payment',
+    'Accepted',
+    'Checked_In',
+    'Checked_Out',
+  ];
+  const { data: reservations, error: resError } = await supabase
+    .from('reservations')
+    .select('id, status, check_out')
+    .eq('room_id', roomId);
+  if (resError) {
+    return NextResponse.json({ error: 'Failed to check room reservations.' }, { status: 500 });
+  }
+  const hasRestrictedFuture = (reservations || []).some(reservation => {
+    const checkOutDate = new Date(reservation.check_out);
+    checkOutDate.setHours(0, 0, 0, 0);
+    return checkOutDate > today && restrictedStatuses.includes(reservation.status);
+  });
+  if (hasRestrictedFuture) {
+    return NextResponse.json({ error: 'Cannot delete room with active or upcoming bookings.' }, { status: 400 });
+  }
+  // Delete room images from storage
+  const { data: roomData, error: roomFetchError } = await supabase
+    .from('rooms')
+    .select('image_paths, panoramic_image_path')
+    .eq('id', roomId)
+    .single();
+  if (roomFetchError || !roomData) {
+    return NextResponse.json({ error: 'Room not found.' }, { status: 404 });
+  }
+  const allImageUrls = [
+    ...(roomData.image_paths || []),
+    ...(roomData.panoramic_image_path ? [roomData.panoramic_image_path] : []),
+  ];
+  if (allImageUrls.length > 0) {
+    await deleteFilesFromSupabase(allImageUrls);
+  }
+  // Delete room from DB
+  const { error: deleteError } = await supabase
+    .from('rooms')
+    .delete()
+    .eq('id', roomId);
+  if (deleteError) {
+    return NextResponse.json({ error: 'Failed to delete room.' }, { status: 500 });
+  }
+  return NextResponse.json({ message: 'Room deleted successfully.' });
+}
 
 // PUT handler to update a room
 export async function PUT(request: NextRequest) {

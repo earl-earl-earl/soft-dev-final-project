@@ -456,16 +456,31 @@
   background-color: #f0f7ff;
 }
 
-.deleteButton:hover {
+.deleteButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #dc3545;
-  background-color: #fff5f5;
-}
-
-.editButton, .deleteButton {
   position: relative;
+  transition: all 0.2s ease;
 }
 
-.editButton .tooltipText, 
+.deleteButton:hover {
+  background-color: #fff5f5;
+  color: #b91c1c;
+}
+
+.deleteButton i {
+  font-size: 16px;
+}
+
+/* Make sure tooltip is properly styled for the delete button too */
 .deleteButton .tooltipText {
   position: absolute;
   bottom: calc(100% + 5px);
@@ -484,7 +499,6 @@
   pointer-events: none;
 }
 
-.editButton .tooltipText::before, 
 .deleteButton .tooltipText::before {
   content: '';
   position: absolute;
@@ -496,7 +510,6 @@
   border-color: #333 transparent transparent transparent;
 }
 
-.editButton:hover .tooltipText, 
 .deleteButton:hover .tooltipText {
   opacity: 1;
   visibility: visible;

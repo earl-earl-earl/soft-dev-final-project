@@ -1,24 +1,34 @@
 import React, { useState } from 'react';
-import { Room, Reservation } from '../../../src/types/room';
-import { formatDate, formatCurrency } from '../../../src/utils/roomUtils';
 import styles from '../../component_styles/Rooms.module.css';
-import Portal from '../Portal';
+import { Room, Reservation } from '../../../src/types/room';
+import Portal from '../../common/Portal';
+import { formatDate } from 'date-fns';
+import { formatCurrency } from '@/utils/roomUtils';
 
 interface RoomCardProps {
   room: Room;
   reservations: Reservation[];
   onEdit: () => void;
   onToggleStatus: () => void;
+  onDelete: () => void;
+  isAdmin: boolean; // Already being passed down
 }
 
-const RoomCard: React.FC<RoomCardProps> = ({ room, reservations, onEdit, onToggleStatus }) => {
+const RoomCard: React.FC<RoomCardProps> = ({ 
+  room, 
+  reservations, 
+  onEdit, 
+  onToggleStatus, 
+  onDelete,
+  isAdmin 
+}) => {
   const [showAllAmenities, setShowAllAmenities] = useState(false);
   const [showAllBookingsOverlay, setShowAllBookingsOverlay] = useState(false);
 
   const displayedAmenities = room.amenities ? room.amenities.slice(0, 3) : [];
   const hasMoreAmenities = room.amenities ? room.amenities.length > 3 : false;
   
-  const lastUpdatedDisplay = room.last_updated ? formatDate(new Date(room.last_updated)) : 'N/A';
+  const lastUpdatedDisplay = room.last_updated ? formatDate(new Date(room.last_updated), 'MMM d, yyyy') : 'N/A';
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -41,7 +51,7 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, reservations, onEdit, onToggl
   } else if (isCurrentlyOccupied && currentOccupation) {
     displayStatusText = "Occupied";
     statusBadgeClass = styles.occupied;
-    statusDetailText = `Until ${formatDate(new Date(currentOccupation.checkOut))}`;
+    statusDetailText = `Until ${formatDate(new Date(currentOccupation.checkOut), 'MMM d, yyyy')}`;
   } else { 
     displayStatusText = "Available";
     statusBadgeClass = styles.vacant;
@@ -107,7 +117,7 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, reservations, onEdit, onToggl
                     </h5>
                     {summaryBookings.map((res, index) => (
                       <div key={`${res.checkIn.toISOString()}-${index}-summary`} className={styles.reservationItem}>
-                         <i className="fa-regular fa-calendar-days"></i> {formatDate(new Date(res.checkIn))} - {formatDate(new Date(res.checkOut))}
+                         <i className="fa-regular fa-calendar-days"></i> {formatDate(new Date(res.checkIn), 'MMM d, yyyy')} - {formatDate(new Date(res.checkOut), 'MMM d, yyyy')}
                          {res.guestName && res.guestName !== 'N/A' && <span className={styles.guestName}> ({res.guestName})</span>}
                       </div>
                     ))}
@@ -153,10 +163,20 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, reservations, onEdit, onToggl
             <button className={styles.editButton} onClick={onEdit}>
               <i className="fa-regular fa-pencil"></i><span className={styles.tooltipText}>Edit</span>
             </button>
-            <button className={styles.deactivateButton} onClick={onToggleStatus}>
-              <i className={`fa-regular ${room.isActive ? "fa-circle-minus" : "fa-circle-plus"}`}></i>
-              <span className={styles.tooltipText}>{room.isActive ? "Deactivate" : "Activate"}</span>
-            </button>
+            
+            {/* Only show deactivate button to admins */}
+            {isAdmin && (
+              <>
+                <button className={styles.deactivateButton} onClick={onToggleStatus}>
+                  <i className={`fa-regular ${room.isActive ? "fa-circle-minus" : "fa-circle-plus"}`}></i>
+                  <span className={styles.tooltipText}>{room.isActive ? "Deactivate" : "Activate"}</span>
+                </button>
+                <button className={styles.deleteButton} onClick={onDelete}>
+                  <i className="fa-regular fa-trash-can"></i>
+                  <span className={styles.tooltipText}>Delete</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -199,7 +219,7 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, reservations, onEdit, onToggl
                     <li key={`${res.checkIn.toISOString()}-${index}-popup`} className={styles.bookingPopupItem}>
                       <div className={styles.bookingDetailLine}>
                         <i className="fa-solid fa-calendar-alt"></i>
-                        <strong>Dates:</strong> {formatDate(new Date(res.checkIn))} - {formatDate(new Date(res.checkOut))}
+                        <strong>Dates:</strong> {formatDate(new Date(res.checkIn), 'MMM d, yyyy')} - {formatDate(new Date(res.checkOut), 'MMM d, yyyy')}
                       </div>
                       {res.guestName && res.guestName !== 'N/A' && (
                         <div className={styles.bookingDetailLine}>

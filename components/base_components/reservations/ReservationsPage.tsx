@@ -93,6 +93,9 @@ const ReservationsPage: React.FC = () => {
   const [animate, setAnimate] = useState(false);
   const [showContent, setShowContent] = useState(false);
 
+  // Add this near your other state declarations
+  const [viewedReservations, setViewedReservations] = useState<Set<string>>(new Set());
+
   // Initial content visibility and animation trigger
   useEffect(() => {
     if (!isLoading) {
@@ -210,6 +213,14 @@ const ReservationsPage: React.FC = () => {
   };
 
   const handleRowClick = (reservation: ReservationItem) => {
+    // Mark as viewed
+    setViewedReservations(prev => {
+      const newSet = new Set(prev);
+      newSet.add(reservation.id);
+      return newSet;
+    });
+    
+    // Original behavior
     setSelectedReservation(reservation);
   };
 
@@ -331,6 +342,57 @@ const ReservationsPage: React.FC = () => {
     return `${format(currentMonthStart, 'MMM dd')} - ${format(endOfMonth(now), 'MMM dd, yyyy')}`;
   };
 
+  // Load viewed reservations from localStorage on component mount
+  useEffect(() => {
+    try {
+      const savedViewedReservations = localStorage.getItem('viewedReservations');
+      if (savedViewedReservations) {
+        setViewedReservations(new Set(JSON.parse(savedViewedReservations)));
+      }
+    } catch (e) {
+      console.error('Failed to load viewed reservations from localStorage:', e);
+    }
+  }, []);
+
+  // Save viewed reservations to localStorage when they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('viewedReservations', JSON.stringify([...viewedReservations]));
+    } catch (e) {
+      console.error('Failed to save viewed reservations to localStorage:', e);
+    }
+  }, [viewedReservations]);
+
+  const handleDeleteReservation = async (reservationId: string) => {
+    try {
+      // Get the current session token from Supabase
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        alert('You must be logged in to delete a reservation.');
+        return;
+      }
+      const accessToken = session.access_token;
+      const res = await fetch(`/api/reservations/${reservationId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        alert(result.error || 'Failed to delete reservation.');
+        return;
+      }
+      alert('Reservation deleted successfully.');
+      setSelectedReservation(null);
+      await refreshReservations();
+    } catch (err: any) {
+      alert('Failed to delete reservation.');
+      console.error('Delete reservation error:', err);
+    }
+  };
+
   if (!showContent) {
     return (
       <div className={styles.loadingContainer}>
@@ -388,7 +450,8 @@ const ReservationsPage: React.FC = () => {
               isLoading={isLoading} 
               error={error}
               onRetry={refreshReservations}
-              animate={animate} 
+              animate={animate}
+              viewedReservations={viewedReservations} // Add this prop
             />
           </div>
         </div>
@@ -424,12 +487,13 @@ const ReservationsPage: React.FC = () => {
 
       {selectedReservation && (
         <ReservationDetailsOverlay
-          isOpen={true} // selectedReservation being non-null implies isOpen=true
+          isOpen={true}
           onClose={() => setSelectedReservation(null)}
           reservation={selectedReservation}
           customerLookup={customerLookup}
           roomLookup={roomLookup}
           staffLookup={staffLookup}
+          handleDeleteReservation={handleDeleteReservation}
         />
       )}
     </div>

@@ -1,0 +1,217 @@
+.notificationsContainer {
+  position: relative;
+}
+
+.notificationButton {
+  height: 50px;
+  width: 50px;
+  border-radius: 50%;
+  transition: background 0.2s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: none;
+  cursor: pointer;
+  border: none;
+  position: relative;
+}
+
+.notificationButton:hover {
+  background: var(--gray-alpha-200);
+}
+
+.badge {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background-color: #e53e3e;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+}
+
+.icon {
+  font-size: 20px;
+  color: var(--nav-text-icon-color);
+}
+
+.iconTooltipWrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.tooltipText {
+  position: absolute;
+  top: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  background-color: #333;
+  color: white;
+  font-size: 12px;
+  font-family: var(--font-inter-sans), Arial, Helvetica, sans-serif;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 1050;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease 0.05s, visibility 0.15s ease 0.05s;
+  pointer-events: none;
+}
+
+.tooltipText::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent #333 transparent;
+}
+
+.iconTooltipWrapper:hover .tooltipText {
+  opacity: 1;
+  visibility: visible;
+}
+
+.notificationsDropdown {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: -10px;
+  background-color: white;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  width: 350px;
+  max-height: 500px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.notificationsHeader {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.notificationsHeader h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.notificationsBody {
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+/* Base notification item styling */
+.notificationItem {
+  display: flex;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+  background-color: #f9f9f9; /* Slight gray background for read notifications */
+}
+
+/* Hover state - light blue for all notifications */
+.notificationItem:hover {
+  background-color: #f0f7ff; /* Light blue on hover */
+}
+
+/* Unread notifications - white background to stand out */
+.notificationItem.unread {
+  background-color: white; /* Clean white background for unread items */
+  border-left: 3px solid var(--primary-color); /* Optional: add a colored border to highlight unread items */
+}
+
+.notificationIcon {
+  margin-right: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.notificationIcon i {
+  color: var(--primary-color);
+  font-size: 16px;
+}
+
+.notificationContent {
+  flex: 1;
+}
+
+.notificationTitle {
+  font-weight: 500;
+  margin-bottom: 4px;
+  font-size: 14px;
+  color: #343a40;
+}
+
+.notificationDescription {
+  font-size: 12px;
+  color: #6c757d;
+  margin-bottom: 4px;
+}
+
+.notificationTime {
+  font-size: 11px;
+  color: #adb5bd;
+  text-align: right;
+}
+
+.noNotifications {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  color: #6c757d;
+}
+
+.noNotifications i {
+  font-size: 24px;
+  margin-bottom: 10px;
+  opacity: 0.7;
+}
+
+.notificationsFooter {
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-top: 1px solid #f0f0f0;
+  text-align: center;
+}
+
+.loadMoreButton {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  width: 100%;
+  height: 100%;
+}
+
+.loadMoreButton:hover {
+  background-color: #f0f7ff;
+}

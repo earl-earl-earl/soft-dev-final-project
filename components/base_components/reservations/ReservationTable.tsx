@@ -10,7 +10,7 @@ import {
   StatusValue 
 } from "../../../src/types/reservation";
 import { formatDateForDisplay as formatDateUtil } from "../../../src/utils/dateUtils"; 
-import { getStatusCategory, statusDescriptions } from "../../../src/utils/reservationUtils"; 
+import { getStatusDisplay, getStatusCategory, statusDescriptions } from "../../../src/utils/reservationUtils"; 
 
 interface ReservationTableProps {
   reservations: ReservationItem[];
@@ -23,6 +23,7 @@ interface ReservationTableProps {
   error: string | null;
   onRetry: () => void;
   animate: boolean;
+  viewedReservations: Set<string>; // Add viewedReservations to props
 }
 
 const ReservationTable: React.FC<ReservationTableProps> = ({
@@ -35,7 +36,8 @@ const ReservationTable: React.FC<ReservationTableProps> = ({
   isLoading,
   error,
   onRetry,
-  animate
+  animate,
+  viewedReservations // Destructure viewedReservations
 }) => {
   const safeCapitalize = useCallback((text: string | undefined): string => {
     if (!text) return "N/A"; 
@@ -47,7 +49,7 @@ const ReservationTable: React.FC<ReservationTableProps> = ({
   }, []);
 
   const getCurrentStatusDisplay = useCallback((status: StatusValue | string): string => {
-    return String(status).replace(/_/g, " ");
+    return getStatusDisplay(status);
   }, []);
   
   const numberOfTableColumns = 18; 
@@ -130,6 +132,7 @@ const ReservationTable: React.FC<ReservationTableProps> = ({
         roomNameDisplay = "No Room Assigned";
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const getAllowedStaffTransitions = (status: StatusValue, source: string): StatusValue[] => {
         const allowed: StatusValue[] = [];
         if (["Cancelled", "Expired", "Checked_Out", "Rejected", "No_Show"].includes(status)) {
@@ -152,7 +155,10 @@ const ReservationTable: React.FC<ReservationTableProps> = ({
 
       return (
         <tr key={item.id} onClick={() => onRowClick(item)} className={styles.clickableRow}>
-          <td>{formatDateForDisplay(item.timestamp)}</td>
+          <td>
+            {!viewedReservations.has(item.id) && <span className={styles.newIndicator} />}
+            {formatDateForDisplay(item.timestamp)}
+          </td>
           <td>{item.customerId && customerLookup[String(item.customerId)]?.name || "N/A"}</td>
           <td>{roomNameDisplay}</td>
           <td>{formatDateForDisplay(item.checkIn)}</td>
@@ -194,8 +200,7 @@ const ReservationTable: React.FC<ReservationTableProps> = ({
         </tr>
       );
     });
-  }, [reservations, customerLookup, roomLookup, staffLookup, onRowClick, onStatusChange, isLoading, error, 
-      safeCapitalize, formatDateForDisplay, getCurrentStatusDisplay, getStatusCategory, statusDescriptions, getPaymentStatusDisplayAndClass]); // Added getPaymentStatusDisplayAndClass
+  }, [reservations, customerLookup, roomLookup, staffLookup, onRowClick, onStatusChange, isLoading, error, safeCapitalize, formatDateForDisplay, getCurrentStatusDisplay, getPaymentStatusDisplayAndClass, viewedReservations]); // Added viewedReservations
 
   return (
     <>
