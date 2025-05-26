@@ -1,5 +1,6 @@
-import React from 'react';
+import React from 'react'; // useEffect, useState are not directly needed here anymore for this logic
 import styles from '../../component_styles/StaffFeature.module.css';
+import { useSessionContext } from '@contexts/SessionContext';
 
 interface StaffListProps {
   searchTerm: string;
@@ -14,6 +15,10 @@ const StaffList: React.FC<StaffListProps> = ({
   onFilterClick,
   onAddStaffClick
 }) => {
+  const { role, loading: sessionLoading } = useSessionContext();
+
+  const canManageStaff = !sessionLoading && (role === 'admin' || role === 'super_admin');
+
   return (
     <div className={styles.controlsHeader}>
       <div className={styles.searchBar}>
@@ -30,9 +35,11 @@ const StaffList: React.FC<StaffListProps> = ({
           <span className={styles.tooltipText}>Filter</span>
         </button>
       </div>
-      <button className={styles.addButton} onClick={onAddStaffClick}>
-        <i className="fa-regular fa-plus"></i> Add New Staff
-      </button>
+      {canManageStaff && (
+        <button className={styles.addButton} onClick={onAddStaffClick}>
+          <i className="fa-regular fa-plus"></i> Add New Staff
+        </button>
+      )}
     </div>
   );
 };

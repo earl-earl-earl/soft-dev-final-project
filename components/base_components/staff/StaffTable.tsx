@@ -38,9 +38,9 @@ const StaffTable: React.FC<StaffTableProps> = ({
           <tr>
             <th>Username</th>
             <th>Name</th>
+            <th>Email</th>
             <th>Phone Number</th>
             <th>Role</th>
-            <th>Position</th>
             {isAdmin && (
               <th>Actions</th>
             )}
@@ -52,9 +52,10 @@ const StaffTable: React.FC<StaffTableProps> = ({
               <tr key={staff.id} className={staff.isActive === false ? styles.deactivatedRow : ''}>
                 <td>{staff.username}</td>
                 <td>{staff.name}</td>
+                <td>{staff.email}</td>
                 <td>{staff.phoneNumber}</td>
                 <td>{staff.role}</td>
-                <td>{staff.position}</td>
+        
                 {isAdmin && onEdit && onToggleStatus && (
                 <td className={styles.actionsCell}>
                   <button 

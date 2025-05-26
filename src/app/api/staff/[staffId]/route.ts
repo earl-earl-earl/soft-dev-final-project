@@ -95,7 +95,6 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
     if (staffData.name !== undefined) { staffProfileUpdatePayload.name = staffData.name; staffProfileNeedsUpdate = true; }
     if (staffData.username !== undefined) { staffProfileUpdatePayload.username = staffData.username || null; staffProfileNeedsUpdate = true; } // username is in staff table
     if (staffData.phoneNumber !== undefined) { staffProfileUpdatePayload.phone_number = staffData.phoneNumber || null; staffProfileNeedsUpdate = true; }
-    if (staffData.position !== undefined) { staffProfileUpdatePayload.position = staffData.position; staffProfileNeedsUpdate = true; }
     if (staffData.isAdmin !== undefined) { staffProfileUpdatePayload.is_admin = staffData.isAdmin; staffProfileNeedsUpdate = true; }
 
     if (staffProfileNeedsUpdate) {
@@ -135,7 +134,6 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
         phoneNumber: finalStaffData?.phone_number || undefined,
         role: finalUserData.role as StaffMember['role'],
         isAdmin: finalStaffData?.is_admin || (finalUserData.role === "admin" || finalUserData.role === "super_admin"),
-        position: finalStaffData?.position || "N/A",
         isActive: finalUserData.is_active,
         created_at: finalUserData.created_at,
         last_updated: finalUserData.last_updated,

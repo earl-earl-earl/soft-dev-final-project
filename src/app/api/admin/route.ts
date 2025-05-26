@@ -40,7 +40,7 @@ export async function GET() {
     if (userIds.length > 0) {
         const { data: profiles, error: staffProfilesError } = await supabaseAdminClient
             .from("staff") // Admins and Super Admins also have profiles in the 'staff' table
-            .select('user_id, name, username, phone_number, position, is_admin') 
+            .select('user_id, name, username, phone_number, is_admin') 
             .in('user_id', userIds);
         if (staffProfilesError) {
             console.error("API GET /api/admin: Error fetching staff profiles for admins:", staffProfilesError.message);
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     const adminData = (await request.json()) as AdminFormData;
 
     // Server-Side Validation
-    if (!adminData.email || !adminData.password || !adminData.name || !adminData.position || !adminData.role) {
+    if (!adminData.email || !adminData.password || !adminData.name || !adminData.role) {
       return NextResponse.json({ error: 'Email, password, name, role, and position (access level) are required.' }, { status: 400 });
     }
 
@@ -159,7 +159,6 @@ export async function POST(request: NextRequest) {
         name: adminData.name,
         username: adminData.username || null, 
         phone_number: adminData.phoneNumber || null,
-        position: adminData.position, // This is the AccessLevel
         is_admin: true, // Admins created here ALWAYS have staff.is_admin = true
       })
       .select() 
@@ -189,7 +188,6 @@ export async function POST(request: NextRequest) {
       phoneNumber: staffTableEntry.phone_number || undefined,
       role: newUserEntry.role as AdminMember['role'],
       isAdmin: staffTableEntry.is_admin, // Will be true
-      position: staffTableEntry.position,
       isActive: newUserEntry.is_active, 
       created_at: newUserEntry.created_at,
       last_updated: newUserEntry.last_updated,

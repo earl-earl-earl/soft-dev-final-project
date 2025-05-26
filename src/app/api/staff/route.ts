@@ -41,7 +41,7 @@ export async function GET() {
     if (userIds.length > 0) {
         const { data: profiles, error: staffProfilesError } = await supabaseAdminClient
             .from("staff")
-            .select('user_id, name, username, phone_number, position, is_admin') 
+            .select('user_id, name, username, phone_number, is_admin') 
             .in('user_id', userIds);
         if (staffProfilesError) throw staffProfilesError; // Let main catch block handle
         staffProfilesData = profiles || [];
@@ -59,7 +59,6 @@ export async function GET() {
         phoneNumber: profile?.phone_number || undefined,
         role: user.role as StaffMember['role'], // From users table
         isAdmin: profile?.is_admin || false, // Should align with role from users table
-        position: profile?.position || "N/A",
         isActive: typeof user.is_active === 'boolean' ? user.is_active : true,
         created_at: user.created_at,
         last_updated: user.last_updated,
@@ -79,7 +78,7 @@ export async function POST(request: NextRequest) {
     const staffData = (await request.json()) as StaffFormData;
 
     // --- Server-Side Validation ---
-    if (!staffData.email || !staffData.password || !staffData.name || !staffData.position || !staffData.role) {
+    if (!staffData.email || !staffData.password || !staffData.name || !staffData.role) {
       return NextResponse.json({ error: 'Email, password, name, role, and position are required.' }, { status: 400 });
     }
 
@@ -154,7 +153,6 @@ export async function POST(request: NextRequest) {
         name: staffData.name,
         username: staffData.username || null, 
         phone_number: staffData.phoneNumber || null,
-        position: staffData.position,
         is_admin: staffData.isAdmin, // Derived from role in StaffForm
       })
       .select() 
@@ -185,7 +183,6 @@ export async function POST(request: NextRequest) {
       phoneNumber: staffTableEntry.phone_number || undefined,
       role: newUserEntry.role as StaffMember['role'],
       isAdmin: staffTableEntry.is_admin,
-      position: staffTableEntry.position,
       isActive: newUserEntry.is_active, 
       created_at: newUserEntry.created_at,
       last_updated: newUserEntry.last_updated,

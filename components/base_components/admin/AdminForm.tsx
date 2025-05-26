@@ -48,7 +48,7 @@ const AdminForm: React.FC<AdminFormProps> = ({
           ? "admin"
           : "staff")
       : "admin"), // Default to 'Admin' if no roles available
-    position: admin?.position || (ACCESS_LEVELS.length > 0 ? ACCESS_LEVELS[0] : ""),
+    // position: admin?.position || (ACCESS_LEVELS.length > 0 ? ACCESS_LEVELS[0] : ""),
     password: "",
     confirmPassword: "",
   });
@@ -183,7 +183,7 @@ const AdminForm: React.FC<AdminFormProps> = ({
               </div>
             </div>
 
-            <h4 className={styles.formSectionTitle}>Role & Access Level</h4>
+            <h4 className={styles.formSectionTitle}>Role</h4>
             <div className={styles.formGroup}>
               <label htmlFor="role">Role *</label>
               <select id="role" name="role" value={formData.role} onChange={handleChange} className={styles.formControl} required >
@@ -193,13 +193,13 @@ const AdminForm: React.FC<AdminFormProps> = ({
                 ))}
               </select>
             </div>
-            <div className={styles.formGroup}>
-              <label htmlFor="position">Access Level (Position) *</label> {/* Changed name to 'position' */}
+            {/* <div className={styles.formGroup}>
+              <label htmlFor="position">Access Level (Position) *</label> 
               <select id="position" name="position" value={formData.position} onChange={handleChange} className={styles.formControl} required >
                 <option value="">Select Access Level</option>
                 {ACCESS_LEVELS.map((level) => (<option key={level} value={level}>{level}</option>))}
               </select>
-            </div>
+            </div> */}
           </div>
           <div className={styles.modalFooter}>
             <button type="button" className={styles.secondaryButton} onClick={onClose}>Cancel</button>

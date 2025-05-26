@@ -178,13 +178,12 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
     }
 
     // 3. Update public.staff table
-    const staffProfileUpdatePayload: Partial<{ name: string; username: string | null; phone_number: string | null; position: string; is_admin: boolean }> = {};
+    const staffProfileUpdatePayload: Partial<{ name: string; username: string | null; phone_number: string | null; is_admin: boolean }> = {};
     let staffProfileNeedsUpdate = false;
 
     if (adminData.name !== undefined) { staffProfileUpdatePayload.name = adminData.name; staffProfileNeedsUpdate = true; }
     if (adminData.username !== undefined) { staffProfileUpdatePayload.username = adminData.username || null; staffProfileNeedsUpdate = true; }
     if (adminData.phoneNumber !== undefined) { staffProfileUpdatePayload.phone_number = adminData.phoneNumber || null; staffProfileNeedsUpdate = true; }
-    if (adminData.position !== undefined) { staffProfileUpdatePayload.position = adminData.position; staffProfileNeedsUpdate = true; }
     
     // Ensure staff.is_admin is true for 'admin' or 'super_admin' roles
     const finalUserRoleForStaffTable = userUpdatePayload.role || targetUser.role;
@@ -218,7 +217,6 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
         phoneNumber: finalStaffDataGet?.phone_number || undefined,
         role: finalUserDataGet.role as AdminMember['role'],
         isAdmin: finalStaffDataGet?.is_admin !== undefined ? finalStaffDataGet.is_admin : true,
-        position: finalStaffDataGet?.position || "N/A",
         isActive: finalUserDataGet.is_active,
         created_at: finalUserDataGet.created_at,
         last_updated: finalUserDataGet.last_updated,

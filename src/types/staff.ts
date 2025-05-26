@@ -6,7 +6,7 @@ export interface StaffMember {
   username?: string;     // From staff.username (Optional display name)
   phoneNumber?: string;  // From staff.phone_number (optional)
   role: 'staff' | 'admin'; // From users.role
-  position: string;     // From staff.position
+  // position: string;     // From staff.position
   isAdmin: boolean;     // From staff.is_admin (true if role is 'admin', false if 'staff')
   isActive: boolean;    // From users.is_active
   created_at?: string;   // From users.created_at
@@ -24,7 +24,7 @@ export interface StaffFormData {
   role: 'Staff' | 'Admin';  // User selects "Staff" or "Admin" in the form
                             // This will be mapped to lowercase 'staff' or 'admin' for the database 'users.role'
   isAdmin: boolean;
-  position: string;       // From POSITIONS constant
+  // position: string;       // From POSITIONS constant
 }
 
 export interface FilterOptions {
@@ -33,7 +33,7 @@ export interface FilterOptions {
   emailFilter: string;
   phoneFilter?: string;
   roleFilter: 'staff' | 'admin' | '';
-  positionFilter: string;
+  // positionFilter: string;
   isActiveFilter: 'all' | 'active' | 'inactive';
   sortField: keyof StaffMember | '';
   sortDirection: 'asc' | 'desc';

@@ -137,7 +137,7 @@ const Sidebar: React.FC<SidebarProps> = ({ role }) => {
             {!isCollapsed && (
               <div className={styles.profileName}>
                 <h2>{staffName ?? "Staff"}</h2>
-                <p>{position ?? role}</p>
+                <p>{role}</p>
               </div>
             )}
           </div>

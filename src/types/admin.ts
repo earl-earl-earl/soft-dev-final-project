@@ -12,7 +12,7 @@ export interface AdminMember {
   username?: string;     // staff.username (Optional display/vanity username)
   phoneNumber?: string;
   role: 'admin' | 'super_admin' | string;
-  position: string;     // staff.position (This is the "Access Level" for admins)
+  // position: string;     
   isAdmin: true;
   isActive: boolean;
   created_at?: string;
@@ -27,7 +27,7 @@ export interface AdminFormData {
   password?: string;       // Required for new users; optional for edits
   confirmPassword?: string; // For form validation only
   role: 'Admin' | 'Staff'; // <<<< Values from the ROLES_FOR_FORM constant (Display Values)
-  position: string;
+  // position: string;
 
   // isAdmin will be derived based on the role before sending to backend or by backend.
   // For example, if role is 'Admin', then staff.is_admin will be true.
@@ -41,7 +41,7 @@ export interface FilterOptions {
   usernameFilter?: string;
   phoneFilter?: string;
   roleFilter: 'admin' | 'super_admin' | ''; // Filter by specific admin-level roles
-  positionFilter: string; // Filter by 'position' (Access Level)
+  // positionFilter: string; // Filter by 'position' (Access Level)
   isActiveFilter: 'all' | 'active' | 'inactive';
   sortField: keyof AdminMember | ''; 
   sortDirection: 'asc' | 'desc';

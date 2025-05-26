@@ -35,19 +35,23 @@ const AdminTable: React.FC<AdminTableProps> = ({
       <table className={styles.staffTable}>
         <thead>
           <tr>
-            <th>Email</th>
+            <th>Username</th>
             <th>Name</th>
+            <th>Email</th>
             <th>Phone Number</th>
             <th>Role</th>
-            <th>Actions</th>
+            {isSuperAdmin && (
+              <th>Actions</th>
+            )}
           </tr>
         </thead>
         <tbody>
           {adminData && adminData.length > 0 ? (
             adminData.map((admin) => (
               <tr key={admin.id} className={admin.isActive === false ? styles.deactivatedRow : ''}>
-                <td>{admin.email}</td>
+                <td>{admin.username}</td>
                 <td>{admin.name}</td>
+                <td>{admin.email}</td>
                 <td>{admin.phoneNumber}</td>
                 <td>{admin.role}</td>
                 {isSuperAdmin && (

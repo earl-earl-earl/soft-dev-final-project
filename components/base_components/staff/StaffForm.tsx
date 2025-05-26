@@ -50,7 +50,7 @@ const StaffForm: React.FC<StaffFormProps> = ({
     confirmPassword: '',
     role: initialData.role || ROLES[0], 
     isAdmin: initialData.role === 'Admin' || initialData.isAdmin || false,
-    position: initialData.position || (POSITIONS.length > 0 ? POSITIONS[0] : ''),
+    // position: initialData.position || (POSITIONS.length > 0 ? POSITIONS[0] : ''),
   });
 
   const [formData, setFormData] = useState<StaffFormData>(createInitialFormData());
@@ -213,7 +213,7 @@ const StaffForm: React.FC<StaffFormProps> = ({
               </div>
             </div>
 
-            <h4 className={styles.formSectionTitle}>Role & Position</h4>
+            <h4 className={styles.formSectionTitle}>Role</h4>
             {/* ... Role and Position select fields ... */}
             <div className={styles.formGroup}>
               <label htmlFor="role">Role *</label>
@@ -221,13 +221,13 @@ const StaffForm: React.FC<StaffFormProps> = ({
                 {(ROLES as readonly ('Staff' | 'Admin')[]).map(role => (<option key={role} value={role}>{role}</option>))}
               </select>
             </div>
-            <div className={styles.formGroup}>
+            {/* <div className={styles.formGroup}>
               <label htmlFor="position">Position *</label>
               <select id="position" name="position" value={formData.position} onChange={handleChange} className={styles.formControl} required>
                 <option value="">Select Position</option>
                 {POSITIONS.map(position => (<option key={position} value={position}>{position}</option>))}
               </select>
-            </div>
+            </div> */}
           </div>
           <div className={styles.modalFooter}>
             <button type="button" className={styles.secondaryButton} onClick={onClose}>Cancel</button>

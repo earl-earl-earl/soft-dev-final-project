@@ -1,12 +1,13 @@
-import React from 'react';
-import styles from '../../component_styles/StaffFeature.module.css';
 
+import React from 'react'; 
+import styles from '../../component_styles/StaffFeature.module.css';
+import { useSessionContext } from '@contexts/SessionContext';
 interface AdminListProps {
   searchTerm: string;
   onSearchChange: (term: string) => void;
   onFilterClick: () => void;
   onAddAdminClick: () => void;
-canAddAdmin: boolean;
+
 }
 
 const AdminList: React.FC<AdminListProps> = ({
@@ -15,6 +16,11 @@ const AdminList: React.FC<AdminListProps> = ({
   onFilterClick,
   onAddAdminClick
 }) => {
+
+  const { role, loading: sessionLoading } = useSessionContext();
+
+  const isSuperAdmin = !sessionLoading && role === 'super_admin';
+
   return (
     <div className={styles.controlsHeader}>
       <div className={styles.searchBar}>
@@ -31,9 +37,12 @@ const AdminList: React.FC<AdminListProps> = ({
           <span className={styles.tooltipText}>Filter</span>
         </button>
       </div>
-      <button className={styles.addButton} onClick={onAddAdminClick}>
-        <i className="fa-regular fa-plus"></i> Add New Admin
-      </button>
+      {/* 3. Conditionally render the button based on isSuperAdmin */}
+      {isSuperAdmin && (
+        <button className={styles.addButton} onClick={onAddAdminClick}>
+          <i className="fa-regular fa-plus"></i> Add New Admin
+        </button>
+      )}
     </div>
   );
 };
