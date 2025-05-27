@@ -46,7 +46,6 @@ const getMainNavItems = (role: string): NavItem[] => {
 };
 
 const otherNavItemsData = (handleLogoutCallback: () => void): NavItem[] => [
-  { type: "link", href: "/settings", iconClass: "fa-regular fa-gear", activeIconClass: "fa-solid fa-gear", text: "Settings" },
   { type: "action", action: handleLogoutCallback, iconClass: "fa-regular fa-right-from-bracket", activeIconClass: "fa-solid fa-right-from-bracket", text: "Logout" },
 ];
 

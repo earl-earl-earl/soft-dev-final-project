@@ -1,7 +1,7 @@
 // StaffForm.tsx
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import styles from '../../component_styles/StaffFeature.module.css';
+import styles from '../../component_styles/StaffFeature.module.css'; // Assuming this is the correct path
 import { StaffFormData, POSITIONS, ROLES } from '../../../src/types/staff';
 
 interface StaffFormProps {
@@ -33,6 +33,12 @@ const validatePasswordPolicy = (password: string): { isValid: boolean; messages:
   return { isValid: messages.length === 0, messages };
 };
 
+// Regex for validations
+const fullNameRegex = /^[a-zA-Z\s'-]*$/; 
+const usernameRegex = /^[a-zA-Z0-9]*$/;
+const emailRegex = /^\S+@\S+\.\S+$/;
+const phoneRegex = /^[0-9+\-()\s]*$/; // Allows digits, +, -, (), spaces
+
 
 const StaffForm: React.FC<StaffFormProps> = ({
   isOpen,
@@ -48,7 +54,7 @@ const StaffForm: React.FC<StaffFormProps> = ({
     phoneNumber: initialData.phoneNumber || '',
     password: '', 
     confirmPassword: '',
-    role: initialData.role || ROLES[0], 
+    role: initialData.role || (ROLES.length > 0 ? ROLES[0] : 'Staff'), // Default to first role or 'Staff'
     isAdmin: initialData.role === 'Admin' || initialData.isAdmin || false,
     // position: initialData.position || (POSITIONS.length > 0 ? POSITIONS[0] : ''),
   });
@@ -56,15 +62,17 @@ const StaffForm: React.FC<StaffFormProps> = ({
   const [formData, setFormData] = useState<StaffFormData>(createInitialFormData());
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null); // General form error
   const [passwordPolicyErrors, setPasswordPolicyErrors] = useState<string[]>([]);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({}); // Field-specific errors
 
 
   useEffect(() => {
     if (isOpen) {
       setFormData(createInitialFormData());
       setFormError(null);
-      setPasswordPolicyErrors([]); // Reset password policy errors
+      setPasswordPolicyErrors([]);
+      setFieldErrors({}); // Reset field-specific errors
       setPasswordVisible(false);
       setConfirmPasswordVisible(false);
     }
@@ -72,20 +80,56 @@ const StaffForm: React.FC<StaffFormProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+
     setFormData(prev => {
       const updated = { ...prev, [name]: value };
       if (name === 'role') {
         updated.isAdmin = value === 'Admin'; 
       }
-      // If password field is changing, re-validate policy for immediate feedback
-      if (name === 'password' && value.length > 0) {
-        const policyCheck = validatePasswordPolicy(value);
-        setPasswordPolicyErrors(policyCheck.messages);
-      } else if (name === 'password' && value.length === 0) {
-        setPasswordPolicyErrors([]);
-      }
       return updated;
     });
+
+    // Clear general form error and relevant field error on input change
+    if (formError) setFormError(null);
+    if (fieldErrors[name]) {
+      setFieldErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+     if (name === 'password' && formError && (formError.toLowerCase().includes("password") || formError.toLowerCase().includes("passwords"))){
+        setFormError(null);
+    }
+
+    // Password policy check during typing
+    if (name === 'password') {
+      if (value.length > 0) {
+        const policyCheck = validatePasswordPolicy(value);
+        setPasswordPolicyErrors(policyCheck.messages);
+      } else {
+        setPasswordPolicyErrors([]);
+      }
+    }
+
+    // Field-specific validations during typing
+    if (name === 'name') {
+      if (value && !fullNameRegex.test(value)) {
+        setFieldErrors(prev => ({ ...prev, name: "Full Name: Only letters, spaces, hyphens (-), and apostrophes (') are allowed." }));
+      }
+    } else if (name === 'username') {
+      if (value && !usernameRegex.test(value)) {
+        setFieldErrors(prev => ({ ...prev, username: "Display Username: Only letters and numbers are allowed." }));
+      }
+    } else if (name === 'email') {
+      if (value && !emailRegex.test(value)) {
+        setFieldErrors(prev => ({ ...prev, email: "Please enter a valid email address." }));
+      }
+    } else if (name === 'phoneNumber') {
+      if (value && !phoneRegex.test(value)) {
+        setFieldErrors(prev => ({ ...prev, phoneNumber: "Phone Number: Only numbers and typical phone characters (+, -, (), spaces) are allowed." }));
+      }
+    }
   };
 
   const togglePasswordVisibility = () => setPasswordVisible(!passwordVisible);
@@ -93,32 +137,71 @@ const StaffForm: React.FC<StaffFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError(null);
-    setPasswordPolicyErrors([]);
+    setFormError(null); // Reset general form error
+    
+    let currentSubmitFieldErrors: Record<string, string> = {};
+    let validationFailed = false;
 
-    if (!formData.email.trim() || !/\S+@\S+\.\S+/.test(formData.email)) {
-        setFormError("A valid email address is required.");
-        return;
+    // 1. Full Name
+    if (!formData.name.trim()) {
+        currentSubmitFieldErrors.name = "Full Name is required.";
+        validationFailed = true;
+    } else if (!fullNameRegex.test(formData.name)) {
+        currentSubmitFieldErrors.name = "Full Name: Only letters, spaces, hyphens (-), and apostrophes (') are allowed.";
+        validationFailed = true;
     }
 
-    // Password is required for new staff OR if it's being changed during edit
+    // 2. Email
+    if (!formData.email.trim()) {
+        currentSubmitFieldErrors.email = "Email address is required.";
+        validationFailed = true;
+    } else if (!emailRegex.test(formData.email)) {
+        currentSubmitFieldErrors.email = "Please enter a valid email address.";
+        validationFailed = true;
+    }
+
+    // 3. Display Username (optional)
+    if (formData.username && formData.username.trim() && !usernameRegex.test(formData.username)) {
+        currentSubmitFieldErrors.username = "Display Username: Only letters and numbers are allowed.";
+        validationFailed = true;
+    }
+
+    // 4. Phone Number (optional)
+    if (formData.phoneNumber && formData.phoneNumber.trim() && !phoneRegex.test(formData.phoneNumber)) {
+        currentSubmitFieldErrors.phoneNumber = "Phone Number: Only numbers and typical phone characters (+, -, (), spaces) are allowed.";
+        validationFailed = true;
+    }
+    
+    setFieldErrors(currentSubmitFieldErrors); // Update state with any new field errors
+
+    // 5. Password validations
     const isPasswordBeingSet = !!formData.password || !isEditing;
+    let tempPasswordPolicyErrors: string[] = []; 
 
     if (isPasswordBeingSet) {
-        if (!formData.password) {
+        if (!formData.password) { 
             setFormError("Password is required for new staff or when changing password.");
-            return;
+            validationFailed = true;
+        } else {
+            const policyCheck = validatePasswordPolicy(formData.password);
+            if (!policyCheck.isValid) {
+                tempPasswordPolicyErrors = policyCheck.messages;
+                setFormError("Password does not meet security requirements.");
+                validationFailed = true;
+            }
+            if (formData.password !== formData.confirmPassword) {
+              setFormError("Passwords do not match.");
+              validationFailed = true;
+            }
         }
-        const policyCheck = validatePasswordPolicy(formData.password);
-        if (!policyCheck.isValid) {
-            setPasswordPolicyErrors(policyCheck.messages);
-            setFormError("Password does not meet security requirements.");
-            return;
+    }
+    setPasswordPolicyErrors(tempPasswordPolicyErrors); // Update password policy error list for display
+
+    if (validationFailed) {
+        if (!formError && Object.keys(currentSubmitFieldErrors).length > 0) {
+            setFormError("Please correct the errors highlighted below.");
         }
-        if (formData.password !== formData.confirmPassword) {
-          setFormError("Passwords do not match."); 
-          return;
-        }
+        return; // Prevent submission
     }
 
 
@@ -132,6 +215,17 @@ const StaffForm: React.FC<StaffFormProps> = ({
 
   if (!isOpen) return null;
 
+  // Determine if password input should have an error border based on general form error or policy list
+  const passwordInputShouldBeRed = 
+    (passwordPolicyErrors.length > 0 && formData.password) || 
+    formError === "Password is required for new staff or when changing password." ||
+    formError === "Password does not meet security requirements." ||
+    formError === "Passwords do not match.";
+
+  // Determine if confirm password input should have an error border
+  const confirmPasswordInputShouldBeRed = formError === "Passwords do not match.";
+
+
   return ReactDOM.createPortal(
     <div className={styles.overlay}>
       <div className={styles.modal}>
@@ -144,23 +238,57 @@ const StaffForm: React.FC<StaffFormProps> = ({
             {formError && <p className={styles.formErrorMessage}>{formError}</p>}
             
             <h4 className={styles.formSectionTitle}>User Information</h4>
-            {/* ... Name, Email, Username, Phone Number fields ... */}
             <div className={styles.formGroup}>
               <label htmlFor="name">Full Name *</label>
-              <input type="text" id="name" name="name" value={formData.name} onChange={handleChange} className={styles.formControl} required />
+              <input 
+                type="text" 
+                id="name" 
+                name="name" 
+                value={formData.name} 
+                onChange={handleChange} 
+                className={`${styles.formControl} ${fieldErrors.name ? styles.inputError : ''}`} 
+                required 
+              />
+              {fieldErrors.name && <p className={styles.inputFieldErrorText}>{fieldErrors.name}</p>}
             </div>
             <div className={styles.formGroup}>
               <label htmlFor="email">Email Address (for login) *</label>
-              <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} className={styles.formControl} required disabled={isEditing} />
-              {isEditing && <small className={styles.formTextMuted}>Email cannot be changed as it's tied to the authentication account.</small>}
+              <input 
+                type="email" 
+                id="email" 
+                name="email" 
+                value={formData.email} 
+                onChange={handleChange} 
+                className={`${styles.formControl} ${fieldErrors.email ? styles.inputError : ''}`} 
+                required 
+                disabled={isEditing} 
+              />
+              {fieldErrors.email && <p className={styles.inputFieldErrorText}>{fieldErrors.email}</p>}
+              {isEditing && !fieldErrors.email && <small className={styles.formTextMuted}>Email cannot be changed as it's tied to the authentication account.</small>}
             </div>
             <div className={styles.formGroup}>
               <label htmlFor="username">Display Username (Optional)</label>
-              <input type="text" id="username" name="username" value={formData.username || ''} onChange={handleChange} className={styles.formControl} />
+              <input 
+                type="text" 
+                id="username" 
+                name="username" 
+                value={formData.username || ''} 
+                onChange={handleChange} 
+                className={`${styles.formControl} ${fieldErrors.username ? styles.inputError : ''}`} 
+              />
+              {fieldErrors.username && <p className={styles.inputFieldErrorText}>{fieldErrors.username}</p>}
             </div>
             <div className={styles.formGroup}>
               <label htmlFor="phoneNumber">Phone Number (Optional)</label>
-              <input type="tel" id="phoneNumber" name="phoneNumber" value={formData.phoneNumber || ''} onChange={handleChange} className={styles.formControl} />
+              <input 
+                type="tel" 
+                id="phoneNumber" 
+                name="phoneNumber" 
+                value={formData.phoneNumber || ''} 
+                onChange={handleChange} 
+                className={`${styles.formControl} ${fieldErrors.phoneNumber ? styles.inputError : ''}`} 
+              />
+              {fieldErrors.phoneNumber && <p className={styles.inputFieldErrorText}>{fieldErrors.phoneNumber}</p>}
             </div>
 
 
@@ -176,15 +304,14 @@ const StaffForm: React.FC<StaffFormProps> = ({
                   name="password" 
                   value={formData.password} 
                   onChange={handleChange} 
-                  className={`${styles.formControl} ${passwordPolicyErrors.length > 0 && formData.password ? styles.inputError : ''}`}
+                  className={`${styles.formControl} ${passwordInputShouldBeRed ? styles.inputError : ''}`}
                   required={!isEditing} 
                   placeholder={isEditing ? "Enter new password" : "Min. 8 characters"} 
                   autoComplete="new-password"
                 />
                 <button type="button" className={styles.eyeIcon} onClick={togglePasswordVisibility} aria-label="Toggle password visibility"><i className={passwordVisible ? "fa-regular fa-eye-slash" : "fa-regular fa-eye"}></i></button>
               </div>
-              {/* Display Password Policy Errors */}
-              {passwordPolicyErrors.length > 0 && formData.password && ( // Only show if password has been typed
+              {passwordPolicyErrors.length > 0 && formData.password && (
                 <ul className={styles.passwordPolicyErrorList}>
                   {passwordPolicyErrors.map((errorMsg, index) => (
                     <li key={index}>{errorMsg}</li>
@@ -204,7 +331,7 @@ const StaffForm: React.FC<StaffFormProps> = ({
                   name="confirmPassword" 
                   value={formData.confirmPassword} 
                   onChange={handleChange} 
-                  className={styles.formControl} 
+                  className={`${styles.formControl} ${confirmPasswordInputShouldBeRed ? styles.inputError : ''}`} 
                   required={!isEditing || (!!formData.password)} 
                   placeholder={isEditing && !formData.password ? '' : 'Re-type password'} 
                   autoComplete="new-password"
@@ -214,7 +341,6 @@ const StaffForm: React.FC<StaffFormProps> = ({
             </div>
 
             <h4 className={styles.formSectionTitle}>Role</h4>
-            {/* ... Role and Position select fields ... */}
             <div className={styles.formGroup}>
               <label htmlFor="role">Role *</label>
               <select id="role" name="role" value={formData.role} onChange={handleChange} className={styles.formControl} required>
