@@ -41,15 +41,7 @@ const ExportOverlay: React.FC<ExportOverlayProps> = ({
         <form onSubmit={handleSubmit} className={styles.exportForm}>
           <div className={styles.exportSection}>
             <div className={styles.exportOptions}>
-              <div 
-                className={`${styles.exportOption} ${selectedFormat === 'pdf' ? styles.selected : ''}`}
-                onClick={() => handleFormatSelect('pdf')}
-              >
-                <div className={styles.exportIcon}>
-                  <i className="fa-regular fa-file-pdf"></i>
-                </div>
-                <span className={styles.exportText}>Export as PDF</span>
-              </div>
+            
               
               <div 
                 className={`${styles.exportOption} ${selectedFormat === 'csv' ? styles.selected : ''}`}

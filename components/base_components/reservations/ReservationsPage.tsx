@@ -19,17 +19,57 @@ import ReservationTabs from "./ReservationTabs";
 import ReservationStats from "./ReservationStats";
 import ReservationFilters from "./ReservationFilters";
 import Pagination from "../../common/Pagination";
-// Import NewReservationOverlay and ITS RoomOption type specifically
 import NewReservationOverlay, { 
   ReservationData, 
   RoomOption as NewReservationOverlayRoomOption 
 } from "../../overlay_components/NewReservationOverlay";
 import FilterOverlay, { FilterOptions as OverlayFilterOptions } from "../../overlay_components/FilterOverlay";
-import ExportOverlay from "../../overlay_components/ExportOverlay";
+import ExportOverlay from "../../overlay_components/ExportOverlay"; // Ensure this component exists and accepts onExport
 import ReservationDetailsOverlay from "../../overlay_components/ReservationDetailsOverlay";
 import { supabase } from "@/lib/supabaseClient"; 
 
+// ***** ADD IMPORTS FOR EXPORT UTILITIES *****
+import { 
+    getStatusDisplay, 
+    calculateTotalGuests 
+    // You can import other utilities like statusDescriptions or getStatusCategory if needed
+} from "../../../src/utils/reservationUtils"; // Adjust path as needed if different
+
 const ITEMS_PER_PAGE = 6;
+
+
+// ***** HELPER FUNCTION TO CONVERT DATA TO CSV STRING *****
+const convertToCSV = (data: Record<string, any>[], headers?: string[]): string => {
+  const array = [Object.keys(data[0])].concat(data as any); // Use keys from first object as headers if not provided
+
+  if (headers) { // If explicit headers are provided, use them
+    array[0] = headers;
+  }
+
+  return array.map(row => {
+    return Object.values(row).map(value => {
+      const cellValue = value === null || value === undefined ? '' : String(value);
+      // Escape commas, quotes, and newlines in cell values
+      const escapedCellValue = cellValue.includes(',') || cellValue.includes('"') || cellValue.includes('\n') 
+        ? `"${cellValue.replace(/"/g, '""')}"` 
+        : cellValue;
+      return escapedCellValue;
+    }).join(',');
+  }).join('\r\n');
+};
+
+// ***** HELPER FUNCTION TO TRIGGER FILE DOWNLOAD *****
+const downloadFile = (content: string, fileName: string, contentType: string) => {
+  const blob = new Blob([content], { type: contentType });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(link.href);
+};
+
 
 const ReservationsPage: React.FC = () => {
   const {
@@ -42,27 +82,8 @@ const ReservationsPage: React.FC = () => {
     refreshReservations
   } = useReservations();
 
-  // Debugging function (can be removed for production)
-  const duplicateReservationsForDebugging = useCallback((
-    inputReservations: ReservationItem[], 
-    duplicateCount: number = 1
-  ): ReservationItem[] => {
-    if (!inputReservations || !inputReservations.length) return [];
-    const duplicatedData: ReservationItem[] = [];
-    for (let i = 0; i < duplicateCount; i++) {
-      inputReservations.forEach(reservation => {
-        duplicatedData.push({
-          ...reservation,
-          id: `${reservation.id}-dup-${i}`
-        });
-      });
-    }
-    return duplicatedData;
-  }, []);
-
-
   const {
-    filteredReservations,
+    filteredReservations, // This will be used for export
     searchTerm,
     setSearchTerm,
     statusFilter,
@@ -82,7 +103,6 @@ const ReservationsPage: React.FC = () => {
   const [currentReservations, setCurrentReservations] = useState<ReservationItem[]>([]);
   
   const [isNewReservationOpen, setIsNewReservationOpen] = useState(false);
-  // State for rooms passed to NewReservationOverlay, correctly typed
   const [availableRoomsForNewOverlay, setAvailableRoomsForNewOverlay] = useState<NewReservationOverlayRoomOption[]>([]);
   const [formSubmissionError, setFormSubmissionError] = useState<string | null>(null);
 
@@ -92,11 +112,8 @@ const ReservationsPage: React.FC = () => {
 
   const [animate, setAnimate] = useState(false);
   const [showContent, setShowContent] = useState(false);
-
-  // Add this near your other state declarations
   const [viewedReservations, setViewedReservations] = useState<Set<string>>(new Set());
 
-  // Initial content visibility and animation trigger
   useEffect(() => {
     if (!isLoading) {
       const showTimer = setTimeout(() => {
@@ -111,7 +128,6 @@ const ReservationsPage: React.FC = () => {
     }
   }, [isLoading]);
 
-  // Re-trigger animation on filter/page changes
   useEffect(() => {
     if (showContent) {
       setAnimate(false);
@@ -120,8 +136,6 @@ const ReservationsPage: React.FC = () => {
     }
   }, [reservationType, currentPage, searchTerm, statusFilter, filterOptions, showContent]);
 
-
-  // Fetch rooms for NewReservationOverlay
   useEffect(() => {
     const fetchRoomsForNewOverlay = async () => {
       try {
@@ -139,10 +153,8 @@ const ReservationsPage: React.FC = () => {
             id: String(room.id), name: String(room.name),
             price: Number(room.room_price || 0), capacity: Number(room.capacity || 0) 
           }));
-          console.log("ReservationsPage: Rooms for NewReservationOverlay dropdown:", formattedRoomOptions);
           setAvailableRoomsForNewOverlay(formattedRoomOptions);
         } else {
-          console.log("ReservationsPage: No active rooms found for NewReservationOverlay.");
           setAvailableRoomsForNewOverlay([]);
         }
       } catch (err) {
@@ -153,7 +165,6 @@ const ReservationsPage: React.FC = () => {
     fetchRoomsForNewOverlay();
   }, []);
 
-  // Prepare roomOptions for FilterOverlay
   const roomOptionsForFilter: FilterRoomOption[] = useMemo(() => 
     Object.entries(roomLookup).map(([id, roomData]) => ({ id, name: roomData.name })), 
   [roomLookup]);
@@ -173,7 +184,6 @@ const ReservationsPage: React.FC = () => {
     const startIndex = (targetPage - 1) * ITEMS_PER_PAGE;
     setCurrentReservations(dataForPagination.slice(startIndex, startIndex + ITEMS_PER_PAGE));
   }, [currentPage, dataForPagination, totalPages]);
-
 
   const openNewReservationModal = () => {
     setFormSubmissionError(null); 
@@ -204,7 +214,6 @@ const ReservationsPage: React.FC = () => {
   };
 
   const handleApplyFilters = (newFilters: OverlayFilterOptions): void => { 
-    // Ensure paymentStatus is cast to the correct PaymentFilterStatus type
     setFilterOptions({
       ...newFilters,
       paymentStatus: newFilters.paymentStatus as any 
@@ -213,22 +222,15 @@ const ReservationsPage: React.FC = () => {
   };
 
   const handleRowClick = (reservation: ReservationItem) => {
-    // Mark as viewed
     setViewedReservations(prev => {
       const newSet = new Set(prev);
       newSet.add(reservation.id);
       return newSet;
     });
-    
-    // Original behavior
     setSelectedReservation(reservation);
   };
 
-  // --- FULLY UPDATED handleStatusChange with AVAILABILITY CHECK ---
   const handleStatusChange = async (reservationId: string, newStatus: StatusValue) => {
-    console.log(`ReservationsPage: Attempting to change reservation ${reservationId} to status ${newStatus}`);
-
-    // 1. Fetch current details of the target reservation
     const { data: targetReservation, error: fetchError } = await supabase
       .from("reservations")
       .select("source, customer_id, room_id, check_in, check_out, confirmation_time, status, payment_received") 
@@ -236,23 +238,17 @@ const ReservationsPage: React.FC = () => {
       .single();
 
     if (fetchError || !targetReservation) {
-      console.error("ReservationsPage: Failed to fetch target reservation details for status change:", fetchError?.message);
-      alert("Error: Could not retrieve reservation details to update status. Please try again or check console.");
+      alert("Error: Could not retrieve reservation details to update status.");
       return;
     }
 
     const currentStatus = targetReservation.status as StatusValue;
-    const currentPaymentReceived = targetReservation.payment_received;
-
-    // 2. AVAILABILITY CHECK (REQ-WEB-06)
     const statusesThatBlockRoomForNewBooking: StatusValue[] = ["Confirmed_Pending_Payment", "Accepted", "Checked_In"];
     
     if (
         (newStatus === "Confirmed_Pending_Payment" || newStatus === "Accepted") &&
         !statusesThatBlockRoomForNewBooking.includes(currentStatus) 
     ) {
-      console.log(`ReservationsPage: Performing availability check for room ${targetReservation.room_id} (dates: ${targetReservation.check_in} to ${targetReservation.check_out}) before setting to ${newStatus}`);
-      
       const { data: conflictingReservations, error: availabilityError } = await supabase
         .from('reservations')
         .select('id, status')
@@ -263,21 +259,16 @@ const ReservationsPage: React.FC = () => {
         .gt('check_out', targetReservation.check_in); 
 
       if (availabilityError) {
-        console.error("ReservationsPage: DB error during room availability check:", availabilityError.message, availabilityError.details);
-        alert("Error: Could not verify room availability due to a system error. Please try again or contact support.");
+        alert("Error: Could not verify room availability.");
         return;
       }
-
       if (conflictingReservations && conflictingReservations.length > 0) {
         const conflictDetails = conflictingReservations.map(r => `ID: ${r.id}(Status: ${r.status})`).join(', ');
-        console.warn(`ReservationsPage: Availability conflict. Cannot change to "${newStatus}". Conflicts with: ${conflictDetails}`);
-        alert(`Error: Cannot change status to "${newStatus}". The room is already booked or held by another reservation for these dates (Conflicts: ${conflictDetails}).`);
+        alert(`Error: Cannot change status to "${newStatus}". Room conflict: ${conflictDetails}.`);
         return; 
       }
-      console.log("ReservationsPage: Availability check passed for status change.");
     }
 
-    // 3. Prepare Update Payload
     type ReservationUpdatePayload = {
       status: StatusValue;
       payment_received: boolean;
@@ -286,14 +277,13 @@ const ReservationsPage: React.FC = () => {
       confirmation_time?: string | null;
     };
 
-    let newPaymentReceivedStatus = currentPaymentReceived;
+    let newPaymentReceivedStatus = targetReservation.payment_received;
     if (newStatus === "Accepted" || newStatus === "Checked_In") {
       newPaymentReceivedStatus = true;
     } else if ((newStatus === "Rejected" || newStatus === "Cancelled" || newStatus === "Expired") && 
                (currentStatus === "Pending" || currentStatus === "Confirmed_Pending_Payment")) {
       newPaymentReceivedStatus = false;
     }
-    // Note: payment_received stays true if Cancelled/Rejected/NoShow from an Accepted state.
 
     const updatePayload: ReservationUpdatePayload = {
       status: newStatus,
@@ -305,95 +295,121 @@ const ReservationsPage: React.FC = () => {
     if ((newStatus === "Confirmed_Pending_Payment" || newStatus === "Accepted") && !targetReservation.confirmation_time) {
       updatePayload.confirmation_time = new Date().toISOString();
     } 
-    // Optional: else if (!["Confirmed_Pending_Payment", "Accepted", "Checked_In"].includes(newStatus) && targetReservation.confirmation_time) {
-    //   updatePayload.confirmation_time = null; 
-    // }
 
-    // 4. Perform the Update
-    console.log(`ReservationsPage: Updating reservation ${reservationId} with payload:`, updatePayload);
     const { error: updateError } = await supabase
       .from("reservations")
       .update(updatePayload)
       .eq("id", reservationId);
 
     if (updateError) {
-      console.error("ReservationsPage: Failed to update status in DB:", updateError.message, updateError.details);
       alert(`Error: Failed to update reservation status to "${newStatus}". ${updateError.message}`);
       return;
     }
-    console.log(`ReservationsPage: Reservation ${reservationId} status successfully updated to ${newStatus}.`);
 
-    // 5. Notification (Placeholder)
     const notifyCustomerStatuses: StatusValue[] = ["Confirmed_Pending_Payment", "Accepted", "Rejected", "Expired", "Cancelled"];
     if (notifyCustomerStatuses.includes(newStatus) && (targetReservation.source === "mobile" || targetReservation.source === "staff_manual")) {
       console.log(`🔔 NOTIFICATION: Customer ${targetReservation.customer_id}, status: ${newStatus}.`);
-    } else {
-      console.log(`📵 No notification (Source: ${targetReservation.source}, New Status: ${newStatus})`);
     }
-
     await refreshReservations();
   };
-  // --- END UPDATED handleStatusChange ---
 
-  const getDateRangeText = () => {
-    const now = new Date();
-    const currentMonthStart = startOfMonth(now); 
-    // const lastMonthStart = startOfMonth(subMonths(now, 1)); // Not used in return
-    return `${format(currentMonthStart, 'MMM dd')} - ${format(endOfMonth(now), 'MMM dd, yyyy')}`;
-  };
-
-  // Load viewed reservations from localStorage on component mount
   useEffect(() => {
     try {
       const savedViewedReservations = localStorage.getItem('viewedReservations');
       if (savedViewedReservations) {
         setViewedReservations(new Set(JSON.parse(savedViewedReservations)));
       }
-    } catch (e) {
-      console.error('Failed to load viewed reservations from localStorage:', e);
-    }
+    } catch (e) { console.error('Failed to load viewed reservations from localStorage:', e); }
   }, []);
 
-  // Save viewed reservations to localStorage when they change
   useEffect(() => {
     try {
       localStorage.setItem('viewedReservations', JSON.stringify([...viewedReservations]));
-    } catch (e) {
-      console.error('Failed to save viewed reservations to localStorage:', e);
-    }
+    } catch (e) { console.error('Failed to save viewed reservations to localStorage:', e); }
   }, [viewedReservations]);
 
   const handleDeleteReservation = async (reservationId: string) => {
     try {
-      // Get the current session token from Supabase
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        alert('You must be logged in to delete a reservation.');
-        return;
-      }
+      if (!session) { alert('You must be logged in to delete.'); return; }
       const accessToken = session.access_token;
       const res = await fetch(`/api/reservations/${reservationId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json', },
       });
       const result = await res.json();
-      if (!res.ok) {
-        alert(result.error || 'Failed to delete reservation.');
-        return;
-      }
+      if (!res.ok) { alert(result.error || 'Failed to delete reservation.'); return; }
       alert('Reservation deleted successfully.');
       setSelectedReservation(null);
       await refreshReservations();
-    } catch (err: any) {
-      alert('Failed to delete reservation.');
-      console.error('Delete reservation error:', err);
-    }
+    } catch (err: any) { alert('Failed to delete reservation.'); console.error('Delete reservation error:', err); }
   };
 
+  // ***** FUNCTION TO HANDLE THE ACTUAL EXPORT PROCESS *****
+  const handleConfirmExport = (exportOptions?: any) => { // exportOptions can come from ExportOverlay
+    console.log("Exporting data with options:", exportOptions); // Log options if any
+
+    if (!filteredReservations || filteredReservations.length === 0) {
+      alert("No data available to export for the current filters.");
+      setIsExportOpen(false);
+      return;
+    }
+
+    try {
+      // 1. Format the data using utility functions
+      const formattedDataForExport = filteredReservations.map(res => {
+        const customerName = customerLookup[res.customerId]?.name || 'N/A';
+        const roomName = roomLookup[res.roomId]?.name || 'N/A';
+        const staffName = res.auditedBy ? (staffLookup[res.auditedBy]?.name || 'System') : 'N/A';
+        
+        return {
+          'ID': res.id,
+          'Guest Name': customerName,
+          'Room': roomName,
+          'Check-In': res.checkIn? format(new Date(res.checkIn), 'yyyy-MM-dd HH:mm') : 'N/A',
+          'Check-Out': res.checkOut ? format(new Date(res.checkOut), 'yyyy-MM-dd HH:mm') : 'N/A',
+          'Status': getStatusDisplay(res.status), // Using utility function
+          'Total Guests': calculateTotalGuests(res.guests), // Using utility function
+          'Adults': res.guests.adults,
+          'Children': res.guests.children,
+          'Seniors': res.guests.seniors,
+          'Total Amount': res.totalPrice?.toFixed(2) || '0.00',
+          'Payment Method': res.type?  "online" : "direct" ,
+          'Payment Received': res.paymentReceived ? 'Yes' : 'No',
+          'Created At': res.timestamp ? format(new Date(res.timestamp), 'yyyy-MM-dd HH:mm') : 'N/A',
+          'Confirmation Time': res.confirmationTime ? format(new Date(res.confirmationTime), 'yyyy-MM-dd HH:mm') : 'N/A',
+          'Processed By': staffName,
+          'Source': res.source || 'N/A',
+        };
+      });
+
+      // Define custom headers in the desired order
+      const customHeaders = [
+        'ID', 'Guest Name', 'Room', 'Check-In', 'Check-Out', 'Status', 
+        'Total Guests', 'Adults', 'Children', 'Seniors', 'Total Amount', 
+        'Payment Method', 'Payment Receieved', 'Created At', 'Confirmation Time',
+        'Processed By', 'Source'
+      ];
+
+      // 2. Convert to CSV
+      const csvString = convertToCSV(formattedDataForExport, customHeaders);
+
+      // 3. Trigger download
+      const fileName = `reservations_export_${format(new Date(), 'yyyyMMdd_HHmmss')}.csv`;
+      downloadFile(csvString, fileName, 'text/csv;charset=utf-8;');
+
+      console.log("Data export successful.");
+    } catch (err) {
+      console.error("Error during data export:", err);
+      alert("An error occurred while exporting data. Please check the console for details.");
+    }
+
+    setIsExportOpen(false); // Close the overlay after export
+  };
+
+
   if (!showContent) {
+    // ... (loading UI remains the same)
     return (
       <div className={styles.loadingContainer}>
         <div className={styles.loadingAnimation}>
@@ -436,7 +452,7 @@ const ReservationsPage: React.FC = () => {
             statusFilter={statusFilter} onStatusFilterChange={setStatusFilter}
             searchTerm={searchTerm} onSearchTermChange={setSearchTerm}
             onOpenAdvancedFilters={() => setIsFilterOpen(true)}
-            onOpenExport={() => setIsExportOpen(true)}
+            onOpenExport={() => setIsExportOpen(true)} // This opens the ExportOverlay
           />
 
           <div className={`${animate ? styles.animateSecond : ""}`}>
@@ -451,7 +467,7 @@ const ReservationsPage: React.FC = () => {
               error={error}
               onRetry={refreshReservations}
               animate={animate}
-              viewedReservations={viewedReservations} // Add this prop
+              viewedReservations={viewedReservations}
             />
           </div>
         </div>
@@ -479,10 +495,11 @@ const ReservationsPage: React.FC = () => {
         roomOptions={roomOptionsForFilter} 
       />
 
+      {/* ***** PASS THE EXPORT HANDLER TO ExportOverlay ***** */}
       <ExportOverlay
         isOpen={isExportOpen}
         onClose={() => setIsExportOpen(false)}
-        onExport={(exportData) => console.log("Export data:", exportData)} 
+        onExport={handleConfirmExport} // Pass the actual export function here
       />
 
       {selectedReservation && (
